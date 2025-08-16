@@ -554,39 +554,35 @@ app.post('/api/database/clear-all', async (req, res) => {
 // Get order history
 app.get('/api/order-history', async (req, res) => {
   try {
-    // First get all orders
+    // Get orders with items in a single query using JOIN
     const result = await query(`
-      SELECT * FROM orders 
-      WHERE status = 'completed'
-      ORDER BY created_at DESC
+      SELECT 
+        o.*,
+        COALESCE(
+          json_agg(
+            CASE 
+              WHEN oi.id IS NOT NULL THEN 
+                json_build_object(
+                  'name', oi.item_name,
+                  'quantity', oi.quantity,
+                  'price', oi.price,
+                  'isCustom', oi.is_custom
+                )
+              ELSE NULL
+            END
+          ) FILTER (WHERE oi.id IS NOT NULL), 
+          '[]'::json
+        ) as items
+      FROM orders o
+      LEFT JOIN order_items oi ON o.id = oi.order_id
+      WHERE o.status = 'completed'
+      GROUP BY o.id
+      ORDER BY o.created_at DESC
       LIMIT 100
     `);
     
-    console.log(`📊 Found ${result.rows.length} completed orders`);
-    
-    // Get items for each order
-    const ordersWithItems = [];
-    for (const order of result.rows) {
-      try {
-        const itemsResult = await query(
-          'SELECT item_name as name, quantity, price, is_custom FROM order_items WHERE order_id = $1',
-          [order.id]
-        );
-        
-        ordersWithItems.push({
-          ...order,
-          items: itemsResult.rows || []
-        });
-      } catch (itemError) {
-        console.error(`Error fetching items for order ${order.id}:`, itemError);
-        ordersWithItems.push({
-          ...order,
-          items: []
-        });
-      }
-    }
-    
-    res.json(ordersWithItems);
+    console.log(`📊 Found ${result.rows.length} completed orders with items`);
+    res.json(result.rows);
   } catch (error) {
     console.error('Error fetching order history:', error);
     res.status(500).json({ error: 'Failed to fetch order history', details: error.message });
