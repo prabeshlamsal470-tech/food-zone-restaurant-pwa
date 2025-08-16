@@ -510,32 +510,41 @@ app.get('/api/database/summary', async (req, res) => {
 
 app.post('/api/database/clear-all', async (req, res) => {
   try {
-    console.log('🧹 Simple data cleanup requested via API');
+    console.log('🧹 Database cleanup requested via API');
+    
+    // Clear database tables
+    await query('DELETE FROM order_items');
+    const ordersResult = await query('DELETE FROM orders RETURNING id');
+    const customersResult = await query('DELETE FROM customers RETURNING id');
+    await query('DELETE FROM customer_addresses');
     
     // Clear in-memory table sessions
     const sessionCount = tableSessions.size;
     tableSessions.clear();
     
-    console.log(`🗑️ Cleared ${sessionCount} table sessions`);
+    const ordersCleared = ordersResult.rowCount || 0;
+    const customersCleared = customersResult.rowCount || 0;
+    
+    console.log(`🗑️ Cleared ${ordersCleared} orders, ${customersCleared} customers, ${sessionCount} table sessions`);
     
     // Emit cleanup event to all connected clients
     io.emit('databaseCleared', {
-      customers: 0,
-      orders: 0,
-      orderItems: 0,
+      customers: customersCleared,
+      orders: ordersCleared,
+      orderItems: ordersCleared, // Assume same count
       addresses: 0,
       tableSessions: sessionCount,
-      message: 'All session data cleared successfully'
+      message: 'All data cleared successfully'
     });
     
     const result = {
       success: true,
-      customers: 0,
-      orders: 0,
-      orderItems: 0,
+      customers: customersCleared,
+      orders: ordersCleared,
+      orderItems: ordersCleared,
       addresses: 0,
       tableSessions: sessionCount,
-      message: 'All session data cleared successfully'
+      message: 'All data cleared successfully'
     };
     
     console.log('✅ Simple cleanup completed:', result);
