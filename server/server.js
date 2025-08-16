@@ -773,6 +773,37 @@ app.get('/api/test/db', async (req, res) => {
   }
 });
 
+// Check database tables endpoint
+app.get('/api/test/tables', async (req, res) => {
+  try {
+    const tables = await query(`
+      SELECT table_name, table_schema 
+      FROM information_schema.tables 
+      WHERE table_type = 'BASE TABLE'
+      ORDER BY table_schema, table_name
+    `);
+    
+    const publicTables = await query(`
+      SELECT table_name 
+      FROM information_schema.tables 
+      WHERE table_schema = 'public' AND table_type = 'BASE TABLE'
+    `);
+    
+    res.json({
+      success: true,
+      allTables: tables.rows,
+      publicTables: publicTables.rows.map(r => r.table_name),
+      count: publicTables.rows.length
+    });
+  } catch (error) {
+    console.error('❌ Table check failed:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: error.message 
+    });
+  }
+});
+
 // Database initialization endpoint with table verification
 app.post('/api/init/db', async (req, res) => {
   try {
