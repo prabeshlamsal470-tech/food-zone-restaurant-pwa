@@ -9,13 +9,24 @@ import Menu from './pages/Menu';
 import TableOrder from './pages/TableOrder';
 import DeliveryCart from './pages/DeliveryCart';
 import Admin from './pages/Admin';
+import AdminMobile from './pages/AdminMobile';
 import { CartProvider } from './context/CartContext';
 import { DeliveryCartProvider } from './context/DeliveryCartContext';
 import { TableProvider } from './context/TableContext';
 // import cacheManager from './utils/cacheManager';
 
 function App() {
+  const [isMobile, setIsMobile] = React.useState(false);
+
   useEffect(() => {
+    // Check if device is mobile
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    
     // Initialize cache manager on app start
     console.log('🚀 Food Zone Restaurant - Cache Manager Initialized');
     console.log('🧹 Automatic cleanup every 10 minutes for tables 1-25');
@@ -28,6 +39,7 @@ function App() {
     window.addEventListener('cacheCleanup', handleCacheCleanup);
     
     return () => {
+      window.removeEventListener('resize', checkMobile);
       window.removeEventListener('cacheCleanup', handleCacheCleanup);
     };
   }, []);
@@ -44,7 +56,7 @@ function App() {
                 <Route path="/" element={<Homepage />} />
                 <Route path="/menu" element={<Menu />} />
                 <Route path="/delivery-cart" element={<DeliveryCart />} />
-                <Route path="/admin" element={<Admin />} />
+                <Route path="/admin" element={isMobile ? <AdminMobile /> : <Admin />} />
                 <Route path="/:tableId" element={<TableOrder />} />
               </Routes>
               
