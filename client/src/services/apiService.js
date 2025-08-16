@@ -17,8 +17,8 @@ const mockOrders = [
   { id: 2, table_id: 'Delivery', customer_name: 'Jane Smith', customer_phone: '9847654321', items: [{ name: 'Burger Combo', quantity: 1, price: 280 }], total: 280, status: 'preparing', order_type: 'delivery', created_at: new Date().toISOString(), delivery_address: 'Duwakot, Bhaktapur' }
 ];
 
-// Check if we're in mock mode
-const isMockMode = () => getApiUrl() === 'mock';
+// Check if we're in mock mode - disabled for production
+const isMockMode = () => false;
 
 // Create axios instance with base configuration
 const apiClient = axios.create({
