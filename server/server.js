@@ -356,9 +356,25 @@ app.post('/api/clear-table-sessions', (req, res) => {
   }
 });
 
-// Get menu items
-app.get('/api/menu', (req, res) => {
-  res.json(menuItems);
+// Get menu items from database
+app.get('/api/menu', async (req, res) => {
+  try {
+    const result = await query(`
+      SELECT id, name, price, category, description, image_url, is_available, 
+             preparation_time, is_vegetarian, is_spicy, allergens
+      FROM menu_items 
+      WHERE is_available = true 
+      ORDER BY category, name
+    `);
+    
+    res.json(result.rows);
+  } catch (error) {
+    console.error('❌ Error fetching menu:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to fetch menu items' 
+    });
+  }
 });
 
 app.post('/api/order', async (req, res) => {
