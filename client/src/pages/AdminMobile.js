@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import io from 'socket.io-client';
 import audioManager from '../utils/audioNotifications';
+import mobileAudioManager from '../utils/mobileAudioManager';
 import { apiService, fetchApi, getSocketUrl } from '../services/apiService';
 import MobileOrderCard from '../components/MobileOrderCard';
 
@@ -19,16 +20,40 @@ const AdminMobile = () => {
   useEffect(() => {
     if (isAuthenticated) {
       fetchOrders();
-      audioManager.requestPermissions();
+      
+      // Initialize mobile audio manager with full permissions
+      mobileAudioManager.requestAllPermissions();
+      mobileAudioManager.setEnabled(true);
+      
+      // Register service worker for background notifications
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/sw.js')
+          .then(registration => {
+            console.log('✅ Service Worker registered for background notifications');
+          })
+          .catch(error => {
+            console.error('❌ Service Worker registration failed:', error);
+          });
+      }
 
       const newSocket = io(getSocketUrl());
       
       newSocket.on('newOrder', (order) => {
         setOrders(prevOrders => [...prevOrders, order]);
+        
+        // Use mobile audio manager for maximum volume alerts
         if (order.order_type === 'delivery') {
-          audioManager.playDeliveryOrderSound();
+          mobileAudioManager.playDeliveryOrderSound();
         } else {
-          audioManager.playTableOrderSound();
+          mobileAudioManager.playTableOrderSound();
+        }
+        
+        // Send message to service worker for background notification
+        if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+          navigator.serviceWorker.controller.postMessage({
+            type: 'NEW_ORDER',
+            orderType: order.order_type
+          });
         }
       });
 
@@ -40,7 +65,21 @@ const AdminMobile = () => {
         );
       });
 
-      return () => newSocket.close();
+      // Keep service worker alive with periodic pings
+      const keepAliveInterval = setInterval(() => {
+        if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+          const messageChannel = new MessageChannel();
+          navigator.serviceWorker.controller.postMessage(
+            { type: 'KEEP_ALIVE' },
+            [messageChannel.port2]
+          );
+        }
+      }, 25000); // Every 25 seconds
+
+      return () => {
+        newSocket.close();
+        clearInterval(keepAliveInterval);
+      };
     }
   }, [isAuthenticated]);
 
@@ -188,10 +227,15 @@ const AdminMobile = () => {
           </div>
           <div className="flex items-center space-x-2">
             <button
-              onClick={() => audioManager.setEnabled(!audioManager.isEnabled)}
+              onClick={() => {
+                mobileAudioManager.setEnabled(!mobileAudioManager.isEnabled);
+                if (mobileAudioManager.isEnabled) {
+                  mobileAudioManager.testSound();
+                }
+              }}
               className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center"
             >
-              {audioManager.isEnabled ? '🔊' : '🔇'}
+              {mobileAudioManager.isEnabled ? '🔊' : '🔇'}
             </button>
             <button 
               onClick={handleLogout}

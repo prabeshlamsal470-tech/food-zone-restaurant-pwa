@@ -5,8 +5,11 @@ class AudioNotificationManager {
     this.deliveryOrderSound = null;
     this.isEnabled = true;
     this.volume = 1.0; // Maximum volume
+    this.wakeLock = null;
+    this.isBackgroundActive = false;
     
     this.initializeSounds();
+    this.initializeBackgroundSupport();
   }
 
   initializeSounds() {
