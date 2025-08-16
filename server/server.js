@@ -30,8 +30,8 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json());
 
-// Serve images only, not the full React app
-app.use('/images', express.static(path.join(__dirname, 'public/images')));
+// Serve static files including images
+app.use(express.static(path.join(__dirname, 'public')));
 
 // In-memory storage for table sessions (temporary data)
 const tableSessions = new Map(); // tableId -> { timestamp, cartItems }
@@ -683,8 +683,17 @@ app.post('/api/table-session/:tableId', (req, res) => {
 });
 
 // Socket.IO connection handling
-// Remove catch-all handler that interferes with API routes
-// API routes should be accessible without serving React app
+// Catch-all handler for React routing in production
+if (process.env.NODE_ENV === 'production') {
+  app.get('*', (req, res) => {
+    // Only serve index.html for non-API routes
+    if (!req.path.startsWith('/api/')) {
+      res.sendFile(path.join(__dirname, 'public', 'index.html'));
+    } else {
+      res.status(404).json({ error: 'API endpoint not found' });
+    }
+  });
+}
 
 // Socket.IO connection handling
 io.on('connection', (socket) => {
