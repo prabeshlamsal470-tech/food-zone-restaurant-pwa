@@ -104,7 +104,9 @@ async function initializeDatabaseWithSampleData() {
 
 // Initialize settings and sample data on startup
 loadSettings();
-initializeDatabaseWithSampleData();
+setTimeout(() => {
+  initializeDatabaseWithSampleData();
+}, 3000); // Wait 3 seconds for database connection to stabilize
 
 // Geo Tage Food Zone Menu Items
 const menuItems = [
@@ -933,6 +935,26 @@ app.post('/api/admin/auth', (req, res) => {
   } catch (error) {
     console.error(' Admin auth error:', error);
     res.status(500).json({ success: false, message: 'Authentication error' });
+  }
+});
+
+// Database connection test endpoint
+app.get('/api/test/db', async (req, res) => {
+  try {
+    const result = await query('SELECT NOW() as current_time, version() as db_version');
+    res.json({ 
+      success: true, 
+      connected: true,
+      timestamp: result.rows[0].current_time,
+      version: result.rows[0].db_version
+    });
+  } catch (error) {
+    console.error(' Database connection test failed:', error);
+    res.status(500).json({ 
+      success: false, 
+      connected: false,
+      error: error.message 
+    });
   }
 });
 
