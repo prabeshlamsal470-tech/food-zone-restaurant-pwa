@@ -63,10 +63,6 @@ const Menu = () => {
     }
   };
 
-  const getItemImage = (item) => {
-    // Use Food Zone Restaurant Logo for all menu items as stock image
-    return '/images/Food Zone Restaurant Logo.jpg';
-  };
 
   const handleAddToCart = (item) => {
     if (isTableCustomer) {
@@ -220,56 +216,56 @@ const Menu = () => {
                     {categoryItems.map(item => {
                       const quantity = getItemQuantity(item.id);
                       return (
-                        <div key={item.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
-                          <img 
-                            src={getItemImage(item)} 
-                            alt={item.name}
-                            className="w-full h-48 object-cover"
-                            onError={(e) => {
-                              e.target.onerror = null;
-                              e.target.src = '/images/menu-common.jpg';
-                            }}
-                          />
-                          <div className="p-4">
-                            <h3 className="text-xl font-semibold mb-2">{item.name}</h3>
-                            {item.description && <p className="text-sm text-gray-500 mb-3">{item.description}</p>}
-                            <p className="text-2xl font-bold text-primary mb-4">NPR {item.price}/-</p>
+                        <div key={item.id} className="bg-gradient-to-br from-white to-gray-50 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 border border-gray-100 overflow-hidden">
+                          <div className="p-6">
+                            <div className="flex items-start justify-between mb-4">
+                              <div className="flex-1">
+                                <h3 className="text-xl font-bold text-gray-800 mb-2 leading-tight">{item.name}</h3>
+                                {item.description && <p className="text-sm text-gray-600 mb-3 leading-relaxed">{item.description}</p>}
+                              </div>
+                              <div className="ml-4 flex-shrink-0">
+                                <div className="bg-gradient-to-r from-orange-500 to-red-500 text-white px-4 py-2 rounded-full shadow-md">
+                                  <span className="text-lg font-bold">NPR {item.price}</span>
+                                </div>
+                              </div>
+                            </div>
                             
                             {quantity === 0 ? (
                               <button
                                 onClick={() => handleAddToCart(item)}
-                                className={`w-full px-4 py-2 rounded-lg transition-colors font-medium ${
+                                className={`w-full px-6 py-3 rounded-xl font-bold text-lg transition-all duration-300 transform hover:scale-105 shadow-md hover:shadow-lg ${
                                   isTableCustomer 
-                                    ? 'bg-primary text-white hover:bg-orange-600' 
-                                    : 'bg-green-600 text-white hover:bg-green-700'
+                                    ? 'bg-gradient-to-r from-orange-500 to-red-500 text-white hover:from-orange-600 hover:to-red-600' 
+                                    : 'bg-gradient-to-r from-green-500 to-blue-500 text-white hover:from-green-600 hover:to-blue-600'
                                 }`}
                               >
-                                {isTableCustomer ? `Add to Table ${currentTable}` : 'Add for Delivery'}
+                                {isTableCustomer ? `🍽️ Add to Table ${currentTable}` : '🚚 Add for Delivery'}
                               </button>
                             ) : (
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
+                              <div className="flex items-center justify-between bg-gray-50 rounded-xl p-3">
+                                <div className="flex items-center gap-3">
                                   <button
                                     onClick={() => handleUpdateQuantity(item.id, quantity - 1)}
-                                    className="bg-gray-200 text-gray-700 w-8 h-8 rounded-full hover:bg-gray-300 transition-colors"
+                                    className="bg-white text-gray-700 w-10 h-10 rounded-full hover:bg-gray-100 transition-all duration-200 shadow-md hover:shadow-lg font-bold text-lg"
                                   >
-                                    -
+                                    −
                                   </button>
-                                  <span className="font-semibold text-lg w-8 text-center">{quantity}</span>
+                                  <span className="font-bold text-xl w-8 text-center text-gray-800">{quantity}</span>
                                   <button
                                     onClick={() => handleUpdateQuantity(item.id, quantity + 1)}
-                                    className={`w-8 h-8 rounded-full text-white transition-colors ${
+                                    className={`w-10 h-10 rounded-full text-white transition-all duration-200 shadow-md hover:shadow-lg font-bold text-lg ${
                                       isTableCustomer 
-                                        ? 'bg-primary hover:bg-orange-600' 
-                                        : 'bg-green-600 hover:bg-green-700'
+                                        ? 'bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600' 
+                                        : 'bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600'
                                     }`}
                                   >
                                     +
                                   </button>
                                 </div>
-                                <span className="text-sm font-medium text-gray-600">
-                                  NPR {(item.price * quantity)}/-
-                                </span>
+                                <div className="text-right">
+                                  <div className="text-sm text-gray-500 font-medium">Total</div>
+                                  <div className="text-lg font-bold text-gray-800">NPR {(item.price * quantity)}</div>
+                                </div>
                               </div>
                             )}
                           </div>
@@ -286,56 +282,56 @@ const Menu = () => {
               {filteredItems.map(item => {
                 const quantity = getItemQuantity(item.id);
                 return (
-                  <div key={item.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
-                    <img 
-                      src={getItemImage(item)} 
-                      alt={item.name}
-                      className="w-full h-48 object-cover"
-                      onError={(e) => {
-                        e.target.onerror = null;
-                        e.target.src = '/images/menu-common.jpg';
-                      }}
-                    />
-                    <div className="p-4">
-                      <h3 className="text-xl font-semibold mb-2">{item.name}</h3>
-                      {item.description && <p className="text-sm text-gray-500 mb-3">{item.description}</p>}
-                      <p className="text-2xl font-bold text-primary mb-4">NPR {item.price}/-</p>
+                  <div key={item.id} className="bg-gradient-to-br from-white to-gray-50 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 border border-gray-100 overflow-hidden">
+                    <div className="p-6">
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex-1">
+                          <h3 className="text-xl font-bold text-gray-800 mb-2 leading-tight">{item.name}</h3>
+                          {item.description && <p className="text-sm text-gray-600 mb-3 leading-relaxed">{item.description}</p>}
+                        </div>
+                        <div className="ml-4 flex-shrink-0">
+                          <div className="bg-gradient-to-r from-orange-500 to-red-500 text-white px-4 py-2 rounded-full shadow-md">
+                            <span className="text-lg font-bold">NPR {item.price}</span>
+                          </div>
+                        </div>
+                      </div>
                       
                       {quantity === 0 ? (
                         <button
                           onClick={() => handleAddToCart(item)}
-                          className={`w-full px-4 py-2 rounded-lg transition-colors font-medium ${
+                          className={`w-full px-6 py-3 rounded-xl font-bold text-lg transition-all duration-300 transform hover:scale-105 shadow-md hover:shadow-lg ${
                             isTableCustomer 
-                              ? 'bg-primary text-white hover:bg-orange-600' 
-                              : 'bg-green-600 text-white hover:bg-green-700'
+                              ? 'bg-gradient-to-r from-orange-500 to-red-500 text-white hover:from-orange-600 hover:to-red-600' 
+                              : 'bg-gradient-to-r from-green-500 to-blue-500 text-white hover:from-green-600 hover:to-blue-600'
                           }`}
                         >
-                          {isTableCustomer ? `Add to Table ${currentTable}` : 'Add for Delivery'}
+                          {isTableCustomer ? `🍽️ Add to Table ${currentTable}` : '🚚 Add for Delivery'}
                         </button>
                       ) : (
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
+                        <div className="flex items-center justify-between bg-gray-50 rounded-xl p-3">
+                          <div className="flex items-center gap-3">
                             <button
                               onClick={() => handleUpdateQuantity(item.id, quantity - 1)}
-                              className="bg-gray-200 text-gray-700 w-8 h-8 rounded-full hover:bg-gray-300 transition-colors"
+                              className="bg-white text-gray-700 w-10 h-10 rounded-full hover:bg-gray-100 transition-all duration-200 shadow-md hover:shadow-lg font-bold text-lg"
                             >
-                              -
+                              −
                             </button>
-                            <span className="font-semibold text-lg w-8 text-center">{quantity}</span>
+                            <span className="font-bold text-xl w-8 text-center text-gray-800">{quantity}</span>
                             <button
                               onClick={() => handleUpdateQuantity(item.id, quantity + 1)}
-                              className={`w-8 h-8 rounded-full text-white transition-colors ${
+                              className={`w-10 h-10 rounded-full text-white transition-all duration-200 shadow-md hover:shadow-lg font-bold text-lg ${
                                 isTableCustomer 
-                                  ? 'bg-primary hover:bg-orange-600' 
-                                  : 'bg-green-600 hover:bg-green-700'
+                                  ? 'bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600' 
+                                  : 'bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600'
                               }`}
                             >
                               +
                             </button>
                           </div>
-                          <span className="text-sm font-medium text-gray-600">
-                            NPR {(item.price * quantity)}/-
-                          </span>
+                          <div className="text-right">
+                            <div className="text-sm text-gray-500 font-medium">Total</div>
+                            <div className="text-lg font-bold text-gray-800">NPR {(item.price * quantity)}</div>
+                          </div>
                         </div>
                       )}
                     </div>

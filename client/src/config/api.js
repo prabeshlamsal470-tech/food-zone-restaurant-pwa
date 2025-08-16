@@ -17,7 +17,7 @@ const API_CONFIG = {
     MENU: '/api/menu',
     
     // Order endpoints
-    ORDERS: '/api/orders',
+    ORDERS: '/api/order',
     ORDER_HISTORY: '/api/order-history',
     ORDER_STATUS: (orderId) => `/api/orders/${orderId}/status`,
     

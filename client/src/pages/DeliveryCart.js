@@ -23,6 +23,13 @@ const DeliveryCart = () => {
   const [orderSubmitted, setOrderSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [locationError, setLocationError] = useState('');
+  const [notification, setNotification] = useState({ show: false, message: '', type: '' });
+
+  // Show notification helper
+  const showNotification = (message, type = 'error') => {
+    setNotification({ show: true, message, type });
+    setTimeout(() => setNotification({ show: false, message: '', type: '' }), 5000);
+  };
 
   // Get user's current location
   const getCurrentLocation = () => {
@@ -99,7 +106,7 @@ const DeliveryCart = () => {
 
   const handleSubmitOrder = async () => {
     if (!customerInfo.name || !customerInfo.phone || !customerInfo.address) {
-      alert('Please fill in all required fields');
+      showNotification('Please fill in all required fields', 'error');
       return;
     }
 
@@ -136,7 +143,7 @@ const DeliveryCart = () => {
       }, 3000);
     } catch (error) {
       console.error('Error submitting order:', error);
-      alert('Failed to submit order. Please try again.');
+      showNotification('Failed to submit order. Please try again.', 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -181,6 +188,27 @@ const DeliveryCart = () => {
 
   return (
     <div className="container mx-auto px-4 py-8">
+      {/* Notification */}
+      {notification.show && (
+        <div className={`fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg max-w-sm ${
+          notification.type === 'error' 
+            ? 'bg-red-100 border border-red-400 text-red-700'
+            : notification.type === 'success'
+            ? 'bg-green-100 border border-green-400 text-green-700'
+            : 'bg-blue-100 border border-blue-400 text-blue-700'
+        }`}>
+          <div className="flex justify-between items-start">
+            <p className="text-sm font-medium">{notification.message}</p>
+            <button 
+              onClick={() => setNotification({ show: false, message: '', type: '' })}
+              className="ml-2 text-gray-500 hover:text-gray-700"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
+      
       <h1 className="text-3xl font-bold text-center mb-8">🚚 Delivery Order</h1>
 
       {/* Delivery Cart Items */}
@@ -189,9 +217,7 @@ const DeliveryCart = () => {
           <h2 className="text-xl font-semibold">Your Items</h2>
           <button
             onClick={() => {
-              if (window.confirm('Clear your delivery cart?')) {
-                clearDeliveryCart();
-              }
+              clearDeliveryCart();
             }}
             className="text-red-600 hover:text-red-700 text-sm font-medium underline"
           >

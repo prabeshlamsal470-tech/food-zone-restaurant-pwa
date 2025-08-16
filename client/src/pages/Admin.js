@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import io from 'socket.io-client';
-import DeliveryMap from '../components/DeliveryMap';
 import audioManager from '../utils/audioNotifications';
 // import { pwaInstaller } from '../utils/pwaInstaller';
 import AdminSettings from '../components/AdminSettings';
-import DatabaseManager from '../components/DatabaseManager';
+import TableGrid from '../components/TableGrid';
 import { apiService, fetchApi, getSocketUrl } from '../services/apiService';
 
 const Admin = () => {
   const [orders, setOrders] = useState([]);
   const [orderHistory, setOrderHistory] = useState([]);
+  const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [dbSummary, setDbSummary] = useState(null);
@@ -25,11 +25,14 @@ const Admin = () => {
   const [, setSocket] = useState(null);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [tableToDelete, setTableToDelete] = useState(null);
-  const [activeTab, setActiveTab] = useState('dine-in'); // 'dine-in', 'delivery', 'history', 'map', or 'settings'
+  const [confirmDialog, setConfirmDialog] = useState({ show: false, orderId: null, message: '' });
+  const [deleteDialog, setDeleteDialog] = useState({ show: false, orderId: null, orderNumber: '', password: '' });
+  const [activeTab, setActiveTab] = useState('dine-in'); // 'dine-in', 'delivery', 'history', 'customers', or 'settings'
 
   useEffect(() => {
     fetchOrders();
     fetchOrderHistory();
+    fetchCustomers();
     fetchDatabaseSummary();
 
     // Initialize audio notifications
@@ -92,6 +95,15 @@ const Admin = () => {
     } catch (err) {
       setError(err.message);
       console.error('Error fetching order history:', err);
+    }
+  };
+
+  const fetchCustomers = async () => {
+    try {
+      const data = await fetchApi.get('/api/customers');
+      setCustomers(data);
+    } catch (err) {
+      console.error('Error fetching customers:', err);
     }
   };
 
@@ -181,19 +193,59 @@ const Admin = () => {
   };
 
   const handleCompleteDeliveryOrder = async (orderId) => {
-    if (window.confirm('Mark this delivery order as complete?')) {
-      try {
-        // Update order status in database
-        await apiService.updateOrderStatus(orderId, 'completed');
+    setConfirmDialog({
+      show: true,
+      orderId,
+      message: 'Mark this delivery order as complete?'
+    });
+  };
 
-        // Refresh orders from database to get updated state
-        await fetchOrders();
-        
-        console.log(`✅ Delivery order ${orderId} marked as completed`);
-      } catch (error) {
-        console.error('Error completing delivery order:', error);
-        // Error logged to console - no alert popup needed
+  const confirmCompleteOrder = async () => {
+    const { orderId } = confirmDialog;
+    setConfirmDialog({ show: false, orderId: null, message: '' });
+    
+    try {
+      await apiService.updateOrderStatus(orderId, 'completed');
+      await fetchOrders();
+      console.log(`✅ Delivery order ${orderId} marked as completed`);
+    } catch (error) {
+      console.error('Error completing delivery order:', error);
+    }
+  };
+
+  const handleDeleteOrder = (orderId, orderNumber) => {
+    setDeleteDialog({
+      show: true,
+      orderId,
+      orderNumber,
+      password: ''
+    });
+  };
+
+  const confirmDeleteOrder = async () => {
+    const { orderId, password } = deleteDialog;
+    
+    try {
+      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5001'}/api/order/${orderId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ password })
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        setDeleteDialog({ show: false, orderId: null, orderNumber: '', password: '' });
+        await fetchOrderHistory();
+        console.log(`🗑️ Order ${result.deletedOrder} deleted successfully`);
+      } else {
+        alert('❌ ' + result.error);
       }
+    } catch (error) {
+      console.error('Error deleting order:', error);
+      alert('❌ Failed to delete order');
     }
   };
 
@@ -310,7 +362,77 @@ const Admin = () => {
     <div className="container mx-auto px-4 py-8">
       <div className="bg-white rounded-lg shadow-md p-6">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold text-gray-800">🍽️ Food Zone Admin Panel</h1>
+          {/* Confirmation Dialog */}
+      {confirmDialog.show && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-sm mx-4">
+            <h3 className="text-lg font-semibold mb-4">Confirm Action</h3>
+            <p className="text-gray-600 mb-6">{confirmDialog.message}</p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setConfirmDialog({ show: false, orderId: null, message: '' })}
+                className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmCompleteOrder}
+                className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
+              >
+                Confirm
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Order Dialog */}
+      {deleteDialog.show && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md mx-4">
+            <h3 className="text-lg font-semibold mb-4 text-red-600">🗑️ Delete Order</h3>
+            <p className="text-gray-600 mb-4">
+              Are you sure you want to delete Order #{deleteDialog.orderNumber}?
+            </p>
+            <p className="text-sm text-red-500 mb-4">
+              ⚠️ This action cannot be undone and will permanently remove the order from the database.
+            </p>
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Enter deletion password to confirm:
+              </label>
+              <input
+                type="password"
+                value={deleteDialog.password}
+                onChange={(e) => setDeleteDialog(prev => ({ ...prev, password: e.target.value }))}
+                placeholder="Enter @Sujan123#"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+              />
+            </div>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setDeleteDialog({ show: false, orderId: null, orderNumber: '', password: '' })}
+                className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDeleteOrder}
+                disabled={deleteDialog.password !== '@Sujan123#'}
+                className={`px-4 py-2 rounded transition-colors ${
+                  deleteDialog.password === '@Sujan123#'
+                    ? 'bg-red-600 text-white hover:bg-red-700'
+                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                }`}
+              >
+                🗑️ Delete Order
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      <h1 className="text-3xl font-bold text-gray-800">🍽️ Food Zone Admin Panel</h1>
           <div className="flex items-center space-x-4">
             {/* PWA Install Button */}
             <button 
@@ -368,16 +490,6 @@ const Admin = () => {
           Delivery Orders
         </button>
         <button
-          onClick={() => setActiveTab('map')}
-          className={`px-4 py-2 rounded-md font-medium transition-colors ${
-            activeTab === 'map'
-              ? 'bg-white text-blue-600 shadow-sm'
-              : 'text-gray-600 hover:text-gray-900'
-          }`}
-        >
-          Map
-        </button>
-        <button
           onClick={() => setActiveTab('history')}
           className={`px-4 py-2 rounded-md font-medium transition-colors ${
             activeTab === 'history'
@@ -388,14 +500,14 @@ const Admin = () => {
           Order History
         </button>
         <button
-          onClick={() => setActiveTab('database')}
+          onClick={() => setActiveTab('customers')}
           className={`px-4 py-2 rounded-md font-medium transition-colors ${
-            activeTab === 'database'
-              ? 'bg-white text-red-600 shadow-sm'
-              : 'text-gray-600 hover:text-red-700'
+            activeTab === 'customers'
+              ? 'bg-white text-purple-600 shadow-sm'
+              : 'text-gray-600 hover:text-gray-900'
           }`}
         >
-          🗄️ Database
+          👥 Customers
         </button>
         <button
           onClick={() => setActiveTab('settings')}
@@ -412,7 +524,7 @@ const Admin = () => {
       {/* Tab Content */}
       {activeTab === 'dine-in' && (
         <>
-          {orders.filter(order => order.tableId !== 'Delivery').length === 0 ? (
+          {orders.filter(order => order.order_type === 'dine-in' && order.status !== 'completed' && order.status !== 'cancelled').length === 0 ? (
             <div className="text-center py-12">
               <div className="text-6xl mb-4">🪑</div>
               <h2 className="text-2xl font-semibold text-gray-600 mb-2">No Dine-in Orders</h2>
@@ -531,23 +643,32 @@ const Admin = () => {
                       )}
                       {order.notes && <p className="text-sm text-gray-500 italic">📝 Note: {order.notes}</p>}
                       <p className="text-sm text-gray-500">🕒 {formatDate(order.created_at)}</p>
-                      <div className="mt-2 flex items-center space-x-4">
-                        <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full font-medium">
-                          📋 Order #{order.order_number || order.id}
-                        </span>
-                        <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full font-medium">
-                          📊 Status: {order.status || 'Pending'}
-                        </span>
-                        {order.items && (
-                          <span className="bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded-full font-medium">
-                            🛒 {order.items.length} Items
+                      <div className="mt-2 flex items-center justify-between">
+                        <div className="flex items-center space-x-4">
+                          <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full font-medium">
+                            📋 Order #{order.order_number || order.id}
                           </span>
-                        )}
-                        {order.delivery_fee && (
-                          <span className="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full font-medium">
-                            🚚 Delivery: NPR {order.delivery_fee}/-
+                          <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full font-medium">
+                            📊 Status: {order.status || 'Pending'}
                           </span>
-                        )}
+                          {order.items && (
+                            <span className="bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded-full font-medium">
+                              🛒 {order.items.length} Items
+                            </span>
+                          )}
+                          {order.delivery_fee && (
+                            <span className="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full font-medium">
+                              🚚 Delivery: NPR {order.delivery_fee}/-
+                            </span>
+                          )}
+                        </div>
+                        <button
+                          onClick={() => handleDeleteOrder(order.id, order.order_number || order.id)}
+                          className="bg-red-500 text-white text-xs px-3 py-1 rounded hover:bg-red-600 transition-colors"
+                          title="Delete Order"
+                        >
+                          🗑️ Delete
+                        </button>
                       </div>
                     </div>
                     <div className="text-right">
@@ -595,18 +716,6 @@ const Admin = () => {
         </>
       )}
 
-      {/* Map Tab */}
-      {activeTab === 'map' && (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-          <div className="p-6 border-b border-gray-200">
-            <h2 className="text-xl font-semibold text-gray-900 mb-2">🗺️ Delivery Locations Map</h2>
-            <p className="text-gray-600">Interactive map showing all delivery orders with distances and locations</p>
-          </div>
-          <div className="p-6">
-            <DeliveryMap deliveryOrders={orders.filter(order => order.order_type === 'delivery')} />
-          </div>
-        </div>
-      )}
 
       {/* Database Manager Tab */}
       {activeTab === 'database' && (
@@ -666,6 +775,8 @@ const Admin = () => {
                   <li>• Orders are automatically moved to history when tables are cleared</li>
                   <li>• Database maintains data integrity and order tracking</li>
                   <li>• All order information is preserved for reporting</li>
+                  <li>• Database is used for analytics and insights</li>
+                  <li>• Database is secure and compliant with data protection regulations</li>
                 </ul>
               </div>
             </div>
@@ -737,9 +848,18 @@ const Admin = () => {
                       <div className="text-2xl font-bold text-green-600">
                         NPR {getTotalOrderValue(order.items, order.total)}/-
                       </div>
-                      <span className="inline-block mt-2 bg-green-100 text-green-800 text-sm px-3 py-1 rounded-full">
-                        Completed
-                      </span>
+                      <div className="flex items-center space-x-2 mt-2">
+                        <span className="inline-block bg-green-100 text-green-800 text-sm px-3 py-1 rounded-full">
+                          Completed
+                        </span>
+                        <button
+                          onClick={() => handleDeleteOrder(order.id, order.order_number)}
+                          className="bg-red-500 hover:bg-red-600 text-white text-sm px-3 py-1 rounded-full transition-colors"
+                          title="Delete this order"
+                        >
+                          🗑️ Delete
+                        </button>
+                      </div>
                     </div>
                   </div>
                   
@@ -775,17 +895,65 @@ const Admin = () => {
         </>
       )}
 
-      {/* Delivery Map Tab */}
-      {activeTab === 'map' && (
-        <div className="space-y-6">
-          <DeliveryMap deliveryOrders={orders.filter(order => order.order_type === 'delivery')} />
-        </div>
-      )}
 
-      {/* Database Tab */}
-      {activeTab === 'database' && (
-        <div className="space-y-6">
-          <DatabaseManager />
+      {/* Customer Database Tab */}
+      {activeTab === 'customers' && (
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+          <div className="p-6 border-b border-gray-200">
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">👥 Customer Database</h2>
+            <p className="text-gray-600">{customers.length} Total Customers</p>
+          </div>
+          <div className="overflow-x-auto">
+            {customers.length === 0 ? (
+              <div className="text-center py-12">
+                <div className="text-6xl mb-4">👥</div>
+                <h3 className="text-xl font-semibold text-gray-600 mb-2">No Customers Yet</h3>
+                <p className="text-gray-500">Customer data will appear here as orders are placed</p>
+              </div>
+            ) : (
+              <table className="w-full">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Orders</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Spent</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Order</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {customers.map((customer) => (
+                    <tr key={customer.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm font-medium text-gray-900">{customer.name}</div>
+                        {customer.email && (
+                          <div className="text-sm text-gray-500">{customer.email}</div>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {customer.phone}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {customer.actual_order_count || customer.total_orders}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        NPR {parseFloat(customer.total_spent).toFixed(2)}/-
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {customer.last_order_date ? new Date(customer.last_order_date).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        }) : 'N/A'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
         </div>
       )}
 
