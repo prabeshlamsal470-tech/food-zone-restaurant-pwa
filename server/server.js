@@ -3,10 +3,9 @@ const cors = require('cors');
 const http = require('http');
 const socketIo = require('socket.io');
 const path = require('path');
-require('dotenv').config();
-
-// Import database models
-const { Customer, Order, Settings, DeliveryZone, TableSession, TablePayment } = require('./database/models');
+const { query } = require('./database/config');
+const { Customer, Order, TableSession, TablePayment } = require('./database/models');
+const CacheManager = require('./utils/cacheManager');
 const { pool, query } = require('./database/config');
 
 const app = express();
@@ -35,6 +34,9 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // In-memory storage for table sessions (temporary data)
 const tableSessions = new Map(); // tableId -> { timestamp, cartItems }
+
+// Initialize Active Cache Manager
+let cacheManager;
 
 // Initialize restaurant settings from database
 let restaurantSettings = {
@@ -314,18 +316,39 @@ const menuItems = [
   { id: 157, name: "Sprite", price: 70, category: "Cold Beverages" }
 ];
 
-// Clean expired table sessions (older than 1 hour)
+// Clean expired table sessions (older than 5 minutes for active clearing)
 const cleanExpiredSessions = () => {
-  const oneHourAgo = Date.now() - (60 * 60 * 1000);
+  const fiveMinutesAgo = Date.now() - (5 * 60 * 1000);
+  let clearedCount = 0;
+  
   for (const [tableId, session] of tableSessions.entries()) {
-    if (session.timestamp < oneHourAgo) {
+    if (session.timestamp < fiveMinutesAgo) {
       tableSessions.delete(tableId);
+      clearedCount++;
+      console.log(`🧹 Auto-cleared expired table cache: Table ${tableId}`);
+      
+      // Emit cache cleared event to all connected clients
+      io.emit('tableCacheCleared', { tableId });
     }
+  }
+  
+  if (clearedCount > 0) {
+    console.log(`🕒 ACTIVE CACHE CLEAR: Cleaned ${clearedCount} expired table sessions (older than 5 minutes)`);
   }
 };
 
-// Run cleanup every 10 minutes
-setInterval(cleanExpiredSessions, 10 * 60 * 1000);
+// Run cleanup every 1 minute for active cache clearing
+setInterval(cleanExpiredSessions, 1 * 60 * 1000);
+
+// Force cache clear on server startup
+console.log('🚀 Starting active table cache clearing system...');
+cleanExpiredSessions();
+
+// Initialize Active Cache Manager after Socket.IO is ready
+setTimeout(() => {
+  cacheManager = new CacheManager(io);
+  console.log('✅ ACTIVE CACHE MANAGER INITIALIZED');
+}, 1000);
 
 // Initialize database settings on startup
 loadSettings();
@@ -338,12 +361,19 @@ app.post('/api/clear-table-sessions', (req, res) => {
     const clearedSessions = tableSessions.size;
     tableSessions.clear();
     
-    console.log(`🧹 Cleared ${clearedSessions} table sessions at ${new Date().toLocaleString()}`);
+    // Also clear active cache manager if available
+    let cacheCleared = 0;
+    if (cacheManager) {
+      cacheCleared = cacheManager.clearAll();
+    }
+    
+    console.log(`🧹 ACTIVE CLEAR: ${clearedSessions} table sessions + ${cacheCleared} cache entries at ${new Date().toLocaleString()}`);
     
     res.json({
       success: true,
-      message: 'Table sessions cleared',
-      clearedSessions,
+      message: `ACTIVE CLEAR: Cleared ${clearedSessions} table sessions + ${cacheCleared} cache entries`,
+      clearedCount: clearedSessions,
+      cacheCleared,
       timestamp: new Date().toISOString()
     });
   } catch (error) {
@@ -353,6 +383,39 @@ app.post('/api/clear-table-sessions', (req, res) => {
       message: 'Failed to clear table sessions',
       error: error.message
     });
+  }
+});
+
+// Get cache statistics endpoint
+app.get('/api/cache/stats', (req, res) => {
+  try {
+    const stats = {
+      tableSessions: tableSessions.size,
+      cacheManager: cacheManager ? cacheManager.getStats() : null,
+      timestamp: new Date().toISOString()
+    };
+    res.json(stats);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Force cache cleanup endpoint
+app.post('/api/cache/force-cleanup', (req, res) => {
+  try {
+    let cleaned = 0;
+    if (cacheManager) {
+      cleaned = cacheManager.forceCleanup();
+    }
+    
+    console.log(`⚡ FORCE CLEANUP: ${cleaned} cache entries removed`);
+    res.json({
+      success: true,
+      message: `Force cleanup completed: ${cleaned} entries removed`,
+      cleaned
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 });
 
@@ -812,9 +875,11 @@ app.get('/api/table-session/:tableId', (req, res) => {
     return res.json({ exists: false });
   }
   
-  const oneHourAgo = Date.now() - (60 * 60 * 1000);
-  if (session.timestamp < oneHourAgo) {
+  const fiveMinutesAgo = Date.now() - (5 * 60 * 1000);
+  if (session.timestamp < fiveMinutesAgo) {
     tableSessions.delete(tableId);
+    console.log(`🧹 Expired table session cleared on access: ${tableId}`);
+    io.emit('tableCacheCleared', { tableId });
     return res.json({ exists: false });
   }
   
