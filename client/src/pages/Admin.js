@@ -104,16 +104,29 @@ const Admin = () => {
     }
   };
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
-    if (password === ADMIN_PASSWORD) {
-      setIsAuthenticated(true);
-      localStorage.setItem('adminAuthenticated', 'true');
-      setPassword('');
+    try {
+      setLoading(true);
       setError(null);
-    } else {
-      setError('Incorrect password. Please try again.');
+      
+      const response = await fetchApi.post('/api/admin/auth', { password });
+      
+      if (response.success) {
+        setIsAuthenticated(true);
+        localStorage.setItem('adminAuthenticated', 'true');
+        setPassword('');
+        setError(null);
+      } else {
+        setError('Incorrect password. Please try again.');
+        setPassword('');
+      }
+    } catch (err) {
+      console.error('Authentication error:', err);
+      setError('Authentication failed. Please try again.');
       setPassword('');
+    } finally {
+      setLoading(false);
     }
   };
 
