@@ -555,18 +555,59 @@ app.post('/api/database/clear-all', async (req, res) => {
 app.get('/api/order-history', async (req, res) => {
   try {
     const { customerPhone, startDate, endDate, limit } = req.query;
-    const filters = {};
-    
-    if (customerPhone) filters.customerPhone = customerPhone;
-    if (startDate) filters.startDate = startDate;
-    if (endDate) filters.endDate = endDate;
-    if (limit) filters.limit = parseInt(limit);
-    
-    const orderHistory = await Order.getOrderHistory(filters);
     res.json(orderHistory);
   } catch (error) {
-    console.error('❌ Error fetching order history:', error);
-    res.status(500).json({ error: 'Failed to fetch order history', details: error.message });
+    console.error('Error fetching order history:', error);
+    res.status(500).json({ error: 'Failed to fetch order history' });
+  }
+});
+
+// Delete order with password confirmation
+app.delete('/api/order/:orderId', async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const { password } = req.body;
+    
+    // Verify deletion password
+    if (password !== '@Sujan123#') {
+      return res.status(401).json({ 
+        success: false, 
+        error: 'Invalid deletion password' 
+      });
+    }
+    
+    // Delete order from database
+    const result = await query(
+      'DELETE FROM orders WHERE id = $1 RETURNING *',
+      [orderId]
+    );
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ 
+        success: false, 
+        error: 'Order not found' 
+      });
+    }
+    
+    const deletedOrder = result.rows[0];
+    console.log(`🗑️ Order ${deletedOrder.order_number} deleted by admin`);
+    
+    // Emit order deletion to all connected clients
+    io.emit('orderDeleted', { orderId: parseInt(orderId) });
+    
+    res.json({ 
+      success: true, 
+      message: 'Order deleted successfully',
+      deletedOrder: deletedOrder.order_number
+    });
+    
+  } catch (error) {
+    console.error('❌ Error deleting order:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to delete order', 
+      details: error.message 
+    });
   }
 });
 
