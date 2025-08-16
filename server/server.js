@@ -557,25 +557,27 @@ app.get('/api/order-history', async (req, res) => {
     const result = await query(`
       SELECT o.*, 
              c.name as customer_name,
-             c.phone as customer_phone,
-             json_agg(
-               json_build_object(
-                 'name', oi.item_name,
-                 'quantity', oi.quantity,
-                 'price', oi.price,
-                 'isCustom', oi.is_custom
-               )
-             ) as items
+             c.phone as customer_phone
       FROM orders o
       LEFT JOIN customers c ON o.customer_id = c.id
-      LEFT JOIN order_items oi ON o.id = oi.order_id
       WHERE o.status = 'completed'
-      GROUP BY o.id, c.name, c.phone
       ORDER BY o.created_at DESC
       LIMIT 100
     `);
     
-    res.json(result.rows);
+    // Get items for each order
+    const ordersWithItems = await Promise.all(result.rows.map(async (order) => {
+      const itemsResult = await query(
+        'SELECT item_name as name, quantity, price, is_custom as "isCustom" FROM order_items WHERE order_id = $1',
+        [order.id]
+      );
+      return {
+        ...order,
+        items: itemsResult.rows
+      };
+    }));
+    
+    res.json(ordersWithItems);
   } catch (error) {
     console.error('Error fetching order history:', error);
     res.status(500).json({ error: 'Failed to fetch order history' });
