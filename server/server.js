@@ -736,6 +736,43 @@ app.post('/api/table-session/:tableId', (req, res) => {
   res.json({ success: true });
 });
 
+// Admin authentication endpoint
+app.post('/api/admin/auth', (req, res) => {
+  try {
+    const { password } = req.body;
+    const adminPassword = process.env.ADMIN_PASSWORD || 'FoodZone2024!';
+    
+    if (password === adminPassword) {
+      res.json({ success: true, message: 'Authentication successful' });
+    } else {
+      res.status(401).json({ success: false, message: 'Invalid password' });
+    }
+  } catch (error) {
+    console.error('❌ Admin auth error:', error);
+    res.status(500).json({ success: false, message: 'Authentication error' });
+  }
+});
+
+// Database connection test endpoint
+app.get('/api/test/db', async (req, res) => {
+  try {
+    const result = await query('SELECT NOW() as current_time, version() as db_version');
+    res.json({ 
+      success: true, 
+      connected: true,
+      timestamp: result.rows[0].current_time,
+      version: result.rows[0].db_version
+    });
+  } catch (error) {
+    console.error('❌ Database connection test failed:', error);
+    res.status(500).json({ 
+      success: false, 
+      connected: false,
+      error: error.message 
+    });
+  }
+});
+
 // Socket.IO connection handling
 // Catch-all handler for React routing in production
 if (process.env.NODE_ENV === 'production') {
@@ -921,59 +958,22 @@ res.status(500).json({ error: 'Failed to get table history', details: error.mess
 // API ENDPOINTS
 // ============================================
 
-// Admin authentication endpoint
-app.post('/api/admin/auth', (req, res) => {
-  try {
-    const { password } = req.body;
-    const adminPassword = process.env.ADMIN_PASSWORD || 'FoodZone2024!';
-    
-    if (password === adminPassword) {
-      res.json({ success: true, message: 'Authentication successful' });
-    } else {
-      res.status(401).json({ success: false, message: 'Invalid password' });
-    }
-  } catch (error) {
-    console.error(' Admin auth error:', error);
-    res.status(500).json({ success: false, message: 'Authentication error' });
-  }
-});
-
-// Database connection test endpoint
-app.get('/api/test/db', async (req, res) => {
-  try {
-    const result = await query('SELECT NOW() as current_time, version() as db_version');
-    res.json({ 
-      success: true, 
-      connected: true,
-      timestamp: result.rows[0].current_time,
-      version: result.rows[0].db_version
-    });
-  } catch (error) {
-    console.error(' Database connection test failed:', error);
-    res.status(500).json({ 
-      success: false, 
-      connected: false,
-      error: error.message 
-    });
-  }
-});
-
 // Create payment for table session
-app.post('/api/tables/:tableId/payment', async (req, res) => {
-try {
-const { tableId } = req.params;
-const { amount, paymentMethod, transactionId } = req.body;
+app.post('/api/tables/:tableId/payments', async (req, res) => {
+  try {
+    const { tableId } = req.params;
+    const { amount, paymentMethod, transactionId } = req.body;
     
-console.log(` Processing payment for table ${tableId}, amount: $${amount}`);
+    console.log(`💳 Processing payment for table ${tableId}, amount: $${amount}`);
     
-const tableIdInt = parseInt(tableId);
-const activeSession = await TableSession.getActiveSession(tableIdInt);
+    const tableIdInt = parseInt(tableId);
+    const activeSession = await TableSession.getActiveSession(tableIdInt);
     
-if (!activeSession) {
-  return res.status(404).json({ error: 'No active session found for this table' });
-}
+    if (!activeSession) {
+      return res.status(404).json({ error: 'No active session found for this table' });
+    }
     
-const payment = await TablePayment.createPayment(
+    const payment = await TablePayment.createPayment(
   activeSession.id, 
   amount, 
   paymentMethod, 
@@ -991,11 +991,11 @@ io.emit('paymentInitiated', {
   amount 
 });
     
-res.json({ success: true, payment });
-} catch (error) {
-console.error(' Error creating payment:', error);
-res.status(500).json({ error: 'Failed to create payment', details: error.message });
-}
+    res.json({ success: true, payment });
+  } catch (error) {
+    console.error('❌ Error creating payment:', error);
+    res.status(500).json({ error: 'Failed to create payment', details: error.message });
+  }
 });
 
 // Update payment status
