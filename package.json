@@ -1,0 +1,19 @@
+{
+  "name": "restaurant-ordering-system",
+  "version": "1.0.0",
+  "description": "Full-stack restaurant ordering system with React and Express",
+  "main": "server/server.js",
+  "scripts": {
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "server": "cd server && npm run dev",
+    "client": "cd client && npm start",
+    "build": "cd client && npm run build",
+    "install-all": "npm install && cd server && npm install && cd ../client && npm install"
+  },
+  "keywords": ["restaurant", "ordering", "react", "express", "socket.io"],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
