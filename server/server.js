@@ -44,15 +44,52 @@ let restaurantSettings = {
 // Load settings from database on startup
 async function loadSettings() {
   try {
-    const settings = await Settings.getAll();
-    settings.forEach(setting => {
-      restaurantSettings[setting.setting_key] = setting.setting_value;
+    const result = await query('SELECT setting_key, setting_value FROM restaurant_settings');
+    result.rows.forEach(row => {
+      if (row.setting_key === 'table_count') {
+        restaurantSettings.tableCount = parseInt(row.setting_value);
+      }
     });
-    console.log('✅ Restaurant settings loaded from database');
+    console.log('✅ Restaurant settings loaded:', restaurantSettings);
   } catch (error) {
     console.error('❌ Error loading settings:', error);
   }
 }
+
+// Initialize database with sample data if empty
+async function initializeDatabaseWithSampleData() {
+  try {
+    // Check if database has any orders
+    const orderCount = await query('SELECT COUNT(*) as count FROM orders');
+    if (parseInt(orderCount.rows[0].count) === 0) {
+      console.log('🔄 Database is empty, populating with sample data...');
+      
+      // Read and execute sample data SQL
+      const fs = require('fs');
+      const path = require('path');
+      const sampleDataPath = path.join(__dirname, 'database', 'sample_data.sql');
+      
+      if (fs.existsSync(sampleDataPath)) {
+        const sampleData = fs.readFileSync(sampleDataPath, 'utf8');
+        // Split by semicolon and execute each statement
+        const statements = sampleData.split(';').filter(stmt => stmt.trim());
+        
+        for (const statement of statements) {
+          if (statement.trim()) {
+            await query(statement.trim());
+          }
+        }
+        console.log('✅ Sample data populated successfully');
+      }
+    }
+  } catch (error) {
+    console.error('❌ Error initializing sample data:', error);
+  }
+}
+
+// Initialize settings and sample data on startup
+loadSettings();
+initializeDatabaseWithSampleData();
 
 // Geo Tage Food Zone Menu Items
 const menuItems = [
