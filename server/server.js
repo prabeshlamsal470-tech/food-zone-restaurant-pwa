@@ -804,6 +804,245 @@ app.get('/api/test/tables', async (req, res) => {
   }
 });
 
+// Clear and repopulate menu data endpoint
+app.post('/api/menu/reset', async (req, res) => {
+  try {
+    console.log('🔄 Clearing existing menu data and repopulating...');
+    
+    // Clear existing menu and order_items data
+    await query('DELETE FROM order_items');
+    await query('DELETE FROM menu_items');
+    
+    // New menu data based on provided list
+    const menuItems = [
+      // Combo Meals
+      {name: 'Veg Combo', price: 599, category: 'Combo Meals', description: 'Veg Burger, Tofu Stick, Cheese Fries, Cheese Corndog + Free Coke/Bubble Tea'},
+      {name: 'Non-Veg Combo', price: 599, category: 'Combo Meals', description: 'Chicken Burger, Chicken Sausage, Cheese Fries, Corndog + Free Coke/Bubble Tea'},
+      
+      // Nanglo Khaja Set
+      {name: 'Non-Veg Nanglo Khaja Set', price: 1999, category: 'Nanglo Khaja Set', description: 'Chicken Biryani, Chicken Momo, Chicken Sausage, Veg Chowmein, Mustang Aalu, Wai Wai Sadeko, Hot Wings, Drumstick, Chicken Burger, Chicken Pizza + 250ml Coke Free'},
+      {name: 'Veg Nanglo Khaja Set', price: 1499, category: 'Nanglo Khaja Set', description: 'Veg Biryani, Veg Momo, Tofu Stick, Mustang Aalu, Veg Burger, Cheese Pizza, Paneer Pakoda, Wai Wai Sadeko, Potato Cheese Ball + 250ml Coke Free'},
+      
+      // Khaja & Khana Sets
+      {name: 'Veg Khaja Set', price: 250, category: 'Khaja & Khana Sets'},
+      {name: 'Non-Veg Khaja Set', price: 300, category: 'Khaja & Khana Sets'},
+      {name: 'Veg Khana Set', price: 250, category: 'Khaja & Khana Sets'},
+      {name: 'Non-Veg Khana Set', price: 300, category: 'Khaja & Khana Sets'},
+      {name: 'Food Zone Special', price: 400, category: 'Khaja & Khana Sets'},
+      
+      // Breakfast
+      {name: 'Bread Omelette', price: 150, category: 'Breakfast'},
+      {name: 'Bread Jam', price: 100, category: 'Breakfast'},
+      {name: 'French Toast', price: 150, category: 'Breakfast'},
+      {name: 'Butter Toast', price: 100, category: 'Breakfast'},
+      {name: 'Honey Butter Toast', price: 150, category: 'Breakfast'},
+      {name: 'Cheese Toast', price: 150, category: 'Breakfast'},
+      {name: 'Cheese Tomato Toast', price: 180, category: 'Breakfast'},
+      {name: 'Aalu Paratha', price: 140, category: 'Breakfast', description: 'With Dahi & Mix Pickle'},
+      {name: 'Pancake', price: 150, category: 'Breakfast'},
+      {name: 'Bread Roll', price: 150, category: 'Breakfast'},
+      {name: 'Regular Breakfast', price: 250, category: 'Breakfast', description: 'Veg/Chicken Sandwich, Masala Tea, Omelette'},
+      {name: 'Food Zone Special Breakfast', price: 350, category: 'Breakfast', description: 'Cheese Tomato Toast, Omelette, Salad, Milk Masala Tea, Hash Brown Potatoes'},
+      
+      // Sandwiches & Burgers
+      {name: 'Veg Sandwich', price: 180, category: 'Sandwiches & Burgers'},
+      {name: 'Egg Sandwich', price: 180, category: 'Sandwiches & Burgers'},
+      {name: 'Chicken Sandwich', price: 180, category: 'Sandwiches & Burgers'},
+      {name: 'Veg Cheese Sandwich', price: 250, category: 'Sandwiches & Burgers'},
+      {name: 'Chicken Cheese Sandwich', price: 250, category: 'Sandwiches & Burgers'},
+      {name: 'Club Sandwich', price: 300, category: 'Sandwiches & Burgers'},
+      {name: 'Veg Burger', price: 180, category: 'Sandwiches & Burgers'},
+      {name: 'Chicken Burger', price: 180, category: 'Sandwiches & Burgers'},
+      {name: 'Veg Cheese Burger', price: 250, category: 'Sandwiches & Burgers'},
+      {name: 'Chicken Cheese Burger', price: 250, category: 'Sandwiches & Burgers'},
+      
+      // Fries
+      {name: 'French Fries', price: 160, category: 'Fries'},
+      {name: 'Fries Chilly', price: 220, category: 'Fries'},
+      
+      // MoMo
+      {name: 'Veg MoMo (Steam)', price: 120, category: 'MoMo'},
+      {name: 'Veg MoMo (Fried)', price: 170, category: 'MoMo'},
+      {name: 'Veg MoMo (Jhol)', price: 170, category: 'MoMo'},
+      {name: 'Veg MoMo (Chilly)', price: 200, category: 'MoMo'},
+      {name: 'Veg MoMo (Sadeko)', price: 200, category: 'MoMo'},
+      {name: 'Veg MoMo (Kothey)', price: 200, category: 'MoMo'},
+      {name: 'Buff MoMo (Steam)', price: 120, category: 'MoMo'},
+      {name: 'Buff MoMo (Fried)', price: 170, category: 'MoMo'},
+      {name: 'Buff MoMo (Jhol)', price: 170, category: 'MoMo'},
+      {name: 'Buff MoMo (Chilly)', price: 200, category: 'MoMo'},
+      {name: 'Buff MoMo (Sadeko)', price: 200, category: 'MoMo'},
+      {name: 'Buff MoMo (Kothey)', price: 200, category: 'MoMo'},
+      {name: 'Chicken MoMo (Steam)', price: 140, category: 'MoMo'},
+      {name: 'Chicken MoMo (Fried)', price: 190, category: 'MoMo'},
+      {name: 'Chicken MoMo (Jhol)', price: 190, category: 'MoMo'},
+      {name: 'Chicken MoMo (Chilly)', price: 220, category: 'MoMo'},
+      {name: 'Chicken MoMo (Sadeko)', price: 220, category: 'MoMo'},
+      {name: 'Chicken MoMo (Kothey)', price: 220, category: 'MoMo'},
+      
+      // Chowmein
+      {name: 'Veg Chowmein (Half)', price: 70, category: 'Chowmein'},
+      {name: 'Veg Chowmein (Full)', price: 110, category: 'Chowmein'},
+      {name: 'Buff Chowmein (Half)', price: 90, category: 'Chowmein'},
+      {name: 'Buff Chowmein (Full)', price: 150, category: 'Chowmein'},
+      {name: 'Chicken Chowmein (Half)', price: 90, category: 'Chowmein'},
+      {name: 'Chicken Chowmein (Full)', price: 150, category: 'Chowmein'},
+      {name: 'Egg Chowmein (Half)', price: 90, category: 'Chowmein'},
+      {name: 'Egg Chowmein (Full)', price: 150, category: 'Chowmein'},
+      {name: 'Mix Chowmein', price: 200, category: 'Chowmein'},
+      
+      // Corn Dog & Hot Dog
+      {name: 'Sausage Corn Dog', price: 130, category: 'Corn Dog & Hot Dog'},
+      {name: 'Cheese Corn Dog', price: 180, category: 'Corn Dog & Hot Dog'},
+      {name: 'Hot Dog (Chicken)', price: 190, category: 'Corn Dog & Hot Dog'},
+      
+      // Thukpa
+      {name: 'Veg Thukpa (Half)', price: 100, category: 'Thukpa'},
+      {name: 'Veg Thukpa (Full)', price: 150, category: 'Thukpa'},
+      {name: 'Egg Thukpa (Half)', price: 140, category: 'Thukpa'},
+      {name: 'Egg Thukpa (Full)', price: 180, category: 'Thukpa'},
+      {name: 'Chicken Thukpa (Half)', price: 140, category: 'Thukpa'},
+      {name: 'Chicken Thukpa (Full)', price: 180, category: 'Thukpa'},
+      {name: 'Mixed Thukpa', price: 200, category: 'Thukpa'},
+      
+      // Pizza
+      {name: '9 Inch Cheese Pizza', price: 400, category: 'Pizza'},
+      {name: '12 Inch Cheese Pizza', price: 400, category: 'Pizza'},
+      {name: '9 Inch Veg Pizza', price: 450, category: 'Pizza'},
+      {name: '12 Inch Veg Pizza', price: 450, category: 'Pizza'},
+      {name: '9 Inch Chicken Pizza', price: 450, category: 'Pizza'},
+      {name: '12 Inch Chicken Pizza', price: 450, category: 'Pizza'},
+      {name: '9 Inch Mixed Pizza', price: 500, category: 'Pizza'},
+      {name: '12 Inch Mixed Pizza', price: 500, category: 'Pizza'},
+      {name: 'Extra Cheese', price: 100, category: 'Pizza'},
+      
+      // Rice & Biryani
+      {name: 'Veg Fry Rice (Half)', price: 100, category: 'Rice & Biryani'},
+      {name: 'Veg Fry Rice (Full)', price: 150, category: 'Rice & Biryani'},
+      {name: 'Egg Fry Rice (Half)', price: 120, category: 'Rice & Biryani'},
+      {name: 'Egg Fry Rice (Full)', price: 160, category: 'Rice & Biryani'},
+      {name: 'Buff Fry Rice (Half)', price: 120, category: 'Rice & Biryani'},
+      {name: 'Buff Fry Rice (Full)', price: 180, category: 'Rice & Biryani'},
+      {name: 'Chicken Fry Rice (Half)', price: 120, category: 'Rice & Biryani'},
+      {name: 'Chicken Fry Rice (Full)', price: 180, category: 'Rice & Biryani'},
+      {name: 'Mixed Fry Rice', price: 200, category: 'Rice & Biryani'},
+      {name: 'Veg Biryani', price: 280, category: 'Rice & Biryani'},
+      {name: 'Chicken Biryani', price: 320, category: 'Rice & Biryani'},
+      {name: 'Egg Biryani', price: 300, category: 'Rice & Biryani'},
+      
+      // Curries
+      {name: 'Aalu Matar', price: 130, category: 'Curries'},
+      {name: 'Mix Veg', price: 130, category: 'Curries'},
+      {name: 'Mushroom Curry', price: 180, category: 'Curries'},
+      {name: 'Matar Paneer', price: 250, category: 'Curries'},
+      {name: 'Paneer Butter Masala', price: 300, category: 'Curries'},
+      {name: 'Chicken Curry', price: 180, category: 'Curries'},
+      {name: 'Chicken Butter Masala', price: 250, category: 'Curries'},
+      {name: 'Chicken Curry Rice', price: 250, category: 'Curries'},
+      {name: 'Paneer Curry Rice', price: 300, category: 'Curries'},
+      {name: 'Veg Curry Rice', price: 200, category: 'Curries'},
+      
+      // Peri Peri & Chicken Specials
+      {name: 'Peri Peri Chicken', price: 350, category: 'Peri Peri & Chicken Specials'},
+      {name: 'Chicken 65', price: 300, category: 'Peri Peri & Chicken Specials'},
+      {name: 'Chicken Popcorn', price: 250, category: 'Peri Peri & Chicken Specials'},
+      {name: 'Food Zone Special Dragon Chicken', price: 300, category: 'Peri Peri & Chicken Specials'},
+      
+      // Fish Specials
+      {name: 'Fish Finger (8 pcs)', price: 250, category: 'Fish Specials'},
+      {name: 'Fish & Chips', price: 350, category: 'Fish Specials'},
+      
+      // Paneer & Veg Snacks
+      {name: 'Paneer Pakoda', price: 300, category: 'Paneer & Veg Snacks'},
+      {name: 'Paneer Chilly', price: 300, category: 'Paneer & Veg Snacks'},
+      {name: 'Grill Potatoes', price: 150, category: 'Paneer & Veg Snacks'},
+      
+      // Chopsuey
+      {name: 'Veg Chopsuey', price: 300, category: 'Chopsuey'},
+      {name: 'Non-Veg Chopsuey', price: 320, category: 'Chopsuey'},
+      
+      // Pasta
+      {name: 'Spaghetti Carbonara', price: 350, category: 'Pasta'},
+      {name: 'Spaghetti Bolognese', price: 300, category: 'Pasta'},
+      {name: 'Pesto Penne', price: 300, category: 'Pasta'},
+      {name: 'Pasta', price: 150, category: 'Pasta'},
+      
+      // Food Zone Specials
+      {name: 'Chicken Kathi Roll', price: 180, category: 'Food Zone Specials'},
+      {name: 'Paneer Kathi Roll', price: 200, category: 'Food Zone Specials'},
+      {name: 'Food Zone Special Chicken Burger [KFC]', price: 250, category: 'Food Zone Specials'},
+      {name: 'Food Zone Special Chicken [KFC] (4 pcs)', price: 300, category: 'Food Zone Specials'},
+      {name: 'Veg Manchurian with Rice', price: 250, category: 'Food Zone Specials'},
+      {name: 'Chicken Manchurian with Rice', price: 300, category: 'Food Zone Specials'},
+      {name: 'Veg MoMo Platter', price: 250, category: 'Food Zone Specials'},
+      {name: 'Buff MoMo Platter', price: 300, category: 'Food Zone Specials'},
+      {name: 'Chicken MoMo Platter', price: 300, category: 'Food Zone Specials'},
+      {name: 'Food Zone Special Noodles', price: 250, category: 'Food Zone Specials'},
+      {name: 'Meat Ball', price: 200, category: 'Food Zone Specials'},
+      
+      // Hukka
+      {name: 'Hukka', price: 400, category: 'Hukka'},
+      
+      // Soups
+      {name: 'Mushroom Soup', price: 150, category: 'Soups'},
+      {name: 'Hot & Sour Soup', price: 150, category: 'Soups'},
+      {name: 'Clear Soup', price: 100, category: 'Soups'},
+      {name: 'Chicken Soup', price: 150, category: 'Soups'},
+      
+      // Hot Beverages
+      {name: 'Black Tea', price: 20, category: 'Hot Beverages'},
+      {name: 'Ginger Tea', price: 25, category: 'Hot Beverages'},
+      {name: 'Black Masala', price: 30, category: 'Hot Beverages'},
+      {name: 'Marich Tea', price: 30, category: 'Hot Beverages'},
+      {name: 'Lemon Tea', price: 30, category: 'Hot Beverages'},
+      {name: 'Mint Tea', price: 30, category: 'Hot Beverages'},
+      {name: 'Milk Tea', price: 30, category: 'Hot Beverages'},
+      {name: 'Milk Masala Tea', price: 40, category: 'Hot Beverages'},
+      {name: 'Hot Lemon', price: 50, category: 'Hot Beverages'},
+      {name: 'Ginger Lemon Honey', price: 130, category: 'Hot Beverages'},
+      {name: 'Hot Chocolate', price: 190, category: 'Hot Beverages'},
+      
+      // Cold Beverages
+      {name: 'Ju Ju Dhau', price: 70, category: 'Cold Beverages'},
+      {name: 'Lassi Plain', price: 100, category: 'Cold Beverages'},
+      {name: 'Lassi Sweet', price: 120, category: 'Cold Beverages'},
+      {name: 'Lassi Banana', price: 130, category: 'Cold Beverages'},
+      {name: 'Lemonade', price: 100, category: 'Cold Beverages'},
+      {name: 'Cold Coffee', price: 190, category: 'Cold Beverages'},
+      {name: 'Oreo Milkshake', price: 190, category: 'Cold Beverages'},
+      {name: 'Chocolate Milkshake', price: 190, category: 'Cold Beverages'},
+      {name: 'Virgin Mojito', price: 90, category: 'Cold Beverages'},
+      {name: 'Black Coffee', price: 80, category: 'Cold Beverages'},
+      {name: 'Milk Coffee', price: 120, category: 'Cold Beverages'},
+      {name: 'Coke', price: 70, category: 'Cold Beverages'},
+      {name: 'Fanta', price: 70, category: 'Cold Beverages'},
+      {name: 'Sprite', price: 70, category: 'Cold Beverages'}
+    ];
+    
+    // Insert new menu items
+    for (const item of menuItems) {
+      await query(
+        'INSERT INTO menu_items (name, price, category, description) VALUES ($1, $2, $3, $4)',
+        [item.name, item.price, item.category, item.description || null]
+      );
+    }
+    
+    console.log(`✅ Menu reset complete! Added ${menuItems.length} items`);
+    res.json({ 
+      success: true, 
+      message: `Menu reset successfully with ${menuItems.length} items`,
+      itemCount: menuItems.length
+    });
+    
+  } catch (error) {
+    console.error('❌ Menu reset failed:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: error.message 
+    });
+  }
+});
+
 // Database initialization endpoint with table verification
 app.post('/api/init/db', async (req, res) => {
   try {
