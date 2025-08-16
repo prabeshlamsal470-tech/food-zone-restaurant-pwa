@@ -28,7 +28,8 @@ const Menu = () => {
 
   const fetchMenuItems = async () => {
     try {
-      const response = await axios.get('http://localhost:5001/api/menu');
+      const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5001';
+      const response = await axios.get(`${apiUrl}/api/menu`);
       setMenuItems(response.data);
     } catch (error) {
       console.error('Error fetching menu:', error);
