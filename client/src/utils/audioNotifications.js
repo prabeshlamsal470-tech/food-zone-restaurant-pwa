@@ -40,14 +40,20 @@ class AudioNotificationManager {
   playTableOrderSound() {
     if (!this.isEnabled) return;
 
+    console.log('🔔 Playing table order sound...');
     try {
       if (this.tableOrderSound && this.tableOrderSound.readyState >= 2) {
         this.tableOrderSound.currentTime = 0;
-        this.tableOrderSound.play().catch(() => this.playFallbackTableSound());
+        this.tableOrderSound.play().catch((error) => {
+          console.warn('Table order sound failed, using fallback:', error);
+          this.playFallbackTableSound();
+        });
       } else {
+        console.log('Table order sound not ready, using fallback');
         this.playFallbackTableSound();
       }
     } catch (error) {
+      console.warn('Table order sound error:', error);
       this.playFallbackTableSound();
     }
   }
@@ -56,14 +62,20 @@ class AudioNotificationManager {
   playDeliveryOrderSound() {
     if (!this.isEnabled) return;
 
+    console.log('🚚 Playing delivery order sound...');
     try {
       if (this.deliveryOrderSound && this.deliveryOrderSound.readyState >= 2) {
         this.deliveryOrderSound.currentTime = 0;
-        this.deliveryOrderSound.play().catch(() => this.playFallbackDeliverySound());
+        this.deliveryOrderSound.play().catch((error) => {
+          console.warn('Delivery order sound failed, using fallback:', error);
+          this.playFallbackDeliverySound();
+        });
       } else {
+        console.log('Delivery order sound not ready, using fallback');
         this.playFallbackDeliverySound();
       }
     } catch (error) {
+      console.warn('Delivery order sound error:', error);
       this.playFallbackDeliverySound();
     }
   }
@@ -155,6 +167,11 @@ class AudioNotificationManager {
   // Request audio permissions (for mobile devices)
   async requestPermissions() {
     try {
+      // Create audio context if it doesn't exist
+      if (!this.audioContext && (typeof AudioContext !== 'undefined' || typeof webkitAudioContext !== 'undefined')) {
+        this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      
       if (this.audioContext && this.audioContext.state === 'suspended') {
         await this.audioContext.resume();
       }
@@ -171,6 +188,7 @@ class AudioNotificationManager {
         }
       }
       
+      console.log('🔊 Audio permissions granted and initialized');
       return true;
     } catch (error) {
       console.warn('Audio permission request failed:', error);

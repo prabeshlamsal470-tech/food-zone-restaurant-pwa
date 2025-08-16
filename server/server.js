@@ -314,18 +314,26 @@ const menuItems = [
   { id: 157, name: "Sprite", price: 70, category: "Cold Beverages" }
 ];
 
-// Clean expired table sessions (older than 1 hour)
+// Clean expired table sessions (older than 10 minutes)
 const cleanExpiredSessions = () => {
-  const oneHourAgo = Date.now() - (60 * 60 * 1000);
+  const tenMinutesAgo = Date.now() - (10 * 60 * 1000);
+  let clearedCount = 0;
+  
   for (const [tableId, session] of tableSessions.entries()) {
-    if (session.timestamp < oneHourAgo) {
+    if (session.timestamp < tenMinutesAgo) {
       tableSessions.delete(tableId);
+      clearedCount++;
+      console.log(`🧹 Auto-cleared expired table session: ${tableId}`);
     }
+  }
+  
+  if (clearedCount > 0) {
+    console.log(`🕒 Cleaned ${clearedCount} expired table sessions (older than 10 minutes)`);
   }
 };
 
-// Run cleanup every 10 minutes
-setInterval(cleanExpiredSessions, 10 * 60 * 1000);
+// Run cleanup every 2 minutes to check for expired sessions
+setInterval(cleanExpiredSessions, 2 * 60 * 1000);
 
 // Initialize database settings on startup
 loadSettings();
@@ -812,9 +820,10 @@ app.get('/api/table-session/:tableId', (req, res) => {
     return res.json({ exists: false });
   }
   
-  const oneHourAgo = Date.now() - (60 * 60 * 1000);
-  if (session.timestamp < oneHourAgo) {
+  const tenMinutesAgo = Date.now() - (10 * 60 * 1000);
+  if (session.timestamp < tenMinutesAgo) {
     tableSessions.delete(tableId);
+    console.log(`🧹 Expired table session cleared: ${tableId}`);
     return res.json({ exists: false });
   }
   

@@ -10,9 +10,10 @@ const Admin = () => {
   const [orders, setOrders] = useState([]);
   const [orderHistory, setOrderHistory] = useState([]);
   const [customers, setCustomers] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [dbSummary, setDbSummary] = useState(null);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
     // Check localStorage for existing authentication
     return localStorage.getItem('adminAuthenticated') === 'true';
@@ -31,7 +32,6 @@ const Admin = () => {
 
   useEffect(() => {
     fetchOrders();
-    fetchOrderHistory();
     fetchCustomers();
     fetchDatabaseSummary();
 
@@ -75,6 +75,12 @@ const Admin = () => {
     };
   }, []);
 
+  useEffect(() => {
+    if (activeTab === 'history' && orderHistory.length === 0) {
+      fetchOrderHistory();
+    }
+  }, [activeTab, orderHistory.length]);
+
   const fetchOrders = async () => {
     try {
       setLoading(true);
@@ -90,11 +96,13 @@ const Admin = () => {
 
   const fetchOrderHistory = async () => {
     try {
+      setIsLoadingHistory(true);
       const data = await fetchApi.get('/api/order-history');
       setOrderHistory(data);
     } catch (err) {
-      setError(err.message);
       console.error('Error fetching order history:', err);
+    } finally {
+      setIsLoadingHistory(false);
     }
   };
 
@@ -786,7 +794,13 @@ const Admin = () => {
       {/* Order History Tab */}
       {activeTab === 'history' && (
         <>
-          {orderHistory.length === 0 ? (
+          {isLoadingHistory ? (
+            <div className="text-center py-12">
+              <div className="text-6xl mb-4 animate-spin">⏳</div>
+              <h2 className="text-2xl font-semibold text-gray-600 mb-2">Loading Order History...</h2>
+              <p className="text-gray-500">Please wait while we fetch completed orders</p>
+            </div>
+          ) : orderHistory.length === 0 ? (
             <div className="text-center py-12">
               <div className="text-6xl mb-4">📜</div>
               <h2 className="text-2xl font-semibold text-gray-600 mb-2">No Order History</h2>
