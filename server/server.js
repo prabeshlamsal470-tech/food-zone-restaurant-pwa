@@ -64,23 +64,38 @@ async function initializeDatabaseWithSampleData() {
     if (parseInt(orderCount.rows[0].count) === 0) {
       console.log('🔄 Database is empty, populating with sample data...');
       
-      // Read and execute sample data SQL
-      const fs = require('fs');
-      const path = require('path');
-      const sampleDataPath = path.join(__dirname, 'database', 'sample_data.sql');
-      
-      if (fs.existsSync(sampleDataPath)) {
-        const sampleData = fs.readFileSync(sampleDataPath, 'utf8');
-        // Split by semicolon and execute each statement
-        const statements = sampleData.split(';').filter(stmt => stmt.trim());
+      // Insert sample data directly
+      const sampleQueries = [
+        // Insert customers
+        `INSERT INTO customers (name, phone, email, total_orders, total_spent) VALUES
+         ('John Doe', '9841234567', 'john@example.com', 3, 850.00),
+         ('Jane Smith', '9847654321', 'jane@example.com', 2, 560.00),
+         ('Ram Sharma', '9851111111', 'ram@example.com', 1, 320.00),
+         ('Sita Patel', '9862222222', 'sita@example.com', 4, 1200.00),
+         ('Mike Johnson', '9873333333', 'mike@example.com', 1, 180.00)`,
         
-        for (const statement of statements) {
-          if (statement.trim()) {
-            await query(statement.trim());
-          }
-        }
-        console.log('✅ Sample data populated successfully');
+        // Insert orders
+        `INSERT INTO orders (order_number, order_type, customer_id, customer_name, customer_phone, delivery_address, table_id, subtotal, total, status, payment_status, payment_method, notes) VALUES
+         ('FZ-2024-001', 'delivery', 2, 'Jane Smith', '9847654321', 'Duwakot, Bhaktapur', NULL, 280.00, 330.00, 'completed', 'paid', 'digital', 'Extra spicy'),
+         ('FZ-2024-002', 'dine-in', 1, 'John Doe', '9841234567', NULL, 5, 360.00, 360.00, 'completed', 'paid', 'cash', NULL),
+         ('FZ-2024-003', 'delivery', 4, 'Sita Patel', '9862222222', 'Madhyapur Thimi', NULL, 450.00, 500.00, 'preparing', 'paid', 'digital', 'Call before delivery'),
+         ('FZ-2024-004', 'dine-in', 3, 'Ram Sharma', '9851111111', NULL, 12, 320.00, 320.00, 'ready', 'pending', NULL, 'Birthday special'),
+         ('FZ-2024-005', 'delivery', 5, 'Mike Johnson', '9873333333', 'Bhaktapur Durbar Square', NULL, 180.00, 230.00, 'pending', 'paid', 'card', 'Office delivery')`,
+        
+        // Insert order items
+        `INSERT INTO order_items (order_id, menu_item_id, menu_item_name, menu_item_category, price, quantity, subtotal) VALUES
+         (1, 46, 'Chicken MoMo (Steam)', 'MoMo', 140.00, 2, 280.00),
+         (2, 34, 'Veg MoMo (Steam)', 'MoMo', 120.00, 1, 120.00),
+         (2, 75, '9 Inch Chicken Pizza', 'Pizza', 450.00, 1, 450.00),
+         (3, 89, 'Veg Biryani', 'Rice & Biryani', 280.00, 1, 280.00),
+         (4, 90, 'Chicken Biryani', 'Rice & Biryani', 320.00, 1, 320.00),
+         (5, 24, 'Chicken Sandwich', 'Sandwiches & Burgers', 180.00, 1, 180.00)`
+      ];
+      
+      for (const sampleQuery of sampleQueries) {
+        await query(sampleQuery);
       }
+      console.log('✅ Sample data populated successfully');
     }
   } catch (error) {
     console.error('❌ Error initializing sample data:', error);
@@ -901,8 +916,25 @@ res.status(500).json({ error: 'Failed to get table history', details: error.mess
 });
 
 // ============================================
-// TABLE PAYMENT API ENDPOINTS
+// API ENDPOINTS
 // ============================================
+
+// Admin authentication endpoint
+app.post('/api/admin/auth', (req, res) => {
+  try {
+    const { password } = req.body;
+    const adminPassword = process.env.ADMIN_PASSWORD || 'FoodZone2024!';
+    
+    if (password === adminPassword) {
+      res.json({ success: true, message: 'Authentication successful' });
+    } else {
+      res.status(401).json({ success: false, message: 'Invalid password' });
+    }
+  } catch (error) {
+    console.error(' Admin auth error:', error);
+    res.status(500).json({ success: false, message: 'Authentication error' });
+  }
+});
 
 // Create payment for table session
 app.post('/api/tables/:tableId/payment', async (req, res) => {
