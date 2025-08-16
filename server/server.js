@@ -14,7 +14,7 @@ const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
     origin: process.env.NODE_ENV === 'production' 
-      ? process.env.ALLOWED_ORIGINS?.split(',') || ["https://your-domain.netlify.app"]
+      ? ["https://foodzoneduwakot.netlify.app", "https://astounding-malabi-c1d59c.netlify.app", "https://food-zone-restaurant.windsurf.build"]
       : "http://localhost:3000",
     methods: ["GET", "POST"]
   }
@@ -23,7 +23,7 @@ const io = socketIo(server, {
 // Middleware
 const corsOptions = {
   origin: process.env.NODE_ENV === 'production' 
-    ? ["https://astounding-malabi-c1d59c.netlify.app", "https://food-zone-restaurant.windsurf.build"]
+    ? ["https://foodzoneduwakot.netlify.app", "https://astounding-malabi-c1d59c.netlify.app", "https://food-zone-restaurant.windsurf.build"]
     : "http://localhost:3000",
   credentials: true
 };
