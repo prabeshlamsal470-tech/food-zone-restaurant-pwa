@@ -780,8 +780,8 @@ app.post('/api/init/db', async (req, res) => {
     
     // Create tables in correct order (respecting foreign key dependencies)
     const initQueries = [
-      // Enable PostGIS extension
-      `CREATE EXTENSION IF NOT EXISTS postgis`,
+      // Skip PostGIS extension as it's not available on Railway
+      // `CREATE EXTENSION IF NOT EXISTS postgis`,
       
       // Customers table
       `CREATE TABLE IF NOT EXISTS customers (
