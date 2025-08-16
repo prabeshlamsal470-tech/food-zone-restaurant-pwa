@@ -213,19 +213,18 @@ const AdminMobile = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Mobile Header */}
-      <div className="bg-gradient-to-r from-orange-500 to-red-500 text-white p-4 shadow-lg">
+      {/* Compact Mobile Header */}
+      <div className="bg-gradient-to-r from-orange-500 to-red-500 text-white p-3 shadow-sm">
         <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
-              <span className="text-xl">🍽️</span>
+          <div className="flex items-center space-x-2">
+            <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
+              <span className="text-lg">🍽️</span>
             </div>
             <div>
-              <h1 className="text-lg font-bold">Food Zone Admin</h1>
-              <p className="text-orange-100 text-xs">Panel</p>
+              <h1 className="text-base font-bold">Food Zone Admin</h1>
             </div>
           </div>
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-1">
             <button
               onClick={() => {
                 mobileAudioManager.setEnabled(!mobileAudioManager.isEnabled);
@@ -233,13 +232,13 @@ const AdminMobile = () => {
                   mobileAudioManager.testSound();
                 }
               }}
-              className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center"
+              className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center"
             >
-              {mobileAudioManager.isEnabled ? '🔊' : '🔇'}
+              <span className="text-sm">{mobileAudioManager.isEnabled ? '🔊' : '🔇'}</span>
             </button>
             <button 
               onClick={handleLogout}
-              className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center"
+              className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center"
             >
               <span className="text-sm">🚪</span>
             </button>
@@ -247,53 +246,53 @@ const AdminMobile = () => {
         </div>
       </div>
 
-      {/* Mobile Tab Navigation */}
+      {/* Compact Tab Navigation */}
       <div className="bg-white shadow-sm border-b">
-        <div className="flex overflow-x-auto">
+        <div className="flex">
           <button
             onClick={() => setActiveTab('dine-in')}
-            className={`flex-shrink-0 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+            className={`flex-1 py-2 text-sm font-medium border-b-2 transition-colors ${
               activeTab === 'dine-in'
                 ? 'border-orange-500 text-orange-600 bg-orange-50'
                 : 'border-transparent text-gray-500'
             }`}
           >
-            <div className="flex items-center space-x-2">
-              <span>🪑</span>
+            <div className="flex items-center justify-center space-x-1">
+              <span className="text-sm">🪑</span>
               <span>Dine-in</span>
             </div>
           </button>
           <button
             onClick={() => setActiveTab('delivery')}
-            className={`flex-shrink-0 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+            className={`flex-1 py-2 text-sm font-medium border-b-2 transition-colors ${
               activeTab === 'delivery'
                 ? 'border-orange-500 text-orange-600 bg-orange-50'
                 : 'border-transparent text-gray-500'
             }`}
           >
-            <div className="flex items-center space-x-2">
-              <span>🚚</span>
+            <div className="flex items-center justify-center space-x-1">
+              <span className="text-sm">🚚</span>
               <span>Delivery</span>
             </div>
           </button>
         </div>
       </div>
 
-      {/* Content */}
-      <div className="p-4 pb-20">
+      {/* Compact Content */}
+      <div className="p-2 pb-16">
         {/* Dine-in Orders */}
         {activeTab === 'dine-in' && (
           <>
             {orders.filter(order => order.order_type === 'dine-in' && order.status !== 'completed' && order.status !== 'cancelled').length === 0 ? (
-              <div className="text-center py-12">
-                <div className="w-20 h-20 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                  <span className="text-3xl">🪑</span>
+              <div className="text-center py-8">
+                <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center mx-auto mb-3">
+                  <span className="text-2xl">🪑</span>
                 </div>
-                <h2 className="text-lg font-semibold text-gray-600 mb-2">No Dine-in Orders</h2>
+                <h2 className="text-base font-semibold text-gray-600 mb-1">No Dine-in Orders</h2>
                 <p className="text-gray-500 text-sm">Table orders will appear here</p>
               </div>
             ) : (
-              <div className="space-y-4">
+              <div>
                 {orders.filter(order => order.table_id !== null && order.order_type === 'dine-in' && order.status !== 'completed' && order.status !== 'cancelled').map(order => (
                   <MobileOrderCard
                     key={order.id}
@@ -312,15 +311,15 @@ const AdminMobile = () => {
         {activeTab === 'delivery' && (
           <>
             {orders.filter(order => order.order_type === 'delivery' && order.status !== 'completed' && order.status !== 'cancelled').length === 0 ? (
-              <div className="text-center py-12">
-                <div className="w-20 h-20 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                  <span className="text-3xl">🚚</span>
+              <div className="text-center py-8">
+                <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center mx-auto mb-3">
+                  <span className="text-2xl">🚚</span>
                 </div>
-                <h2 className="text-lg font-semibold text-gray-600 mb-2">No Delivery Orders</h2>
+                <h2 className="text-base font-semibold text-gray-600 mb-1">No Delivery Orders</h2>
                 <p className="text-gray-500 text-sm">Delivery orders will appear here</p>
               </div>
             ) : (
-              <div className="space-y-4">
+              <div>
                 {orders.filter(order => order.order_type === 'delivery' && order.status !== 'completed' && order.status !== 'cancelled').map(order => (
                   <MobileOrderCard
                     key={order.id}
@@ -336,27 +335,27 @@ const AdminMobile = () => {
         )}
       </div>
 
-      {/* Confirmation Modal */}
+      {/* Compact Confirmation Modal */}
       {showConfirmModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl p-6 max-w-sm w-full">
+          <div className="bg-white rounded-lg p-4 max-w-sm w-full">
             <div className="text-center mb-4">
-              <div className="w-12 h-12 bg-red-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
-                <span className="text-xl">⚠️</span>
+              <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center mx-auto mb-2">
+                <span className="text-lg">⚠️</span>
               </div>
-              <h3 className="text-lg font-bold text-gray-800 mb-2">Clear Table {tableToDelete}?</h3>
-              <p className="text-gray-600 text-sm">This will move all orders to history and free up the table.</p>
+              <h3 className="text-base font-bold text-gray-800 mb-1">Clear Table {tableToDelete}?</h3>
+              <p className="text-gray-600 text-sm">Move orders to history and free table.</p>
             </div>
-            <div className="flex space-x-3">
+            <div className="flex space-x-2">
               <button
                 onClick={() => setShowConfirmModal(false)}
-                className="flex-1 bg-gray-100 text-gray-700 py-3 px-4 rounded-xl font-medium hover:bg-gray-200 transition-colors"
+                className="flex-1 bg-gray-100 text-gray-700 py-2 px-3 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={confirmClearTable}
-                className="flex-1 bg-red-500 text-white py-3 px-4 rounded-xl font-medium hover:bg-red-600 transition-colors"
+                className="flex-1 bg-red-500 text-white py-2 px-3 rounded-lg text-sm font-medium hover:bg-red-600 transition-colors"
               >
                 Clear Table
               </button>

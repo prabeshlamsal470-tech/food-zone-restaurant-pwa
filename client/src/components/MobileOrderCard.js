@@ -4,109 +4,86 @@ const MobileOrderCard = ({ order, onClearTable, onCompleteOrder, formatDate, get
   const isDelivery = order.order_type === 'delivery';
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden transform transition-all duration-200 hover:shadow-md active:scale-98">
-      {/* Order Header with Gradient */}
-      <div className={`bg-gradient-to-r p-4 border-b border-gray-100 ${
-        isDelivery 
-          ? 'from-emerald-50 via-green-50 to-teal-50' 
-          : 'from-blue-50 via-indigo-50 to-purple-50'
-      }`}>
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center space-x-3">
-            <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shadow-sm ${
-              isDelivery 
-                ? 'bg-gradient-to-br from-green-500 to-emerald-600' 
-                : 'bg-gradient-to-br from-blue-500 to-indigo-600'
+    <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden mb-3">
+      {/* Compact Header */}
+      <div className="p-3 border-b border-gray-100">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-white text-xs font-bold ${
+              isDelivery ? 'bg-green-500' : 'bg-blue-500'
             }`}>
-              {isDelivery ? (
-                <span className="text-white text-sm font-bold">🚚</span>
-              ) : (
-                <span className="text-white text-sm font-bold">{order.table_id}</span>
-              )}
+              {isDelivery ? '🚚' : order.table_id}
             </div>
-            <div>
-              <h3 className="font-bold text-gray-800 text-base">
-                {isDelivery ? 'Delivery Order' : `Table ${order.table_id}`}
-              </h3>
-              <p className="text-xs text-gray-600 font-medium">{order.customer_name}</p>
-              <p className="text-xs text-gray-500">📞 {order.customer_phone}</p>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center space-x-2">
+                <h3 className="font-semibold text-gray-900 text-sm truncate">
+                  {isDelivery ? 'Delivery' : `Table ${order.table_id}`}
+                </h3>
+                <span className="text-xs text-gray-500">#{order.order_number || order.id}</span>
+              </div>
+              <p className="text-xs text-gray-600 truncate">{order.customer_name}</p>
             </div>
           </div>
-          <div className="text-right">
-            <div className={`text-xl font-bold ${
-              isDelivery ? 'text-green-600' : 'text-orange-600'
-            }`}>
+          <div className="text-right flex-shrink-0">
+            <div className={`text-lg font-bold ${isDelivery ? 'text-green-600' : 'text-orange-600'}`}>
               NPR {getTotalOrderValue(order.items, order.total)}/-
             </div>
-            <p className="text-xs text-gray-500 font-medium">{formatDate(order.created_at)}</p>
+            <p className="text-xs text-gray-500">{formatDate(order.created_at)}</p>
           </div>
         </div>
 
-        {/* Delivery Address */}
-        {isDelivery && order.delivery_address && (
-          <div className="mb-3 p-3 bg-white/60 backdrop-blur-sm rounded-xl border border-white/20">
-            <p className="text-xs text-gray-600 mb-1 font-medium">📍 Delivery Address:</p>
-            <p className="text-sm text-gray-800 leading-relaxed">{order.delivery_address}</p>
-          </div>
-        )}
-
-        {/* Status Badges */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2 flex-wrap gap-1">
-            <span className="bg-white/80 backdrop-blur-sm text-blue-800 text-xs px-3 py-1.5 rounded-full font-semibold border border-blue-100">
-              #{order.order_number || order.id}
-            </span>
-            <span className={`bg-white/80 backdrop-blur-sm text-xs px-3 py-1.5 rounded-full font-semibold border ${
+        {/* Status and Action Row */}
+        <div className="flex items-center justify-between mt-2">
+          <div className="flex items-center space-x-1">
+            <span className={`text-xs px-2 py-1 rounded-full font-medium ${
               order.status === 'pending' 
-                ? 'text-orange-800 border-orange-100' 
-                : 'text-green-800 border-green-100'
+                ? 'bg-orange-100 text-orange-700' 
+                : 'bg-green-100 text-green-700'
             }`}>
               {order.status || 'pending'}
             </span>
-            {order.items && (
-              <span className="bg-white/80 backdrop-blur-sm text-purple-800 text-xs px-3 py-1.5 rounded-full font-semibold border border-purple-100">
-                {order.items.length} items
-              </span>
-            )}
+            <span className="bg-gray-100 text-gray-700 text-xs px-2 py-1 rounded-full font-medium">
+              {order.items?.length || 0} items
+            </span>
           </div>
-          
-          {/* Action Button */}
           <button
             onClick={() => isDelivery ? onCompleteOrder?.(order.id) : onClearTable?.(order.table_id)}
-            className={`px-4 py-2 rounded-xl text-xs font-bold text-white shadow-sm transition-all duration-200 transform active:scale-95 ${
+            className={`px-3 py-1 rounded-md text-xs font-medium text-white transition-colors ${
               isDelivery 
-                ? 'bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700' 
-                : 'bg-gradient-to-r from-red-500 to-pink-600 hover:from-red-600 hover:to-pink-700'
+                ? 'bg-green-500 hover:bg-green-600' 
+                : 'bg-red-500 hover:bg-red-600'
             }`}
           >
-            {isDelivery ? '✅ Complete' : '🧹 Clear Table'}
+            {isDelivery ? 'Complete' : 'Clear'}
           </button>
         </div>
       </div>
 
-      {/* Order Items */}
-      <div className="p-4">
-        <h4 className="font-bold text-gray-800 mb-3 text-sm flex items-center">
-          <span className="mr-2">🛒</span>
-          Order Items
-        </h4>
-        <div className="space-y-3">
+      {/* Delivery Address - Compact */}
+      {isDelivery && order.delivery_address && (
+        <div className="px-3 py-2 bg-gray-50 border-b border-gray-100">
+          <p className="text-xs text-gray-600 mb-1">📍 Address:</p>
+          <p className="text-xs text-gray-800 leading-relaxed">{order.delivery_address}</p>
+        </div>
+      )}
+
+      {/* Order Items - Compact List */}
+      <div className="p-3">
+        <div className="space-y-2">
           {order.items?.map((item, index) => (
-            <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-100">
-              <div className="flex-1">
-                <div className="flex items-center space-x-2">
-                  <span className="font-semibold text-gray-800 text-sm">{item.name}</span>
-                  {item.isCustom && (
-                    <span className="bg-gradient-to-r from-yellow-400 to-orange-400 text-white text-xs px-2 py-1 rounded-full font-bold">
-                      Custom
-                    </span>
-                  )}
-                </div>
+            <div key={index} className="flex items-center justify-between py-1">
+              <div className="flex items-center space-x-2 flex-1 min-w-0">
+                <span className="text-sm font-medium text-gray-800 truncate">{item.name}</span>
+                {item.isCustom && (
+                  <span className="bg-yellow-100 text-yellow-700 text-xs px-1.5 py-0.5 rounded font-medium">
+                    Custom
+                  </span>
+                )}
               </div>
-              <div className="text-right">
-                <div className="text-sm text-gray-600 font-medium">Qty: {item.quantity}</div>
+              <div className="text-right flex-shrink-0 ml-2">
+                <div className="text-xs text-gray-600">Qty: {item.quantity}</div>
                 {!item.isCustom && (
-                  <div className="text-sm font-bold text-gray-800">
+                  <div className="text-sm font-semibold text-gray-800">
                     NPR {(item.price * item.quantity)}/-
                   </div>
                 )}
