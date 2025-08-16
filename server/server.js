@@ -773,10 +773,19 @@ app.get('/api/test/db', async (req, res) => {
   }
 });
 
-// Database initialization endpoint
+// Database initialization endpoint with table verification
 app.post('/api/init/db', async (req, res) => {
   try {
     console.log('🔄 Initializing database schema...');
+    
+    // First check if tables already exist
+    const tableCheck = await query(`
+      SELECT table_name 
+      FROM information_schema.tables 
+      WHERE table_schema = 'public'
+    `);
+    
+    console.log('📋 Existing tables:', tableCheck.rows.map(r => r.table_name));
     
     // Create tables in correct order (respecting foreign key dependencies)
     const initQueries = [
@@ -892,8 +901,21 @@ app.post('/api/init/db', async (req, res) => {
       await query(initQuery);
     }
     
+    // Check tables after creation
+    const finalTableCheck = await query(`
+      SELECT table_name 
+      FROM information_schema.tables 
+      WHERE table_schema = 'public'
+    `);
+    
     console.log('✅ Database schema initialized successfully');
-    res.json({ success: true, message: 'Database initialized successfully' });
+    console.log('📋 Final tables:', finalTableCheck.rows.map(r => r.table_name));
+    
+    res.json({ 
+      success: true, 
+      message: 'Database initialized successfully',
+      tables: finalTableCheck.rows.map(r => r.table_name)
+    });
     
   } catch (error) {
     console.error('❌ Database initialization failed:', error);
