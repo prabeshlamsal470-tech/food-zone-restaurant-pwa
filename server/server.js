@@ -23,21 +23,15 @@ const io = socketIo(server, {
 // Middleware
 const corsOptions = {
   origin: process.env.NODE_ENV === 'production' 
-    ? process.env.ALLOWED_ORIGINS?.split(',') || ["https://your-domain.netlify.app"]
+    ? ["https://astounding-malabi-c1d59c.netlify.app", "https://food-zone-restaurant.windsurf.build"]
     : "http://localhost:3000",
   credentials: true
 };
 app.use(cors(corsOptions));
 app.use(express.json());
 
-// Serve static files from client's public folder
-// Serve static files from the React app in production
-if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(path.join(__dirname, 'public')));
-} else {
-  // In development, serve images directly from client's public folder
-  app.use('/images', express.static(path.join(__dirname, '../client/public/images')));
-}
+// Serve images only, not the full React app
+app.use('/images', express.static(path.join(__dirname, 'public/images')));
 
 // In-memory storage for table sessions (temporary data)
 const tableSessions = new Map(); // tableId -> { timestamp, cartItems }
@@ -689,12 +683,8 @@ app.post('/api/table-session/:tableId', (req, res) => {
 });
 
 // Socket.IO connection handling
-// Catch-all handler for React routing in production
-if (process.env.NODE_ENV === 'production') {
-  app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
-  });
-}
+// Remove catch-all handler that interferes with API routes
+// API routes should be accessible without serving React app
 
 // Socket.IO connection handling
 io.on('connection', (socket) => {
