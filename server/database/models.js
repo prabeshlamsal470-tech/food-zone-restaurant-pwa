@@ -126,14 +126,31 @@ class Order {
     
     const prefix = `FZ-${year}${month}${day}-`;
     
-    // Get today's order count
-    const result = await query(
-      "SELECT COUNT(*) as count FROM orders WHERE order_number LIKE $1",
-      [`${prefix}%`]
-    );
+    // Try up to 100 times to generate a unique order number
+    for (let attempt = 1; attempt <= 100; attempt++) {
+      // Get today's order count and add attempt number for uniqueness
+      const result = await query(
+        "SELECT COUNT(*) as count FROM orders WHERE order_number LIKE $1",
+        [`${prefix}%`]
+      );
+      
+      const orderCount = parseInt(result.rows[0].count) + attempt;
+      const orderNumber = `${prefix}${String(orderCount).padStart(3, '0')}`;
+      
+      // Check if this order number already exists
+      const existingOrder = await query(
+        "SELECT id FROM orders WHERE order_number = $1",
+        [orderNumber]
+      );
+      
+      if (existingOrder.rows.length === 0) {
+        return orderNumber; // Found unique number
+      }
+    }
     
-    const orderCount = parseInt(result.rows[0].count) + 1;
-    return `${prefix}${String(orderCount).padStart(3, '0')}`;
+    // Fallback: use timestamp if all attempts fail
+    const timestamp = Date.now().toString().slice(-6);
+    return `${prefix}${timestamp}`;
   }
 
   static async findById(orderId) {
