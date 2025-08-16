@@ -554,33 +554,42 @@ app.post('/api/database/clear-all', async (req, res) => {
 // Get order history
 app.get('/api/order-history', async (req, res) => {
   try {
+    // First get all orders
     const result = await query(`
-      SELECT o.*, 
-             c.name as customer_name,
-             c.phone as customer_phone
-      FROM orders o
-      LEFT JOIN customers c ON o.customer_id = c.id
-      WHERE o.status = 'completed'
-      ORDER BY o.created_at DESC
+      SELECT * FROM orders 
+      WHERE status = 'completed'
+      ORDER BY created_at DESC
       LIMIT 100
     `);
     
+    console.log(`📊 Found ${result.rows.length} completed orders`);
+    
     // Get items for each order
-    const ordersWithItems = await Promise.all(result.rows.map(async (order) => {
-      const itemsResult = await query(
-        'SELECT item_name as name, quantity, price, is_custom as "isCustom" FROM order_items WHERE order_id = $1',
-        [order.id]
-      );
-      return {
-        ...order,
-        items: itemsResult.rows
-      };
-    }));
+    const ordersWithItems = [];
+    for (const order of result.rows) {
+      try {
+        const itemsResult = await query(
+          'SELECT item_name as name, quantity, price, is_custom FROM order_items WHERE order_id = $1',
+          [order.id]
+        );
+        
+        ordersWithItems.push({
+          ...order,
+          items: itemsResult.rows || []
+        });
+      } catch (itemError) {
+        console.error(`Error fetching items for order ${order.id}:`, itemError);
+        ordersWithItems.push({
+          ...order,
+          items: []
+        });
+      }
+    }
     
     res.json(ordersWithItems);
   } catch (error) {
     console.error('Error fetching order history:', error);
-    res.status(500).json({ error: 'Failed to fetch order history' });
+    res.status(500).json({ error: 'Failed to fetch order history', details: error.message });
   }
 });
 
