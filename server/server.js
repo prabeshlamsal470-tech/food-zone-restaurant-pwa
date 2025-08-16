@@ -773,6 +773,137 @@ app.get('/api/test/db', async (req, res) => {
   }
 });
 
+// Database initialization endpoint
+app.post('/api/init/db', async (req, res) => {
+  try {
+    console.log('🔄 Initializing database schema...');
+    
+    // Create tables in correct order (respecting foreign key dependencies)
+    const initQueries = [
+      // Enable PostGIS extension
+      `CREATE EXTENSION IF NOT EXISTS postgis`,
+      
+      // Customers table
+      `CREATE TABLE IF NOT EXISTS customers (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(100) NOT NULL,
+        phone VARCHAR(20) UNIQUE NOT NULL,
+        email VARCHAR(100),
+        total_orders INTEGER DEFAULT 0,
+        total_spent DECIMAL(10,2) DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )`,
+      
+      // Customer addresses table
+      `CREATE TABLE IF NOT EXISTS customer_addresses (
+        id SERIAL PRIMARY KEY,
+        customer_id INTEGER REFERENCES customers(id) ON DELETE CASCADE,
+        label VARCHAR(50) DEFAULT 'Home',
+        address TEXT NOT NULL,
+        latitude DECIMAL(10,8),
+        longitude DECIMAL(11,8),
+        landmark VARCHAR(200),
+        is_default BOOLEAN DEFAULT false,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )`,
+      
+      // Table sessions table
+      `CREATE TABLE IF NOT EXISTS table_sessions (
+        id SERIAL PRIMARY KEY,
+        table_id INTEGER NOT NULL CHECK (table_id >= 1 AND table_id <= 25),
+        customer_name VARCHAR(100) NOT NULL,
+        customer_phone VARCHAR(20) NOT NULL,
+        session_start TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        session_end TIMESTAMP,
+        status VARCHAR(20) DEFAULT 'occupied' CHECK (status IN ('occupied', 'ordering', 'dining', 'payment_pending', 'completed', 'cleared')),
+        total_amount DECIMAL(10,2) DEFAULT 0,
+        payment_status VARCHAR(20) DEFAULT 'unpaid' CHECK (payment_status IN ('unpaid', 'partial', 'paid')),
+        notes TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )`,
+      
+      // Orders table
+      `CREATE TABLE IF NOT EXISTS orders (
+        id SERIAL PRIMARY KEY,
+        order_number VARCHAR(20) UNIQUE NOT NULL,
+        order_type VARCHAR(20) NOT NULL CHECK (order_type IN ('dine-in', 'delivery')),
+        customer_id INTEGER REFERENCES customers(id),
+        customer_name VARCHAR(100) NOT NULL,
+        customer_phone VARCHAR(20) NOT NULL,
+        delivery_address TEXT,
+        delivery_latitude DECIMAL(10,8),
+        delivery_longitude DECIMAL(11,8),
+        delivery_landmark VARCHAR(200),
+        delivery_distance DECIMAL(5,2),
+        delivery_fee DECIMAL(8,2) DEFAULT 0,
+        table_id INTEGER,
+        table_session_id INTEGER REFERENCES table_sessions(id),
+        subtotal DECIMAL(10,2) NOT NULL,
+        discount DECIMAL(10,2) DEFAULT 0,
+        total DECIMAL(10,2) NOT NULL,
+        status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'preparing', 'ready', 'completed', 'cancelled')),
+        payment_status VARCHAR(20) DEFAULT 'pending' CHECK (payment_status IN ('pending', 'paid')),
+        payment_method VARCHAR(20) CHECK (payment_method IN ('cash', 'digital', 'card')),
+        notes TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        completed_at TIMESTAMP
+      )`,
+      
+      // Order items table
+      `CREATE TABLE IF NOT EXISTS order_items (
+        id SERIAL PRIMARY KEY,
+        order_id INTEGER REFERENCES orders(id) ON DELETE CASCADE,
+        menu_item_id INTEGER NOT NULL,
+        menu_item_name VARCHAR(200) NOT NULL,
+        menu_item_category VARCHAR(100),
+        price DECIMAL(8,2) NOT NULL,
+        quantity INTEGER NOT NULL CHECK (quantity > 0),
+        subtotal DECIMAL(8,2) NOT NULL,
+        special_instructions TEXT
+      )`,
+      
+      // Restaurant settings table
+      `CREATE TABLE IF NOT EXISTS restaurant_settings (
+        id SERIAL PRIMARY KEY,
+        setting_key VARCHAR(100) UNIQUE NOT NULL,
+        setting_value TEXT NOT NULL,
+        description TEXT,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )`,
+      
+      // Insert default settings
+      `INSERT INTO restaurant_settings (setting_key, setting_value, description) VALUES
+       ('table_count', '25', 'Total number of tables in restaurant'),
+       ('restaurant_name', 'Food Zone Duwakot', 'Restaurant name'),
+       ('restaurant_phone', '9851234567', 'Primary contact number'),
+       ('restaurant_address', 'KMC Chowk, Duwakot, Bhaktapur', 'Restaurant address'),
+       ('restaurant_latitude', '27.6710', 'Restaurant latitude coordinate'),
+       ('restaurant_longitude', '85.4298', 'Restaurant longitude coordinate'),
+       ('delivery_radius', '5.0', 'Maximum delivery radius in km'),
+       ('min_delivery_amount', '200', 'Minimum order amount for delivery'),
+       ('delivery_fee_base', '50', 'Base delivery fee')
+       ON CONFLICT (setting_key) DO NOTHING`
+    ];
+    
+    for (const initQuery of initQueries) {
+      await query(initQuery);
+    }
+    
+    console.log('✅ Database schema initialized successfully');
+    res.json({ success: true, message: 'Database initialized successfully' });
+    
+  } catch (error) {
+    console.error('❌ Database initialization failed:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: error.message 
+    });
+  }
+});
+
 // Socket.IO connection handling
 // Catch-all handler for React routing in production
 if (process.env.NODE_ENV === 'production') {
