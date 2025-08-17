@@ -1,0 +1,36 @@
+[build]
+  command = "npm run build"
+  publish = "build"
+  functions = "functions"
+
+[build.environment]
+  NODE_VERSION = "18.0.0"
+  NPM_VERSION = "9.0.0"
+  REACT_APP_API_URL = "https://food-zone-backend-l00k.onrender.com"
+  REACT_APP_SOCKET_URL = "https://food-zone-backend-l00k.onrender.com"
+
+# Handle client-side routing
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+  force = false
+
+# Cache settings
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    X-XSS-Protection = "1; mode=block"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    
+# Security headers
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://maps.googleapis.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://food-zone-backend-l00k.onrender.com;"
+    X-Content-Type-Options = "nosniff"
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"
+    Referrer-Policy = "strict-origin-when-cross-origin"

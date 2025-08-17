@@ -1,7 +1,9 @@
 /**
- * Table Cache Scheduler - Coordinates cache clearing with admin settings
+ * Table cache scheduler for Food Zone Restaurant PWA
+ * Handles scheduled cache cleanup and table session management
  * Integrates with admin panel for dynamic table count management
  */
+import { getApiUrl } from '../config/api';
 
 class TableCacheScheduler {
   constructor() {
@@ -33,7 +35,7 @@ class TableCacheScheduler {
   async loadTableSettings() {
     try {
       // Try to get table count from admin settings API
-      const response = await fetch('/api/settings/tables', {
+      const response = await fetch(getApiUrl('/api/settings/tables'), {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' }
       });

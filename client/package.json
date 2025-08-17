@@ -1,6 +1,7 @@
 {
   "name": "restaurant-client",
   "version": "0.1.0",
+  "homepage": "./",
   "private": true,
   "dependencies": {
     "@testing-library/jest-dom": "^5.17.0",
@@ -28,6 +29,10 @@
   },
   "browserslist": {
     "production": [
+      "last 2 Chrome versions",
+      "last 2 Firefox versions",
+      "last 2 Safari versions",
+      "last 2 Edge versions",
       ">0.2%",
       "not dead",
       "not op_mini all"

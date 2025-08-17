@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import io from 'socket.io-client';
+import { fetchApi } from '../services/apiService';
+import { getSocketUrl } from '../config/api';
 
 const TableGrid = () => {
   const [tables, setTables] = useState([]);
@@ -11,7 +13,7 @@ const TableGrid = () => {
     fetchTableStatuses();
     
     // Socket connection for real-time updates
-    const socket = io('http://localhost:5001');
+    const socket = io(getSocketUrl());
     
     socket.on('tableOccupied', (data) => {
       console.log('🍽️ Table occupied:', data);
@@ -38,9 +40,7 @@ const TableGrid = () => {
 
   const fetchTableStatuses = async () => {
     try {
-      const response = await fetch('/api/tables/status');
-      if (!response.ok) throw new Error('Failed to fetch table statuses');
-      const data = await response.json();
+      const data = await fetchApi.get('/api/tables/status');
       setTables(data);
       setLoading(false);
     } catch (error) {
@@ -55,14 +55,7 @@ const TableGrid = () => {
     }
 
     try {
-      const response = await fetch(`/api/tables/${tableId}/clear`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
-      });
-
-      if (!response.ok) throw new Error('Failed to clear table');
-      
-      const result = await response.json();
+      const result = await fetchApi.post(`/api/tables/${tableId}/clear`);
       alert(`✅ Table ${tableId} cleared successfully!\n${result.movedToHistory} orders moved to history.`);
       
       fetchTableStatuses();

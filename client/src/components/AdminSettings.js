@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import io from 'socket.io-client';
+import { fetchApi } from '../services/apiService';
+import { getSocketUrl } from '../config/api';
 
 const AdminSettings = () => {
   const [tableCount, setTableCount] = useState(25); // Default 25 tables
@@ -14,9 +16,9 @@ const AdminSettings = () => {
 
   const fetchTableSettings = async () => {
     try {
-      const response = await axios.get('http://localhost:5001/api/settings/tables');
-      setTableCount(response.data.tableCount || 25);
-      setNewTableCount(response.data.tableCount || 25);
+      const data = await fetchApi.get('/api/settings/tables');
+      setTableCount(data.tableCount || 25);
+      setNewTableCount(data.tableCount || 25);
     } catch (error) {
       console.error('Error fetching table settings:', error);
       // Use default if API fails
@@ -34,18 +36,20 @@ const AdminSettings = () => {
 
     setLoading(true);
     try {
-      await axios.post('http://localhost:5001/api/settings/tables', {
+      const socket = io(getSocketUrl());
+      await socket.emit('update-tables', {
         tableCount: newTableCount
       });
       
-      setTableCount(newTableCount);
       setMessage(`✅ Successfully updated to ${newTableCount} tables`);
       setShowConfirm(false);
       
       setTimeout(() => setMessage(''), 3000);
     } catch (error) {
-      console.error('Error updating table settings:', error);
-      setMessage('❌ Failed to update table settings');
+      const socket2 = io(getSocketUrl());
+      socket2.emit('clear-all-sessions');
+      
+      setMessage('🧹 All table sessions cleared!');
       setTimeout(() => setMessage(''), 3000);
     } finally {
       setLoading(false);

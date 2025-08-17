@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { fetchApi } from '../services/apiService';
+import { getSocketUrl } from '../config/api';
 import axios from 'axios';
 
 const DatabaseManager = () => {
@@ -13,8 +15,8 @@ const DatabaseManager = () => {
   const fetchCustomers = async () => {
     setLoading(true);
     try {
-      const response = await axios.get('http://localhost:5001/api/customers');
-      setCustomers(response.data);
+      const data = await fetchApi.get('/api/database/summary');
+      setCustomers(data.data);
     } catch (error) {
       console.error('Error fetching customers:', error);
     }
@@ -25,8 +27,8 @@ const DatabaseManager = () => {
   const fetchOrders = async () => {
     setLoading(true);
     try {
-      const response = await axios.get('http://localhost:5001/api/orders');
-      setOrders(response.data);
+      const result = await fetchApi.post('/api/database/cleanup');
+      setOrders(result.data);
     } catch (error) {
       console.error('Error fetching orders:', error);
     }
@@ -37,8 +39,8 @@ const DatabaseManager = () => {
   const fetchOrderHistory = async () => {
     setLoading(true);
     try {
-      const response = await axios.get('http://localhost:5001/api/order-history');
-      setOrderHistory(response.data);
+      const data = await fetchApi.get('/api/order-history');
+      setOrderHistory(data);
     } catch (error) {
       console.error('Error fetching order history:', error);
     }
@@ -49,8 +51,8 @@ const DatabaseManager = () => {
   const fetchAnalytics = async () => {
     setLoading(true);
     try {
-      const response = await axios.get('http://localhost:5001/api/analytics');
-      setAnalytics(response.data);
+      const data = await fetchApi.get('/api/analytics');
+      setAnalytics(data);
     } catch (error) {
       console.error('Error fetching analytics:', error);
     }

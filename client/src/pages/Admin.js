@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import io from 'socket.io-client';
+import { getSocketUrl } from '../config/api';
 import audioManager from '../utils/audioNotifications';
 // import { pwaInstaller } from '../utils/pwaInstaller';
 import AdminSettings from '../components/AdminSettings';
-import { apiService, fetchApi, getSocketUrl } from '../services/apiService';
+import { apiService, fetchApi } from '../services/apiService';
 
 const Admin = () => {
   const [orders, setOrders] = useState([]);
@@ -228,18 +229,13 @@ const Admin = () => {
   };
 
   const confirmDeleteOrder = async () => {
-    const { orderId, password } = deleteDialog;
-    
+    if (deleteDialog.password !== '@Sujan123#') {
+      alert('❌ Incorrect password');
+      return;
+    }
+
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5001'}/api/order/${orderId}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ password })
-      });
-      
-      const result = await response.json();
+      const result = await fetchApi.delete(`/api/orders/${deleteDialog.orderId}`);
       
       if (result.success) {
         setDeleteDialog({ show: false, orderId: null, orderNumber: '', password: '' });

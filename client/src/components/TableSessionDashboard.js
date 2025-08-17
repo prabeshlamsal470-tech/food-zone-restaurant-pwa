@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { fetchApi } from '../services/apiService';
 import io from 'socket.io-client';
 
 const TableSessionDashboard = () => {
@@ -44,29 +45,19 @@ const TableSessionDashboard = () => {
   const fetchSessionData = async () => {
     try {
       // Get active session
-      const sessionResponse = await fetch(`/api/tables/${tableId}/session`);
-      if (sessionResponse.ok) {
-        const sessionData = await sessionResponse.json();
-        setSession(sessionData);
-      }
+      const sessionData = await fetchApi.get(`/api/tables/${tableId}/session`);
+      setSession(sessionData);
 
       // Get orders for this table
-      const ordersResponse = await fetch(`/api/orders?tableId=${tableId}&status=active`);
-      if (ordersResponse.ok) {
-        const ordersData = await ordersResponse.json();
-        setOrders(ordersData);
-      }
+      const ordersData = await fetchApi.get(`/api/orders?tableId=${tableId}&status=active`);
+      setOrders(ordersData);
 
       // Get payments for this session
-      const paymentsResponse = await fetch(`/api/tables/${tableId}/payments`);
-      if (paymentsResponse.ok) {
-        const paymentsData = await paymentsResponse.json();
-        setPayments(paymentsData);
-      }
-
-      setLoading(false);
+      const paymentsData = await fetchApi.get(`/api/tables/${tableId}/payments`);
+      setPayments(paymentsData);
     } catch (error) {
-      console.error('❌ Error fetching session data:', error);
+      console.error('Error fetching session data:', error);
+    } finally {
       setLoading(false);
     }
   };
@@ -78,36 +69,17 @@ const TableSessionDashboard = () => {
     }
 
     try {
-      const response = await fetch(`/api/tables/${tableId}/payment`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          amount: parseFloat(paymentAmount),
-          paymentMethod: 'mobile',
-          transactionId: `TXN-${Date.now()}`
-        })
+      await fetchApi.post(`/api/tables/${tableId}/payment`, {
+        amount: totalAmount,
+        payment_method: paymentMethod,
+        customer_name: session.customer_name,
+        customer_phone: session.customer_phone
       });
-
-      if (!response.ok) throw new Error('Failed to initiate payment');
       
-      const result = await response.json();
-      
-      // Simulate payment processing (in real app, integrate with payment gateway)
-      setTimeout(async () => {
-        await fetch(`/api/payments/${result.payment.id}/status`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            status: 'completed',
-            gatewayResponse: { success: true, transactionId: `TXN-${Date.now()}` }
-          })
-        });
-      }, 2000);
-
-      alert('💳 Payment initiated! Processing...');
+      alert('Payment processed successfully!');
       setShowPayment(false);
       setPaymentAmount('');
-      
+      fetchSessionData();
     } catch (error) {
       console.error('❌ Error initiating payment:', error);
       alert(`❌ Payment failed: ${error.message}`);

@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import axios from 'axios';
+import { useParams, Link } from 'react-router-dom';
+import io from 'socket.io-client';
+import { fetchApi } from '../services/apiService';
+import { getSocketUrl } from '../config/api';
 import { useCart } from '../context/CartContext';
 import { useDeliveryCart } from '../context/DeliveryCartContext';
 // import { useLocation } from 'react-router-dom';
@@ -28,9 +30,10 @@ const Menu = () => {
 
   const fetchMenuItems = async () => {
     try {
-      const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5001';
-      const response = await axios.get(`${apiUrl}/api/menu`);
-      setMenuItems(response.data);
+      const apiUrl = process.env.REACT_APP_API_URL
+      const socket = io(getSocketUrl());
+      const data = await fetchApi.get('/api/menu');
+      setMenuItems(data);
     } catch (error) {
       console.error('Error fetching menu:', error);
     } finally {
@@ -64,11 +67,17 @@ const Menu = () => {
   };
 
 
-  const handleAddToCart = (item) => {
+  const handleAddToCart = async (item) => {
     if (isTableCustomer) {
       addToCart(item, 1);
     } else {
-      addToDeliveryCart(item, 1);
+      const orderData = {
+        // Add order data here
+      };
+      const result = await fetchApi.post('/api/order', orderData);
+      if (result) {
+        addToDeliveryCart(item, 1);
+      }
     }
   };
 

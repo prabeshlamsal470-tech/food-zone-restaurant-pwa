@@ -1,5 +1,6 @@
-// Cache and Cookie Management for Table Sessions
-// Clears table data every 10 minutes to prevent stale sessions
+// Advanced cache management system for Food Zone Restaurant PWA
+// Handles intelligent caching, cleanup, and performance optimization
+import { getApiUrl } from '../config/api'; 
 
 class CacheManager {
   constructor() {
@@ -156,7 +157,7 @@ class CacheManager {
   // Notify server to clear table sessions
   async clearServerSessions() {
     try {
-      const response = await fetch('/api/clear-table-sessions', {
+      const response = await fetch(getApiUrl('/api/clear-table-sessions'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
