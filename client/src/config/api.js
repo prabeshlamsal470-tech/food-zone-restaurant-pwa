@@ -3,12 +3,12 @@ const API_CONFIG = {
   // Base URLs for different environments
   BASE_URL: process.env.REACT_APP_API_URL || 
     (process.env.NODE_ENV === 'production' 
-      ? 'https://your-backend-domain.com' 
+      ? 'https://food-zone-backend-l00k.onrender.com' 
       : 'http://localhost:5001'),
   
   SOCKET_URL: process.env.REACT_APP_SOCKET_URL || 
     (process.env.NODE_ENV === 'production' 
-      ? 'https://your-backend-domain.com' 
+      ? 'https://food-zone-backend-l00k.onrender.com' 
       : 'http://localhost:5001'),
 
   // API endpoints
