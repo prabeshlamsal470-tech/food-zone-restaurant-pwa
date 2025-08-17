@@ -3,7 +3,6 @@ import io from 'socket.io-client';
 import audioManager from '../utils/audioNotifications';
 // import { pwaInstaller } from '../utils/pwaInstaller';
 import AdminSettings from '../components/AdminSettings';
-import TableGrid from '../components/TableGrid';
 import { apiService, fetchApi, getSocketUrl } from '../services/apiService';
 
 const Admin = () => {
@@ -21,8 +20,6 @@ const Admin = () => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
-  // Admin password from environment variables
-  const ADMIN_PASSWORD = process.env.REACT_APP_ADMIN_PASSWORD || 'FoodZone2024!';
   const [, setSocket] = useState(null);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [tableToDelete, setTableToDelete] = useState(null);

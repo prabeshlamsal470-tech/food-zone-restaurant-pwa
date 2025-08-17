@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import io from 'socket.io-client';
-import audioManager from '../utils/audioNotifications';
 import mobileAudioManager from '../utils/mobileAudioManager';
 import { apiService, fetchApi, getSocketUrl } from '../services/apiService';
 import MobileOrderCard from '../components/MobileOrderCard';

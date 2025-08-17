@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import io from 'socket.io-client';
 import audioManager from '../utils/audioNotifications';
-import { apiService, fetchApi, getSocketUrl } from '../services/apiService';
+import { fetchApi, getSocketUrl } from '../services/apiService';
 
 // Import premium components
 import OrdersManagement from '../components/premium/OrdersManagement';
@@ -9,7 +9,6 @@ import OrdersManagement from '../components/premium/OrdersManagement';
 // Premium SaaS Dashboard Components
 const AdminPremium = () => {
   const [orders, setOrders] = useState([]);
-  const [orderHistory, setOrderHistory] = useState([]);
   const [customers, setCustomers] = useState([]);
   const [dbSummary, setDbSummary] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -19,7 +18,6 @@ const AdminPremium = () => {
   });
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [socket, setSocket] = useState(null);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
@@ -32,7 +30,7 @@ const AdminPremium = () => {
       audioManager.requestPermissions();
 
       const newSocket = io(getSocketUrl());
-      setSocket(newSocket);
+      // setSocket(newSocket);
       
       newSocket.on('newOrder', (order) => {
         setOrders(prevOrders => [...prevOrders, order]);
@@ -118,12 +116,6 @@ const AdminPremium = () => {
     setError(null);
   };
 
-  const renderContent = () => {
-    localStorage.removeItem('adminAuthenticated');
-    setIsAuthenticated(false);
-    setPassword('');
-    setError(null);
-  };
 
   // Login Form Component
   if (!isAuthenticated) {
@@ -202,7 +194,7 @@ const AdminPremium = () => {
           activeTab={activeTab}
           orders={orders}
           customers={customers}
-          orderHistory={orderHistory}
+          orderHistory={[]}
         />
 
         {/* Page Content */}
@@ -226,7 +218,7 @@ const AdminPremium = () => {
     console.log('Delete order:', orderId, orderNumber);
   };
 
-  function renderPageContent() {
+  const renderContent = () => {
     switch (activeTab) {
       case 'dashboard':
         return <DashboardOverview orders={orders} customers={customers} dbSummary={dbSummary} />;
