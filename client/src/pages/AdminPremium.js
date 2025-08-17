@@ -253,13 +253,13 @@ const AdminPremium = () => {
           />
         );
       case 'menu':
-        return <MenuManagement />;
+        return <MenuManagementPlaceholder />;
       case 'tables':
         return <TablesManagement />;
       case 'customers':
         return <CustomersManagement customers={customers} />;
       case 'analytics':
-        return <AnalyticsView orders={orders} />;
+        return <AnalyticsViewPlaceholder orders={orders} />;
       case 'staff':
         return <StaffManagement />;
       case 'settings':
@@ -595,14 +595,8 @@ const DashboardOverview = ({ orders, customers, dbSummary }) => {
 };
 
 // Placeholder components for other views
-const OrdersManagement = ({ orders }) => (
-  <div className="bg-white rounded-2xl p-6 border border-slate-200">
-    <h2 className="text-xl font-semibold mb-4">Orders Management</h2>
-    <p className="text-slate-600">Advanced order management interface coming soon...</p>
-  </div>
-);
 
-const MenuManagement = () => (
+const MenuManagementPlaceholder = () => (
   <div className="bg-white rounded-2xl p-6 border border-slate-200">
     <h2 className="text-xl font-semibold mb-4">Menu Management</h2>
     <p className="text-slate-600">Menu management interface coming soon...</p>
@@ -623,7 +617,7 @@ const CustomersManagement = ({ customers }) => (
   </div>
 );
 
-const AnalyticsView = ({ orders }) => (
+const AnalyticsViewPlaceholder = ({ orders }) => (
   <div className="bg-white rounded-2xl p-6 border border-slate-200">
     <h2 className="text-xl font-semibold mb-4">Analytics & Reports</h2>
     <p className="text-slate-600">Analytics dashboard coming soon...</p>
