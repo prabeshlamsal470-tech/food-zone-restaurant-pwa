@@ -5,8 +5,6 @@ import { apiService, fetchApi, getSocketUrl } from '../services/apiService';
 
 // Import premium components
 import OrdersManagement from '../components/premium/OrdersManagement';
-import MenuManagement from '../components/premium/MenuManagement';
-import AnalyticsView from '../components/premium/AnalyticsView';
 
 // Premium SaaS Dashboard Components
 const AdminPremium = () => {
@@ -14,7 +12,6 @@ const AdminPremium = () => {
   const [orderHistory, setOrderHistory] = useState([]);
   const [customers, setCustomers] = useState([]);
   const [dbSummary, setDbSummary] = useState(null);
-  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
@@ -77,18 +74,6 @@ const AdminPremium = () => {
     }
   }
 
-  async function fetchOrderHistory() {
-    try {
-      setIsLoadingHistory(true);
-      const data = await fetchApi.get('/api/order-history');
-      setOrderHistory(data);
-    } catch (err) {
-      console.error('Error fetching order history:', err);
-    } finally {
-      setIsLoadingHistory(false);
-    }
-  }
-
   async function fetchCustomers() {
     try {
       const data = await fetchApi.get('/api/customers');
@@ -127,6 +112,13 @@ const AdminPremium = () => {
   };
 
   const handleLogout = () => {
+    localStorage.removeItem('adminAuthenticated');
+    setIsAuthenticated(false);
+    setPassword('');
+    setError(null);
+  };
+
+  const renderContent = () => {
     localStorage.removeItem('adminAuthenticated');
     setIsAuthenticated(false);
     setPassword('');
@@ -216,7 +208,7 @@ const AdminPremium = () => {
         {/* Page Content */}
         <main className="flex-1 overflow-auto p-6">
           <div className="max-w-7xl mx-auto">
-            {renderPageContent()}
+            {renderContent()}
           </div>
         </main>
       </div>
@@ -224,14 +216,9 @@ const AdminPremium = () => {
   );
 
   // Handler functions
-  const handleClearTable = (tableId) => {
+  const handleClearTable = async (tableNumber) => {
     // Implementation for clearing table
-    console.log('Clear table:', tableId);
-  };
-
-  const handleCompleteOrder = (orderId) => {
-    // Implementation for completing order
-    console.log('Complete order:', orderId);
+    console.log('Clear table:', tableNumber);
   };
 
   const handleDeleteOrder = (orderId, orderNumber) => {
@@ -248,7 +235,7 @@ const AdminPremium = () => {
           <OrdersManagement 
             orders={orders} 
             onClearTable={handleClearTable}
-            onCompleteOrder={handleCompleteOrder}
+            onCompleteOrder={() => {}}
             onDeleteOrder={handleDeleteOrder}
           />
         );

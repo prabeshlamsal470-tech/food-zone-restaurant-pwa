@@ -5,8 +5,6 @@ const MenuManagement = () => {
   const [categories, setCategories] = useState([]);
   const [activeCategory, setActiveCategory] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [editingItem, setEditingItem] = useState(null);
 
   // Mock data - replace with API calls
   useEffect(() => {

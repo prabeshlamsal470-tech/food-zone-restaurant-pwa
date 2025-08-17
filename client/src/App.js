@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import './App.css';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Header from './components/Header';
@@ -14,50 +14,8 @@ import AdminPremium from './pages/AdminPremium';
 import { CartProvider } from './context/CartContext';
 import { DeliveryCartProvider } from './context/DeliveryCartContext';
 import { TableProvider } from './context/TableContext';
-import tableCacheManager from './utils/tableCacheManager';
-import advancedCacheManager from './utils/advancedCacheManager';
-import tableCacheScheduler from './utils/tableCacheScheduler';
 
 function App() {
-  const [isMobile, setIsMobile] = React.useState(false);
-
-  useEffect(() => {
-    // Check if device is mobile
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth <= 768);
-    };
-    
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    
-    // Initialize comprehensive cache management system
-    console.log('🚀 Food Zone Restaurant - Comprehensive Cache Management v2.0 Initialized');
-    console.log('🧹 Automatic cleanup every 10 minutes for all table URLs (1-25)');
-    console.log('💾 Clearing: LocalStorage, SessionStorage, Cookies, IndexedDB, Cache API, WebSQL');
-    console.log('🎯 Smart scheduling with admin panel integration');
-    console.log('🔗 Backend: Render | Database: Railway | Frontend: Netlify');
-    
-    // Initialize scheduler (coordinates all cache managers)
-    tableCacheScheduler.init();
-    
-    // Listen for cache cleanup events
-    const handleTableCacheCleanup = (event) => {
-      console.log(`✅ Table cache cleanup completed for ${event.detail.tablesCleared} tables at ${event.detail.timestamp}`);
-    };
-    
-    const handleAdvancedCacheCleanup = (event) => {
-      console.log(`🔄 Advanced cache cleanup completed in ${event.detail.duration}ms at ${event.detail.timestamp}`);
-    };
-    
-    window.addEventListener('tableCacheCleanup', handleTableCacheCleanup);
-    window.addEventListener('cacheCleanupComplete', handleAdvancedCacheCleanup);
-    
-    return () => {
-      window.removeEventListener('resize', checkMobile);
-      window.removeEventListener('tableCacheCleanup', handleTableCacheCleanup);
-      window.removeEventListener('cacheCleanupComplete', handleAdvancedCacheCleanup);
-    };
-  }, []);
 
   return (
     <Router>

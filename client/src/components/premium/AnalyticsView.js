@@ -4,11 +4,27 @@ const AnalyticsView = ({ orders }) => {
   const [timeRange, setTimeRange] = useState('today');
   const [analyticsData, setAnalyticsData] = useState({});
 
-  useEffect(() => {
-    calculateAnalytics();
-  }, [orders, timeRange]);
-
   const calculateAnalytics = () => {
+    const now = new Date();
+    let filteredOrders = orders;
+
+    // Filter by time range
+    if (timeRange === 'today') {
+      filteredOrders = orders.filter(order => {
+        const orderDate = new Date(order.created_at);
+        return orderDate.toDateString() === now.toDateString();
+      });
+    }
+    // Add more filtering logic as needed
+    
+    setAnalyticsData({
+      totalOrders: filteredOrders.length,
+      totalRevenue: filteredOrders.reduce((sum, order) => sum + (order.total || 0), 0),
+      avgOrderValue: filteredOrders.length > 0 ? filteredOrders.reduce((sum, order) => sum + (order.total || 0), 0) / filteredOrders.length : 0
+    });
+  };
+
+  useEffect(() => {
     const now = new Date();
     let filteredOrders = orders;
 
@@ -72,7 +88,7 @@ const AnalyticsView = ({ orders }) => {
       dineInCount,
       deliveryCount
     });
-  };
+  }, [orders, timeRange]);
 
   const timeRanges = [
     { id: 'today', label: 'Today' },
