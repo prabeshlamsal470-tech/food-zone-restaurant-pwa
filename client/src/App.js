@@ -71,7 +71,8 @@ function App() {
                 <Route path="/" element={<Homepage />} />
                 <Route path="/menu" element={<Menu />} />
                 <Route path="/delivery-cart" element={<DeliveryCart />} />
-                <Route path="/admin" element={isMobile ? <AdminMobile /> : <AdminModern />} />
+                <Route path="/admin" element={<AdminMobile />} />
+                <Route path="/admin-mobile" element={<AdminMobile />} />
                 <Route path="/admin-legacy" element={<Admin />} />
                 <Route path="/:tableId" element={<TableOrder />} />
               </Routes>
