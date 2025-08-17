@@ -117,6 +117,45 @@ const AdminPremium = () => {
   };
 
 
+  // Handler functions
+  function handleClearTable(tableNumber) {
+    console.log('Clear table:', tableNumber);
+  }
+
+  function handleDeleteOrder(orderId, orderNumber) {
+    console.log('Delete order:', orderId, orderNumber);
+  }
+
+  function renderContent() {
+    switch (activeTab) {
+      case 'dashboard':
+        return <DashboardOverview orders={orders} customers={customers} dbSummary={dbSummary} />;
+      case 'orders':
+        return (
+          <OrdersManagement 
+            orders={orders} 
+            onClearTable={handleClearTable}
+            onCompleteOrder={() => {}}
+            onDeleteOrder={handleDeleteOrder}
+          />
+        );
+      case 'menu':
+        return <MenuManagementPlaceholder />;
+      case 'tables':
+        return <TablesManagement />;
+      case 'customers':
+        return <CustomersManagement customers={customers} />;
+      case 'analytics':
+        return <AnalyticsViewPlaceholder orders={orders} />;
+      case 'staff':
+        return <StaffManagement />;
+      case 'settings':
+        return <SettingsView />;
+      default:
+        return <DashboardOverview orders={orders} customers={customers} dbSummary={dbSummary} />;
+    }
+  }
+
   // Login Form Component
   if (!isAuthenticated) {
     return (
@@ -206,47 +245,6 @@ const AdminPremium = () => {
       </div>
     </div>
   );
-
-  // Handler functions
-  function handleClearTable(tableNumber) {
-    // Implementation for clearing table
-    console.log('Clear table:', tableNumber);
-  }
-
-  function handleDeleteOrder(orderId, orderNumber) {
-    // Implementation for deleting order
-    console.log('Delete order:', orderId, orderNumber);
-  }
-
-  function renderContent() {
-    switch (activeTab) {
-      case 'dashboard':
-        return <DashboardOverview orders={orders} customers={customers} dbSummary={dbSummary} />;
-      case 'orders':
-        return (
-          <OrdersManagement 
-            orders={orders} 
-            onClearTable={handleClearTable}
-            onCompleteOrder={() => {}}
-            onDeleteOrder={handleDeleteOrder}
-          />
-        );
-      case 'menu':
-        return <MenuManagementPlaceholder />;
-      case 'tables':
-        return <TablesManagement />;
-      case 'customers':
-        return <CustomersManagement customers={customers} />;
-      case 'analytics':
-        return <AnalyticsViewPlaceholder orders={orders} />;
-      case 'staff':
-        return <StaffManagement />;
-      case 'settings':
-        return <SettingsView />;
-      default:
-        return <DashboardOverview orders={orders} customers={customers} dbSummary={dbSummary} />;
-    }
-  }
 };
 
 // Premium Sidebar Component
