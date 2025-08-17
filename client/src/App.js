@@ -9,7 +9,6 @@ import Menu from './pages/Menu';
 import TableOrder from './pages/TableOrder';
 import DeliveryCart from './pages/DeliveryCart';
 import Admin from './pages/Admin';
-import AdminModern from './pages/AdminModern';
 import AdminMobile from './pages/AdminMobile';
 import AdminPremium from './pages/AdminPremium';
 import { CartProvider } from './context/CartContext';
@@ -74,7 +73,6 @@ function App() {
                 <Route path="/delivery-cart" element={<DeliveryCart />} />
                 <Route path="/admin" element={<AdminPremium />} />
                 <Route path="/admin-mobile" element={<AdminMobile />} />
-                <Route path="/admin-modern" element={<AdminModern />} />
                 <Route path="/admin-legacy" element={<Admin />} />
                 <Route path="/:tableId" element={<TableOrder />} />
               </Routes>
