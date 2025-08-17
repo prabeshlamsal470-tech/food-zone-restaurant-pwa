@@ -31,10 +31,11 @@ function App() {
     window.addEventListener('resize', checkMobile);
     
     // Initialize comprehensive cache management system
-    console.log('🚀 Food Zone Restaurant - Comprehensive Cache Management Initialized');
+    console.log('🚀 Food Zone Restaurant - Comprehensive Cache Management v2.0 Initialized');
     console.log('🧹 Automatic cleanup every 10 minutes for all table URLs (1-25)');
     console.log('💾 Clearing: LocalStorage, SessionStorage, Cookies, IndexedDB, Cache API, WebSQL');
     console.log('🎯 Smart scheduling with admin panel integration');
+    console.log('🔗 Backend: Render | Database: Railway | Frontend: Netlify');
     
     // Initialize scheduler (coordinates all cache managers)
     tableCacheScheduler.init();
