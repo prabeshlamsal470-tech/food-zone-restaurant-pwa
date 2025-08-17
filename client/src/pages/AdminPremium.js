@@ -208,17 +208,17 @@ const AdminPremium = () => {
   );
 
   // Handler functions
-  const handleClearTable = async (tableNumber) => {
+  function handleClearTable(tableNumber) {
     // Implementation for clearing table
     console.log('Clear table:', tableNumber);
-  };
+  }
 
-  const handleDeleteOrder = (orderId, orderNumber) => {
+  function handleDeleteOrder(orderId, orderNumber) {
     // Implementation for deleting order
     console.log('Delete order:', orderId, orderNumber);
-  };
+  }
 
-  const renderContent = () => {
+  function renderContent() {
     switch (activeTab) {
       case 'dashboard':
         return <DashboardOverview orders={orders} customers={customers} dbSummary={dbSummary} />;
