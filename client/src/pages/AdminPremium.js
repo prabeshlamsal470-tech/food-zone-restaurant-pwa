@@ -4,7 +4,7 @@ import audioManager from '../utils/audioNotifications';
 import { fetchApi, getSocketUrl } from '../services/apiService';
 
 // Import premium components
-import OrdersManagement from '../components/premium/OrdersManagement';
+// import OrdersManagement from '../components/premium/OrdersManagement';
 
 // Premium SaaS Dashboard Components
 const AdminPremium = () => {
@@ -117,14 +117,6 @@ const AdminPremium = () => {
   };
 
 
-  // Handler functions
-  function handleClearTable(tableNumber) {
-    console.log('Clear table:', tableNumber);
-  }
-
-  function handleDeleteOrder(orderId, orderNumber) {
-    console.log('Delete order:', orderId, orderNumber);
-  }
 
   function renderContent() {
     switch (activeTab) {
@@ -132,12 +124,10 @@ const AdminPremium = () => {
         return <DashboardOverview orders={orders} customers={customers} dbSummary={dbSummary} />;
       case 'orders':
         return (
-          <OrdersManagement 
-            orders={orders} 
-            onClearTable={handleClearTable}
-            onCompleteOrder={() => {}}
-            onDeleteOrder={handleDeleteOrder}
-          />
+          <div className="bg-white rounded-2xl p-6 border border-slate-200">
+            <h2 className="text-xl font-semibold mb-4">Order Management</h2>
+            <p className="text-slate-600">Order management interface coming soon...</p>
+          </div>
         );
       case 'menu':
         return <MenuManagementPlaceholder />;
