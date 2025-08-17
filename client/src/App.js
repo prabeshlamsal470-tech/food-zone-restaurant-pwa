@@ -9,11 +9,14 @@ import Menu from './pages/Menu';
 import TableOrder from './pages/TableOrder';
 import DeliveryCart from './pages/DeliveryCart';
 import Admin from './pages/Admin';
+import AdminModern from './pages/AdminModern';
 import AdminMobile from './pages/AdminMobile';
 import { CartProvider } from './context/CartContext';
 import { DeliveryCartProvider } from './context/DeliveryCartContext';
 import { TableProvider } from './context/TableContext';
-// import cacheManager from './utils/cacheManager';
+import tableCacheManager from './utils/tableCacheManager';
+import advancedCacheManager from './utils/advancedCacheManager';
+import tableCacheScheduler from './utils/tableCacheScheduler';
 
 function App() {
   const [isMobile, setIsMobile] = React.useState(false);
@@ -27,20 +30,31 @@ function App() {
     checkMobile();
     window.addEventListener('resize', checkMobile);
     
-    // Initialize cache manager on app start
-    console.log('🚀 Food Zone Restaurant - Cache Manager Initialized');
-    console.log('🧹 Automatic cleanup every 10 minutes for tables 1-25');
+    // Initialize comprehensive cache management system
+    console.log('🚀 Food Zone Restaurant - Comprehensive Cache Management Initialized');
+    console.log('🧹 Automatic cleanup every 10 minutes for all table URLs (1-25)');
+    console.log('💾 Clearing: LocalStorage, SessionStorage, Cookies, IndexedDB, Cache API, WebSQL');
+    console.log('🎯 Smart scheduling with admin panel integration');
+    
+    // Initialize scheduler (coordinates all cache managers)
+    tableCacheScheduler.init();
     
     // Listen for cache cleanup events
-    const handleCacheCleanup = (event) => {
-      console.log(`✅ Cache cleanup completed for ${event.detail.tablesCleared} tables at ${event.detail.timestamp}`);
+    const handleTableCacheCleanup = (event) => {
+      console.log(`✅ Table cache cleanup completed for ${event.detail.tablesCleared} tables at ${event.detail.timestamp}`);
     };
     
-    window.addEventListener('cacheCleanup', handleCacheCleanup);
+    const handleAdvancedCacheCleanup = (event) => {
+      console.log(`🔄 Advanced cache cleanup completed in ${event.detail.duration}ms at ${event.detail.timestamp}`);
+    };
+    
+    window.addEventListener('tableCacheCleanup', handleTableCacheCleanup);
+    window.addEventListener('cacheCleanupComplete', handleAdvancedCacheCleanup);
     
     return () => {
       window.removeEventListener('resize', checkMobile);
-      window.removeEventListener('cacheCleanup', handleCacheCleanup);
+      window.removeEventListener('tableCacheCleanup', handleTableCacheCleanup);
+      window.removeEventListener('cacheCleanupComplete', handleAdvancedCacheCleanup);
     };
   }, []);
 
@@ -56,7 +70,8 @@ function App() {
                 <Route path="/" element={<Homepage />} />
                 <Route path="/menu" element={<Menu />} />
                 <Route path="/delivery-cart" element={<DeliveryCart />} />
-                <Route path="/admin" element={isMobile ? <AdminMobile /> : <Admin />} />
+                <Route path="/admin" element={isMobile ? <AdminMobile /> : <AdminModern />} />
+                <Route path="/admin-legacy" element={<Admin />} />
                 <Route path="/:tableId" element={<TableOrder />} />
               </Routes>
               
