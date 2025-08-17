@@ -16,7 +16,6 @@ import { DeliveryCartProvider } from './context/DeliveryCartContext';
 import { TableProvider } from './context/TableContext';
 
 function App() {
-
   return (
     <Router>
       <TableProvider>
