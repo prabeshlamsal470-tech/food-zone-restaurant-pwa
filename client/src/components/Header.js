@@ -2,13 +2,11 @@ import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useDeliveryCart } from '../context/DeliveryCartContext';
-import { useTable } from '../context/TableContext';
 
 const Header = () => {
   const location = useLocation();
-  const { getTotalItems } = useCart();
+  const { getTotalItems, currentTable } = useCart();
   const { getDeliveryTotalItems } = useDeliveryCart();
-  const { currentTable } = useTable();
   const totalItems = getTotalItems();
   const deliveryItems = getDeliveryTotalItems();
   
@@ -44,12 +42,14 @@ const Header = () => {
           <nav className="flex items-center">
             <Link 
               to="/menu" 
-              className={`flex items-center space-x-2 hover:text-yellow-300 transition-colors ${
-                location.pathname === '/menu' ? 'text-yellow-300 font-semibold' : 'text-white'
+              className={`flex items-center space-x-3 px-6 py-3 rounded-xl border-2 transition-all duration-300 transform hover:scale-105 ${
+                location.pathname === '/menu' 
+                  ? 'bg-yellow-400 text-black border-yellow-400 font-bold shadow-lg' 
+                  : 'bg-white/10 text-white border-white/30 hover:bg-yellow-400 hover:text-black hover:border-yellow-400 font-semibold backdrop-blur-sm'
               }`}
             >
-              <span className="text-2xl">🍽️</span>
-              <span className="font-medium">Menu</span>
+              <span className="text-3xl">🍽️</span>
+              <span className="text-lg font-bold">View Menu</span>
             </Link>
           </nav>
 

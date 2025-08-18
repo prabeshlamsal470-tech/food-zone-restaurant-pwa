@@ -1,12 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import io from 'socket.io-client';
 import { fetchApi } from '../services/apiService';
 import { getSocketUrl } from '../config/api';
 import { useCart } from '../context/CartContext';
 import { useDeliveryCart } from '../context/DeliveryCartContext';
-// import { useLocation } from 'react-router-dom';
-import { useTable } from '../context/TableContext';
 
 const Menu = () => {
   const [menuItems, setMenuItems] = useState([]);
@@ -14,7 +12,7 @@ const Menu = () => {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   // const location = useLocation();
-  const { currentTable } = useTable();
+  const { currentTable } = useCart();
   
   // Use appropriate cart based on customer type
   const { deliveryCartItems, addToDeliveryCart, updateDeliveryQuantity } = useDeliveryCart();
@@ -30,8 +28,8 @@ const Menu = () => {
 
   const fetchMenuItems = async () => {
     try {
-      const apiUrl = process.env.REACT_APP_API_URL
-      const socket = io(getSocketUrl());
+      // const apiUrl = process.env.REACT_APP_API_URL || 'https://food-zone-backend-l00k.onrender.com';
+      // const socket = io(apiUrl);
       const data = await fetchApi.get('/api/menu');
       setMenuItems(data);
     } catch (error) {

@@ -1,5 +1,4 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { useTable } from './TableContext';
 
 const CartContext = createContext();
 
@@ -13,13 +12,20 @@ export const useCart = () => {
 
 export const CartProvider = ({ children }) => {
   const [cartItems, setCartItems] = useState([]);
-  const { currentTable } = useTable();
+  const [currentTable, setCurrentTable] = useState(null);
 
+  // Get current table from URL or localStorage
   useEffect(() => {
-    if (currentTable) {
+    const path = window.location.pathname;
+    const tableMatch = path.match(/^\/(\d+)$/);
+    
+    if (tableMatch) {
+      const tableId = parseInt(tableMatch[1]);
+      setCurrentTable(tableId);
+      
       // Load cart items for current table
-      const savedCart = localStorage.getItem(`cart_table_${currentTable}`);
-      const savedTimestamp = localStorage.getItem(`cart_timestamp_${currentTable}`);
+      const savedCart = localStorage.getItem(`cart_table_${tableId}`);
+      const savedTimestamp = localStorage.getItem(`cart_timestamp_${tableId}`);
       
       if (savedCart && savedTimestamp) {
         const oneHourAgo = Date.now() - (60 * 60 * 1000);
@@ -27,15 +33,16 @@ export const CartProvider = ({ children }) => {
           setCartItems(JSON.parse(savedCart));
         } else {
           // Clear expired cart
-          localStorage.removeItem(`cart_table_${currentTable}`);
-          localStorage.removeItem(`cart_timestamp_${currentTable}`);
+          localStorage.removeItem(`cart_table_${tableId}`);
+          localStorage.removeItem(`cart_timestamp_${tableId}`);
           setCartItems([]);
         }
       }
     } else {
+      setCurrentTable(null);
       setCartItems([]);
     }
-  }, [currentTable]);
+  }, []);
 
   const saveCart = (items) => {
     if (currentTable) {
@@ -111,7 +118,8 @@ export const CartProvider = ({ children }) => {
       updateQuantity,
       clearCart,
       getTotalPrice,
-      getTotalItems
+      getTotalItems,
+      currentTable
     }}>
       {children}
     </CartContext.Provider>

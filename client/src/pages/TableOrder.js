@@ -1,14 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
-import { useTable } from '../context/TableContext';
 import io from 'socket.io-client';
 import { apiService, getSocketUrl } from '../services/apiService';
 
 const TableOrder = () => {
   const { tableId } = useParams();
   const navigate = useNavigate();
-  const { setTable, clearTable } = useTable();
   const { cartItems, addToCart, removeFromCart, updateQuantity, clearCart, getTotalPrice } = useCart();
   const [menuItems, setMenuItems] = useState([]);
   const [customItem, setCustomItem] = useState({ name: '', quantity: 1 });
@@ -24,10 +22,9 @@ const TableOrder = () => {
 
   useEffect(() => {
     if (tableId && !isNaN(tableId) && parseInt(tableId) >= 1 && parseInt(tableId) <= 25) {
-      setTable(parseInt(tableId));
       fetchMenuItems();
     }
-  }, [tableId, setTable]);
+  }, [tableId]);
 
   // Socket connection for real-time table clearing
   useEffect(() => {
@@ -37,7 +34,6 @@ const TableOrder = () => {
       console.log('🔔 Table cleared event received:', data);
       if (data.tableId === parseInt(tableId)) {
         clearCart();
-        clearTable();
         navigate('/');
         // Remove ALL localStorage items related to this table
         localStorage.removeItem(`customerInfo_${tableId}`);
@@ -72,7 +68,7 @@ const TableOrder = () => {
     return () => {
       socket.disconnect();
     };
-  }, [tableId, clearCart, clearTable, navigate]);
+  }, [tableId, clearCart, navigate]);
 
   const fetchMenuItems = async () => {
     try {

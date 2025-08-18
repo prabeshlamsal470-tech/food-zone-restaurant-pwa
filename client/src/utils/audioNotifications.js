@@ -9,7 +9,8 @@ class AudioNotificationManager {
     this.isBackgroundActive = false;
     
     this.initializeSounds();
-    this.initializeBackgroundSupport();
+    // Remove the problematic method call
+    // this.initializeBackgroundSupport();
   }
 
   initializeSounds() {

@@ -2,12 +2,10 @@ import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useDeliveryCart } from '../context/DeliveryCartContext';
-import { useTable } from '../context/TableContext';
 
 const FloatingCart = () => {
   const location = useLocation();
-  const { currentTable } = useTable();
-  const { cartItems, getTotalPrice } = useCart();
+  const { currentTable, cartItems, getTotalPrice } = useCart();
   const { deliveryCartItems, getDeliveryTotalPrice } = useDeliveryCart();
   
   // Don't show on admin page only

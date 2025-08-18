@@ -1,9 +1,9 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { useTable } from '../context/TableContext';
+import { useCart } from '../context/CartContext';
 
 const TableBanner = () => {
-  const { currentTable } = useTable();
+  const { currentTable } = useCart();
 
   if (!currentTable) return null;
 

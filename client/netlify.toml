@@ -8,6 +8,7 @@
   NPM_VERSION = "9.0.0"
   REACT_APP_API_URL = "https://food-zone-backend-l00k.onrender.com"
   REACT_APP_SOCKET_URL = "https://food-zone-backend-l00k.onrender.com"
+  REACT_APP_GOOGLE_MAPS_API_KEY = "your_google_maps_api_key_here"  # Replace with your actual Google Maps API key
 
 # Handle client-side routing
 [[redirects]]
@@ -25,11 +26,11 @@
     X-XSS-Protection = "1; mode=block"
     Referrer-Policy = "strict-origin-when-cross-origin"
     
-# Security headers
+# Security headers - Relaxed CSP for React app
 [[headers]]
   for = "/*"
   [headers.values]
-    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://maps.googleapis.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://food-zone-backend-l00k.onrender.com;"
+    Content-Security-Policy = "default-src 'self' 'unsafe-inline' 'unsafe-eval'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://maps.googleapis.com https://maps.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https: blob:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https://food-zone-backend-l00k.onrender.com https://maps.googleapis.com wss://food-zone-backend-l00k.onrender.com;"
     X-Content-Type-Options = "nosniff"
     X-Frame-Options = "DENY"
     X-XSS-Protection = "1; mode=block"
