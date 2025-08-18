@@ -28,6 +28,46 @@ INSERT INTO orders (order_number, order_type, customer_id, customer_name, custom
 ('FZ-2024-004', 'dine-in', 3, 'Ram Sharma', '9851111111', NULL, 12, 2, 320.00, 320.00, 'ready', 'pending', NULL, 'Birthday special'),
 ('FZ-2024-005', 'delivery', 5, 'Mike Johnson', '9873333333', 'Bhaktapur Durbar Square', NULL, NULL, 180.00, 230.00, 'pending', 'paid', 'card', 'Office delivery');
 
+-- Insert sample menu items
+INSERT INTO menu_items (name, description, price, category, available, image_url) VALUES
+-- MoMo
+('Chicken MoMo (Steam)', 'Traditional steamed chicken dumplings served with spicy tomato chutney', 140.00, 'MoMo', true, NULL),
+('Veg MoMo (Steam)', 'Fresh vegetable dumplings steamed to perfection', 120.00, 'MoMo', true, NULL),
+('Chicken MoMo (Fried)', 'Crispy fried chicken momos with special sauce', 160.00, 'MoMo', true, NULL),
+('Buff MoMo (Steam)', 'Traditional buffalo meat dumplings', 150.00, 'MoMo', true, NULL),
+
+-- Pizza
+('9 Inch Chicken Pizza', 'Delicious chicken pizza with fresh toppings', 450.00, 'Pizza', true, NULL),
+('9 Inch Veg Pizza', 'Fresh vegetable pizza with cheese', 380.00, 'Pizza', true, NULL),
+('Margherita Pizza', 'Classic pizza with tomato sauce and mozzarella', 350.00, 'Pizza', true, NULL),
+
+-- Sandwiches & Burgers
+('Chicken Burger', 'Juicy chicken patty with fresh vegetables', 220.00, 'Sandwiches & Burgers', true, NULL),
+('Veg Burger', 'Healthy vegetable patty burger', 180.00, 'Sandwiches & Burgers', true, NULL),
+('Chicken Sandwich', 'Grilled chicken sandwich with mayo', 180.00, 'Sandwiches & Burgers', true, NULL),
+
+-- Rice & Biryani
+('Chicken Biryani', 'Aromatic basmati rice with tender chicken', 320.00, 'Rice & Biryani', true, NULL),
+('Veg Biryani', 'Flavorful vegetable biryani with spices', 280.00, 'Rice & Biryani', true, NULL),
+('Mutton Biryani', 'Rich mutton biryani with traditional spices', 380.00, 'Rice & Biryani', true, NULL),
+
+-- Beverages
+('Coke', 'Chilled Coca-Cola', 70.00, 'Cold Beverages', true, NULL),
+('Pepsi', 'Refreshing Pepsi cola', 70.00, 'Cold Beverages', true, NULL),
+('Fresh Lime Soda', 'Refreshing lime soda with mint', 90.00, 'Cold Beverages', true, NULL),
+('Masala Tea', 'Traditional Nepali spiced tea', 40.00, 'Hot Beverages', true, NULL),
+('Black Coffee', 'Strong black coffee', 60.00, 'Hot Beverages', true, NULL),
+
+-- Appetizers
+('Chicken Wings', 'Spicy buffalo chicken wings', 280.00, 'Appetizers', true, NULL),
+('Veg Spring Rolls', 'Crispy vegetable spring rolls', 180.00, 'Appetizers', true, NULL),
+('Chicken Sekuwa', 'Grilled chicken with Nepali spices', 320.00, 'Appetizers', true, NULL),
+
+-- Desserts
+('Chocolate Cake', 'Rich chocolate cake slice', 150.00, 'Desserts', true, NULL),
+('Ice Cream Sundae', 'Vanilla ice cream with chocolate sauce', 120.00, 'Desserts', true, NULL),
+('Gulab Jamun', 'Traditional sweet dumplings in syrup', 100.00, 'Desserts', true, NULL);
+
 -- Insert sample order items
 INSERT INTO order_items (order_id, menu_item_id, menu_item_name, menu_item_category, price, quantity, subtotal, special_instructions) VALUES
 -- Order 1 (Jane Smith - Delivery)

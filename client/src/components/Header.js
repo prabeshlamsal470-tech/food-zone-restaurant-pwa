@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useDeliveryCart } from '../context/DeliveryCartContext';
@@ -9,10 +9,22 @@ const Header = () => {
   const { getDeliveryTotalItems } = useDeliveryCart();
   const totalItems = getTotalItems();
   const deliveryItems = getDeliveryTotalItems();
+  const [isScrolled, setIsScrolled] = useState(false);
   
   // Show delivery cart for non-table pages, table cart for table pages
   const isTablePage = location.pathname.match(/^\/\d+$/);
   const displayItems = isTablePage ? totalItems : deliveryItems;
+
+  // Handle scroll effect
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+      setIsScrolled(scrollTop > 50);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   return (
     <header className="bg-transparent sticky top-0 z-50">
@@ -33,7 +45,7 @@ const Header = () => {
                 <span className="text-white font-bold text-lg">FZ</span>
               </div>
             </div>
-            <div className="text-white">
+            <div className={`text-white transition-all duration-300 ${isScrolled ? 'opacity-0 w-0 overflow-hidden' : 'opacity-100'}`}>
               <h1 className="text-xl font-bold">Food Zone</h1>
               <p className="text-sm opacity-90">Restaurant</p>
             </div>

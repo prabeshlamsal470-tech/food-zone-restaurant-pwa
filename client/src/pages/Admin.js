@@ -360,10 +360,8 @@ const Admin = () => {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="bg-white rounded-lg shadow-md p-6">
-        <div className="flex justify-between items-center mb-6">
-          {/* Confirmation Dialog */}
+    <>
+      {/* Confirmation Dialog */}
       {confirmDialog.show && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-sm mx-4">
@@ -432,8 +430,40 @@ const Admin = () => {
           </div>
         </div>
       )}
-      
-      <h1 className="text-3xl font-bold text-gray-800">🍽️ Food Zone Admin Panel</h1>
+
+      {/* Clear Table Confirmation Modal */}
+      {showConfirmModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 shadow-2xl">
+            <div className="text-center">
+              <div className="text-4xl mb-4">⚠️</div>
+              <h3 className="text-lg font-semibold mb-2">Clear Table {tableToDelete}?</h3>
+              <p className="text-gray-600 mb-6">
+                This will mark all active orders for this table as completed and make the table available for new customers.
+              </p>
+              <div className="flex gap-3 justify-center">
+                <button
+                  onClick={cancelClearTable}
+                  className="px-6 py-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors font-medium"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmClearTable}
+                  className="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
+                >
+                  Yes, Clear Table
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="container mx-auto px-4 py-8">
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <div className="flex justify-between items-center mb-6">
+            <h1 className="text-3xl font-bold text-gray-800">🍽️ Food Zone Admin Panel</h1>
           <div className="flex items-center space-x-4">
             {/* PWA Install Button */}
             <button 
@@ -971,42 +1001,9 @@ const Admin = () => {
         </div>
       )}
 
-      {/* Confirmation Modal */}
-      {showConfirmModal && (
-        <div 
-          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]"
-          style={{ zIndex: 9999 }}
-        >
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 shadow-2xl">
-            <div className="text-center">
-              <div className="text-4xl mb-4">⚠️</div>
-              <h3 className="text-lg font-semibold mb-2">Clear Table {tableToDelete}?</h3>
-              <p className="text-gray-600 mb-6">
-                This will permanently remove all orders for Table {tableToDelete}. 
-                This action cannot be undone.
-              </p>
-              <div className="flex gap-3 justify-center">
-                <button
-                  onClick={cancelClearTable}
-                  className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium cursor-pointer"
-                  type="button"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={confirmClearTable}
-                  className="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium cursor-pointer"
-                  type="button"
-                >
-                  Clear Table
-                </button>
-              </div>
-            </div>
-          </div>
         </div>
-      )}
       </div>
-    </div>
+    </>
   );
 };
 

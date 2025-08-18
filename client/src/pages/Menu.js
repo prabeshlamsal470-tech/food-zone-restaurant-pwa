@@ -69,13 +69,8 @@ const Menu = () => {
     if (isTableCustomer) {
       addToCart(item, 1);
     } else {
-      const orderData = {
-        // Add order data here
-      };
-      const result = await fetchApi.post('/api/order', orderData);
-      if (result) {
-        addToDeliveryCart(item, 1);
-      }
+      // For delivery customers, add directly to cart without API call
+      addToDeliveryCart(item, 1);
     }
   };
 

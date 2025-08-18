@@ -388,7 +388,8 @@ const DashboardOverview = ({ orders, customers, dbSummary }) => {
     const today = new Date().toDateString();
     const orderDate = new Date(order.created_at).toDateString();
     if (orderDate === today && order.status === 'completed') {
-      return sum + (order.total_amount || 0);
+      const orderTotal = order.total_amount || (order.items?.reduce((itemSum, item) => itemSum + (item.price * item.quantity), 0) || 0);
+      return sum + orderTotal;
     }
     return sum;
   }, 0);
@@ -476,7 +477,7 @@ const DashboardOverview = ({ orders, customers, dbSummary }) => {
                     <p className="text-xs text-slate-500">{order.items?.length || 0} items</p>
                   </div>
                   <div className="text-right">
-                    <p className="font-semibold text-slate-900">NPR {order.total_amount || 0}</p>
+                    <p className="font-semibold text-slate-900">NPR {order.total_amount || (order.items?.reduce((sum, item) => sum + (item.price * item.quantity), 0) || 0)}</p>
                     <span className={`px-2 py-1 text-xs rounded-full ${
                       order.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
                       order.status === 'preparing' ? 'bg-blue-100 text-blue-700' :
@@ -509,10 +510,15 @@ const DashboardOverview = ({ orders, customers, dbSummary }) => {
                   <div>
                     <p className="font-medium text-slate-900">{order.customer_name}</p>
                     <p className="text-sm text-slate-600">{order.phone}</p>
+                    {order.latitude && order.longitude && (
+                      <p className="text-xs text-slate-500 mt-1">
+                        <span role="img" aria-label="location">📍</span> GPS: {order.latitude}, {order.longitude}
+                      </p>
+                    )}
                     <p className="text-xs text-slate-500">{order.items?.length || 0} items</p>
                   </div>
                   <div className="text-right">
-                    <p className="font-semibold text-slate-900">NPR {order.total_amount || 0}</p>
+                    <p className="font-semibold text-slate-900">NPR {order.total_amount || (order.items?.reduce((sum, item) => sum + (item.price * item.quantity), 0) || 0)}</p>
                     <span className={`px-2 py-1 text-xs rounded-full ${
                       order.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
                       order.status === 'preparing' ? 'bg-blue-100 text-blue-700' :
@@ -566,7 +572,7 @@ const MenuManagement = () => {
     name: '',
     description: '',
     price: '',
-    category: 'Main Course',
+    category: 'MoMo',
     available: true
   });
 
@@ -623,7 +629,7 @@ const MenuManagement = () => {
     }
   };
 
-  const categories = ['Appetizers', 'Main Course', 'Beverages', 'Desserts', 'Snacks', 'Specials'];
+  const categories = ['MoMo', 'Pizza', 'Sandwiches & Burgers', 'Rice & Biryani', 'Cold Beverages', 'Hot Beverages', 'Appetizers', 'Desserts'];
 
   if (loading) {
     return (
@@ -868,7 +874,10 @@ const TablesManagement = ({ orders, setOrders }) => {
         order.table_id === i && ['pending', 'preparing', 'ready'].includes(order.status)
       );
       const isOccupied = tableOrders.length > 0;
-      const totalAmount = tableOrders.reduce((sum, order) => sum + (order.total_amount || 0), 0);
+      const totalAmount = tableOrders.reduce((sum, order) => {
+        const orderTotal = order.total_amount || (order.items?.reduce((itemSum, item) => itemSum + (item.price * item.quantity), 0) || 0);
+        return sum + orderTotal;
+      }, 0);
       
       tableData.push({
         id: i,
@@ -886,8 +895,30 @@ const TablesManagement = ({ orders, setOrders }) => {
 
   const clearTable = async (tableId) => {
     try {
-      await fetchApi.post(`/api/tables/${tableId}/clear`);
       // Update orders to mark table orders as completed
+      const ordersToUpdate = orders.filter(order => 
+        order.table_id === tableId && ['pending', 'preparing', 'ready'].includes(order.status)
+      );
+
+      // Update each order individually via API
+      for (const order of ordersToUpdate) {
+        await fetchApi.put(`/api/orders/${order.id}`, { status: 'completed' });
+      }
+
+      // Update local state
+      setOrders(prevOrders => 
+        prevOrders.map(order => 
+          order.table_id === tableId && ['pending', 'preparing', 'ready'].includes(order.status)
+            ? { ...order, status: 'completed' }
+            : order
+        )
+      );
+      
+      setShowClearModal(false);
+      setSelectedTable(null);
+    } catch (error) {
+      console.error('Error clearing table:', error);
+      // Fallback: update locally if API fails
       setOrders(prevOrders => 
         prevOrders.map(order => 
           order.table_id === tableId && ['pending', 'preparing', 'ready'].includes(order.status)
@@ -897,8 +928,6 @@ const TablesManagement = ({ orders, setOrders }) => {
       );
       setShowClearModal(false);
       setSelectedTable(null);
-    } catch (error) {
-      console.error('Error clearing table:', error);
     }
   };
 
@@ -1138,7 +1167,10 @@ const CustomersManagement = ({ customers, orders }) => {
     const customerOrders = orders.filter(order => 
       order.customer_name === customer.name || order.phone === customer.phone
     );
-    const totalSpent = customerOrders.reduce((sum, order) => sum + (order.total_amount || 0), 0);
+    const totalSpent = customerOrders.reduce((sum, order) => {
+      const orderTotal = order.total_amount || (order.items?.reduce((itemSum, item) => itemSum + (item.price * item.quantity), 0) || 0);
+      return sum + orderTotal;
+    }, 0);
     const lastOrderDate = customerOrders.length > 0 ? 
       Math.max(...customerOrders.map(o => new Date(o.created_at).getTime())) : null;
     
@@ -1392,9 +1424,14 @@ const CustomersManagement = ({ customers, orders }) => {
                                 <span className="font-medium">
                                   {order.order_type === 'dine-in' ? `Table ${order.table_id}` : 'Delivery'}
                                 </span>
-                                <span className="text-sm text-gray-500">
-                                  {new Date(order.created_at).toLocaleString()}
-                                </span>
+                                <p className="text-sm text-gray-600">
+                                  {order.customer_name} • {new Date(order.created_at).toLocaleString()}
+                                </p>
+                                {order.order_type === 'delivery' && order.latitude && order.longitude && (
+                                  <p className="text-xs text-gray-500 mt-1">
+                                    📍 {order.latitude}, {order.longitude}
+                                  </p>
+                                )}
                               </div>
                               <div className="flex items-center justify-between">
                                 <span className="text-sm text-gray-600">
@@ -1458,7 +1495,10 @@ const AnalyticsViewPlaceholder = ({ orders }) => {
       new Date(order.created_at) >= startDate
     );
 
-    const totalRevenue = filteredOrders.reduce((sum, order) => sum + (order.total_amount || 0), 0);
+    const totalRevenue = filteredOrders.reduce((sum, order) => {
+      const orderTotal = order.total_amount || (order.items?.reduce((itemSum, item) => itemSum + (item.price * item.quantity), 0) || 0);
+      return sum + orderTotal;
+    }, 0);
     const totalOrders = filteredOrders.length;
     const avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
     
@@ -1486,7 +1526,10 @@ const AnalyticsViewPlaceholder = ({ orders }) => {
         return orderDate >= dayStart && orderDate < dayEnd;
       });
       
-      const dayRevenue = dayOrders.reduce((sum, order) => sum + (order.total_amount || 0), 0);
+      const dayRevenue = dayOrders.reduce((sum, order) => {
+        const orderTotal = order.total_amount || (order.items ? order.items.reduce((itemSum, item) => itemSum + item.price * item.quantity, 0) : 0);
+        return sum + orderTotal;
+      }, 0);
       dailyRevenue.push({
         date: date.toLocaleDateString('en-US', { weekday: 'short' }),
         revenue: dayRevenue,
@@ -1761,8 +1804,12 @@ const StaffManagement = () => {
   };
 
   const handleDeleteStaff = (id) => {
-    if (window.confirm('Are you sure you want to remove this staff member?')) {
-      setStaff(staff.filter(member => member.id !== id));
+    const staffMember = staff.find(member => member.id === id);
+    const confirmMessage = `Are you sure you want to remove ${staffMember?.name || 'this staff member'}?`;
+    
+    // eslint-disable-next-line no-restricted-globals
+    if (confirm(confirmMessage)) {
+      setStaff(prevStaff => prevStaff.filter(member => member.id !== id));
     }
   };
 
@@ -2124,6 +2171,26 @@ const OrdersManagement = ({ orders, setOrders }) => {
     }
   };
 
+  const updatePaymentStatus = async (orderId, paymentStatus) => {
+    try {
+      // Use the general orders update endpoint with payment_status field
+      await fetchApi.put(`/api/orders/${orderId}`, { payment_status: paymentStatus });
+      setOrders(prevOrders => 
+        prevOrders.map(order => 
+          order.id === orderId ? { ...order, payment_status: paymentStatus } : order
+        )
+      );
+    } catch (error) {
+      console.error('Error updating payment status:', error);
+      // Fallback: update locally if API fails
+      setOrders(prevOrders => 
+        prevOrders.map(order => 
+          order.id === orderId ? { ...order, payment_status: paymentStatus } : order
+        )
+      );
+    }
+  };
+
   const filteredOrders = orders.filter(order => {
     if (filter === 'all') return true;
     if (filter === 'active') return ['pending', 'preparing', 'ready'].includes(order.status);
@@ -2181,7 +2248,12 @@ const OrdersManagement = ({ orders, setOrders }) => {
                         <h3 className="font-semibold text-gray-900">
                           {order.order_type === 'dine-in' ? `Table ${order.table_id}` : 'Delivery Order'}
                         </h3>
-                        <p className="text-sm text-gray-600">{order.customer_name} • {order.phone}</p>
+                        <p className="text-sm text-gray-500"><strong>Address:</strong> {order.customer_address} • {order.phone}</p>
+                        {order.latitude && order.longitude && (
+                          <p className="text-sm text-gray-500">
+                            <strong>GPS:</strong> {order.latitude}, {order.longitude}
+                          </p>
+                        )}
                         <p className="text-xs text-gray-500">
                           {new Date(order.created_at).toLocaleString()}
                         </p>
@@ -2204,37 +2276,64 @@ const OrdersManagement = ({ orders, setOrders }) => {
                   
                   <div className="flex flex-col items-end space-y-2">
                     <div className="text-right">
-                      <p className="text-lg font-bold text-gray-900">NPR {order.total_amount || 0}</p>
-                      <span className={`px-3 py-1 text-sm rounded-full ${getStatusColor(order.status)}`}>
-                        {order.status}
-                      </span>
+                      <p className="text-lg font-bold text-gray-900">
+                        NPR {order.total_amount || (order.items?.reduce((sum, item) => sum + (item.price * item.quantity), 0) || 0)}
+                      </p>
+                      <div className="flex flex-col space-y-1">
+                        <span className={`px-3 py-1 text-sm rounded-full ${getStatusColor(order.status)}`}>
+                          {order.status}
+                        </span>
+                        {order.payment_status && (
+                          <span className={`px-3 py-1 text-xs rounded-full ${
+                            order.payment_status === 'paid' ? 'bg-green-100 text-green-700' : 
+                            order.payment_status === 'pending' ? 'bg-yellow-100 text-yellow-700' : 
+                            'bg-red-100 text-red-700'
+                          }`}>
+                            {order.payment_status}
+                          </span>
+                        )}
+                      </div>
                     </div>
                     
                     {/* Status Update Buttons */}
-                    <div className="flex space-x-2">
-                      {order.status === 'pending' && (
-                        <button
-                          onClick={() => updateOrderStatus(order.id, 'preparing')}
-                          className="px-3 py-1 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700"
-                        >
-                          Start Preparing
-                        </button>
-                      )}
-                      {order.status === 'preparing' && (
-                        <button
-                          onClick={() => updateOrderStatus(order.id, 'ready')}
-                          className="px-3 py-1 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700"
-                        >
-                          Mark Ready
-                        </button>
-                      )}
-                      {order.status === 'ready' && (
-                        <button
-                          onClick={() => updateOrderStatus(order.id, 'completed')}
-                          className="px-3 py-1 bg-gray-600 text-white text-sm rounded-lg hover:bg-gray-700"
-                        >
-                          Complete
-                        </button>
+                    <div className="flex flex-col space-y-2">
+                      <div className="flex space-x-2">
+                        {order.status === 'pending' && (
+                          <button
+                            onClick={() => updateOrderStatus(order.id, 'preparing')}
+                            className="px-3 py-1 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700"
+                          >
+                            Start Preparing
+                          </button>
+                        )}
+                        {order.status === 'preparing' && (
+                          <button
+                            onClick={() => updateOrderStatus(order.id, 'ready')}
+                            className="px-3 py-1 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700"
+                          >
+                            Mark Ready
+                          </button>
+                        )}
+                        {order.status === 'ready' && (
+                          <button
+                            onClick={() => updateOrderStatus(order.id, 'completed')}
+                            className="px-3 py-1 bg-gray-600 text-white text-sm rounded-lg hover:bg-gray-700"
+                          >
+                            Complete
+                          </button>
+                        )}
+                      </div>
+                      
+                      {/* Payment Status Buttons */}
+                      {order.status === 'completed' && order.payment_status !== 'paid' && (
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={() => updatePaymentStatus(order.id, 'paid')}
+                            className="px-3 py-1 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700"
+                          >
+                            Mark Paid
+                          </button>
+                        </div>
                       )}
                     </div>
                   </div>

@@ -735,34 +735,68 @@ app.get('/api/customers', async (req, res) => {
   }
 });
 
-// Analytics endpoint
+// Analytics endpoint with detailed daily breakdown
 app.get('/api/analytics', async (req, res) => {
   try {
     const today = new Date().toISOString().split('T')[0];
     
-    // Get basic stats
+    // Get basic stats - include all orders with total > 0 for revenue
     const totalOrdersResult = await query('SELECT COUNT(*) as count FROM orders');
-    const totalRevenueResult = await query('SELECT SUM(total) as revenue FROM orders WHERE status = $1', ['completed']);
+    const totalRevenueResult = await query('SELECT SUM(total) as revenue FROM orders WHERE total > 0');
     const totalCustomersResult = await query('SELECT COUNT(*) as count FROM customers');
-    const avgOrderValueResult = await query('SELECT AVG(total) as avg FROM orders WHERE status = $1', ['completed']);
+    const avgOrderValueResult = await query('SELECT AVG(total) as avg FROM orders WHERE total > 0');
     
     // Get today's stats
     const todayOrdersResult = await query('SELECT COUNT(*) as count FROM orders WHERE DATE(created_at) = $1', [today]);
-    const todayRevenueResult = await query('SELECT SUM(total) as revenue FROM orders WHERE DATE(created_at) = $1 AND status = $2', [today, 'completed']);
+    const todayRevenueResult = await query('SELECT SUM(total) as revenue FROM orders WHERE DATE(created_at) = $1 AND total > 0', [today]);
     
     // Get order types
     const dineInOrdersResult = await query('SELECT COUNT(*) as count FROM orders WHERE order_type = $1', ['dine-in']);
     const deliveryOrdersResult = await query('SELECT COUNT(*) as count FROM orders WHERE order_type = $1', ['delivery']);
     
+    // Get last 7 days breakdown - include all orders with revenue
+    const last7DaysResult = await query(`
+      SELECT 
+        DATE(created_at) as date,
+        COUNT(*) as order_count,
+        SUM(total) as revenue
+      FROM orders 
+      WHERE created_at >= CURRENT_DATE - INTERVAL '7 days' AND total > 0
+      GROUP BY DATE(created_at)
+      ORDER BY date DESC
+    `);
+    
+    // Get top items - from all orders
+    const topItemsResult = await query(`
+      SELECT 
+        oi.item_name as name,
+        SUM(oi.quantity) as count
+      FROM order_items oi
+      JOIN orders o ON oi.order_id = o.id
+      WHERE o.total > 0
+      GROUP BY oi.item_name
+      ORDER BY count DESC
+      LIMIT 5
+    `);
+    
+    // Get completion rate
+    const completedOrdersResult = await query('SELECT COUNT(*) as count FROM orders WHERE status = $1', ['completed']);
+    const completionRate = totalOrdersResult.rows[0].count > 0 ? 
+      (completedOrdersResult.rows[0].count / totalOrdersResult.rows[0].count) * 100 : 0;
+    
     const analytics = {
       totalOrders: parseInt(totalOrdersResult.rows[0].count),
       totalRevenue: parseFloat(totalRevenueResult.rows[0].revenue || 0),
       totalCustomers: parseInt(totalCustomersResult.rows[0].count),
-      avgOrderValue: parseFloat(avgOrderValueResult.rows[0].avg || 0).toFixed(2),
+      avgOrderValue: parseFloat(avgOrderValueResult.rows[0].avg || 0),
       todayOrders: parseInt(todayOrdersResult.rows[0].count),
       todayRevenue: parseFloat(todayRevenueResult.rows[0].revenue || 0),
       dineInOrders: parseInt(dineInOrdersResult.rows[0].count),
-      deliveryOrders: parseInt(deliveryOrdersResult.rows[0].count)
+      deliveryOrders: parseInt(deliveryOrdersResult.rows[0].count),
+      completionRate: Math.round(completionRate),
+      completedOrders: parseInt(completedOrdersResult.rows[0].count),
+      last7Days: last7DaysResult.rows,
+      topItems: topItemsResult.rows
     };
     
     res.json(analytics);

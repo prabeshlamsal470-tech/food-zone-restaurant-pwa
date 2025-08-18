@@ -1,94 +1,65 @@
 import React, { useState, useEffect } from 'react';
+import { fetchApi } from '../../services/apiService';
 
 const AnalyticsView = ({ orders }) => {
   const [timeRange, setTimeRange] = useState('today');
   const [analyticsData, setAnalyticsData] = useState({});
+  const [revenueData, setRevenueData] = useState([]);
+  const [loading, setLoading] = useState(false);
 
-  const calculateAnalytics = () => {
-    const now = new Date();
-    let filteredOrders = orders;
-
-    // Filter by time range
-    if (timeRange === 'today') {
-      filteredOrders = orders.filter(order => {
-        const orderDate = new Date(order.created_at);
-        return orderDate.toDateString() === now.toDateString();
+  const fetchAnalyticsData = async () => {
+    try {
+      setLoading(true);
+      const data = await fetchApi.get('/api/analytics');
+      
+      // Create 7-day revenue breakdown with proper day names
+      const last7Days = [];
+      const today = new Date();
+      const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      
+      for (let i = 6; i >= 0; i--) {
+        const date = new Date(today);
+        date.setDate(today.getDate() - i);
+        const dateStr = date.toISOString().split('T')[0];
+        const dayName = dayNames[date.getDay()];
+        
+        // Find matching data from API
+        const dayData = data.last7Days?.find(d => d.date === dateStr);
+        
+        last7Days.push({
+          day: dayName,
+          date: dateStr,
+          revenue: dayData ? parseFloat(dayData.revenue || 0) : 0,
+          orders: dayData ? parseInt(dayData.order_count || 0) : 0
+        });
+      }
+      
+      setAnalyticsData({
+        totalOrders: data.totalOrders || 0,
+        completedOrders: data.completedOrders || 0,
+        totalRevenue: data.totalRevenue || 0,
+        avgOrderValue: data.avgOrderValue || 0,
+        completionRate: data.completionRate || 0,
+        dineInCount: data.dineInOrders || 0,
+        deliveryCount: data.deliveryOrders || 0,
+        topItems: data.topItems || []
       });
+      
+      setRevenueData(last7Days);
+    } catch (error) {
+      console.error('Error fetching analytics:', error);
+    } finally {
+      setLoading(false);
     }
-    // Add more filtering logic as needed
-    
-    setAnalyticsData({
-      totalOrders: filteredOrders.length,
-      totalRevenue: filteredOrders.reduce((sum, order) => sum + (order.total || 0), 0),
-      avgOrderValue: filteredOrders.length > 0 ? filteredOrders.reduce((sum, order) => sum + (order.total || 0), 0) / filteredOrders.length : 0
-    });
   };
 
   useEffect(() => {
-    const now = new Date();
-    let filteredOrders = orders;
-
-    // Filter by time range
-    if (timeRange === 'today') {
-      filteredOrders = orders.filter(order => {
-        const orderDate = new Date(order.created_at);
-        return orderDate.toDateString() === now.toDateString();
-      });
-    } else if (timeRange === 'week') {
-      const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-      filteredOrders = orders.filter(order => {
-        const orderDate = new Date(order.created_at);
-        return orderDate >= weekAgo;
-      });
-    } else if (timeRange === 'month') {
-      const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-      filteredOrders = orders.filter(order => {
-        const orderDate = new Date(order.created_at);
-        return orderDate >= monthAgo;
-      });
-    }
-
-    // Calculate metrics
-    const completedOrders = filteredOrders.filter(o => o.status === 'completed');
-    const totalRevenue = completedOrders.reduce((sum, order) => sum + (order.total_amount || 0), 0);
-    const avgOrderValue = completedOrders.length > 0 ? totalRevenue / completedOrders.length : 0;
-
-    // Top items
-    const itemCounts = {};
-    completedOrders.forEach(order => {
-      if (order.items) {
-        order.items.forEach(item => {
-          itemCounts[item.name] = (itemCounts[item.name] || 0) + item.quantity;
-        });
-      }
-    });
-    const topItems = Object.entries(itemCounts)
-      .sort(([,a], [,b]) => b - a)
-      .slice(0, 5)
-      .map(([name, count]) => ({ name, count }));
-
-    // Hourly distribution
-    const hourlyData = Array(24).fill(0);
-    completedOrders.forEach(order => {
-      const hour = new Date(order.created_at).getHours();
-      hourlyData[hour]++;
-    });
-
-    // Order type distribution
-    const dineInCount = filteredOrders.filter(o => o.order_type === 'dine-in').length;
-    const deliveryCount = filteredOrders.filter(o => o.order_type === 'delivery').length;
-
-    setAnalyticsData({
-      totalOrders: filteredOrders.length,
-      completedOrders: completedOrders.length,
-      totalRevenue,
-      avgOrderValue,
-      topItems,
-      hourlyData,
-      dineInCount,
-      deliveryCount
-    });
-  }, [orders, timeRange]);
+    fetchAnalyticsData();
+    
+    // Refresh analytics every 30 seconds for real-time updates
+    const interval = setInterval(fetchAnalyticsData, 30000);
+    return () => clearInterval(interval);
+  }, [timeRange]);
 
   const timeRanges = [
     { id: 'today', label: 'Today' },
@@ -158,49 +129,83 @@ const AnalyticsView = ({ orders }) => {
         />
       </div>
 
+      {/* Revenue Trend Chart */}
+      <div className="bg-white rounded-2xl p-6 border border-slate-200">
+        <h3 className="text-lg font-semibold text-slate-900 mb-6">Revenue Trend (Last 7 Days)</h3>
+        <div className="space-y-4">
+          {revenueData.map((day, index) => (
+            <div key={index} className="flex items-center justify-between">
+              <div className="flex items-center gap-4 min-w-[60px]">
+                <span className="font-medium text-slate-700 w-8">{day.day}</span>
+                <div className="flex-1 bg-slate-200 rounded-full h-6 min-w-[200px]">
+                  <div
+                    className="bg-blue-500 h-6 rounded-full transition-all duration-500 flex items-center justify-end pr-2"
+                    style={{
+                      width: `${Math.max(5, (day.revenue / Math.max(...revenueData.map(d => d.revenue), 1)) * 100)}%`
+                    }}
+                  >
+                    {day.revenue > 0 && (
+                      <span className="text-white text-xs font-medium">
+                        NPR {day.revenue}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <div className="text-right min-w-[120px]">
+                <div className="font-bold text-slate-900">NPR {day.revenue}</div>
+                <div className="text-sm text-slate-500">({day.orders} orders)</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Order Distribution */}
         <div className="bg-white rounded-2xl p-6 border border-slate-200">
-          <h3 className="text-lg font-semibold text-slate-900 mb-6">Order Type Distribution</h3>
+          <h3 className="text-lg font-semibold text-slate-900 mb-6">Order Status Distribution</h3>
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-4 h-4 bg-blue-500 rounded-full"></div>
-                <span className="font-medium text-slate-700">Dine-in Orders</span>
-              </div>
-              <span className="font-bold text-slate-900">{analyticsData.dineInCount || 0}</span>
-            </div>
-            <div className="w-full bg-slate-200 rounded-full h-3">
-              <div
-                className="bg-blue-500 h-3 rounded-full transition-all duration-500"
-                style={{
-                  width: `${analyticsData.totalOrders > 0 ? (analyticsData.dineInCount / analyticsData.totalOrders) * 100 : 0}%`
-                }}
-              ></div>
-            </div>
-            
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
                 <div className="w-4 h-4 bg-green-500 rounded-full"></div>
-                <span className="font-medium text-slate-700">Delivery Orders</span>
+                <span className="font-medium text-slate-700">Completed</span>
               </div>
-              <span className="font-bold text-slate-900">{analyticsData.deliveryCount || 0}</span>
+              <span className="font-bold text-slate-900">{analyticsData.completedOrders || 0} ({analyticsData.completionRate || 0}%)</span>
             </div>
             <div className="w-full bg-slate-200 rounded-full h-3">
               <div
                 className="bg-green-500 h-3 rounded-full transition-all duration-500"
                 style={{
-                  width: `${analyticsData.totalOrders > 0 ? (analyticsData.deliveryCount / analyticsData.totalOrders) * 100 : 0}%`
+                  width: `${analyticsData.completionRate || 0}%`
                 }}
               ></div>
+            </div>
+          </div>
+          
+          <div className="mt-6 space-y-4">
+            <h4 className="font-semibold text-slate-900">Order Type Distribution</h4>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-4 h-4 bg-blue-500 rounded-full"></div>
+                <span className="font-medium text-slate-700">Dine In</span>
+              </div>
+              <span className="font-bold text-slate-900">{analyticsData.dineInCount || 0} ({analyticsData.totalOrders > 0 ? Math.round((analyticsData.dineInCount / analyticsData.totalOrders) * 100) : 0}%)</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-4 h-4 bg-purple-500 rounded-full"></div>
+                <span className="font-medium text-slate-700">Delivery</span>
+              </div>
+              <span className="font-bold text-slate-900">{analyticsData.deliveryCount || 0} ({analyticsData.totalOrders > 0 ? Math.round((analyticsData.deliveryCount / analyticsData.totalOrders) * 100) : 0}%)</span>
             </div>
           </div>
         </div>
 
         {/* Top Items */}
         <div className="bg-white rounded-2xl p-6 border border-slate-200">
-          <h3 className="text-lg font-semibold text-slate-900 mb-6">Top Selling Items</h3>
+          <h3 className="text-lg font-semibold text-slate-900 mb-6">Popular Items</h3>
           <div className="space-y-4">
             {analyticsData.topItems?.length > 0 ? (
               analyticsData.topItems.map((item, index) => (
