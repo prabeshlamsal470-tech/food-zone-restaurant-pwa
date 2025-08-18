@@ -207,6 +207,7 @@ const AdminPremium = () => {
         collapsed={sidebarCollapsed}
         setCollapsed={setSidebarCollapsed}
         onLogout={handleLogout}
+        orders={orders}
       />
 
       {/* Main Content Area */}
@@ -231,12 +232,23 @@ const AdminPremium = () => {
 };
 
 // Premium Sidebar Component
-const PremiumSidebar = ({ activeTab, setActiveTab, collapsed, setCollapsed, onLogout }) => {
+const PremiumSidebar = ({ activeTab, setActiveTab, collapsed, setCollapsed, onLogout, orders }) => {
+  // Calculate real-time badge counts
+  const activeOrders = orders?.filter(o => o.status !== 'completed' && o.status !== 'cancelled').length || 0;
+  const occupiedTables = orders?.filter(order => 
+    order.order_type === 'dine-in' && ['pending', 'preparing', 'ready'].includes(order.status)
+  ).reduce((tables, order) => {
+    if (!tables.includes(order.table_id)) {
+      tables.push(order.table_id);
+    }
+    return tables;
+  }, []).length || 0;
+
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: '📊', badge: null },
-    { id: 'orders', label: 'Orders', icon: '📋', badge: '12' },
+    { id: 'orders', label: 'Orders', icon: '📋', badge: activeOrders > 0 ? activeOrders.toString() : null },
     { id: 'menu', label: 'Menu', icon: '🍽️', badge: null },
-    { id: 'tables', label: 'Tables', icon: '🪑', badge: '3' },
+    { id: 'tables', label: 'Tables', icon: '🪑', badge: occupiedTables > 0 ? occupiedTables.toString() : null },
     { id: 'customers', label: 'Customers', icon: '👥', badge: null },
     { id: 'analytics', label: 'Analytics', icon: '📈', badge: null },
     { id: 'staff', label: 'Staff', icon: '👨‍🍳', badge: null },
