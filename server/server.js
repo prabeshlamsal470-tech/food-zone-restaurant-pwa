@@ -838,6 +838,43 @@ app.put('/api/orders/:orderId/status', async (req, res) => {
   }
 });
 
+// Update order payment status endpoint
+app.put('/api/orders/:orderId/payment-status', async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const { payment_status } = req.body;
+    
+    if (!payment_status) {
+      return res.status(400).json({ error: 'Payment status is required' });
+    }
+    
+    // Update payment status in database
+    const result = await query(
+      'UPDATE orders SET payment_status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING *',
+      [payment_status, orderId]
+    );
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+    
+    const updatedOrder = result.rows[0];
+    
+    // Emit payment status update
+    io.emit('orderPaymentStatusUpdated', { orderId, payment_status });
+    
+    console.log(`✅ Order ${orderId} payment status updated to: ${payment_status}`);
+    res.json({ 
+      success: true, 
+      message: `Payment status updated to ${payment_status}`,
+      order: updatedOrder 
+    });
+  } catch (error) {
+    console.error('❌ Error updating payment status:', error);
+    res.status(500).json({ error: 'Failed to update payment status', details: error.message });
+  }
+});
+
 // Settings endpoints
 app.get('/api/settings/tables', (req, res) => {
   res.json(restaurantSettings);

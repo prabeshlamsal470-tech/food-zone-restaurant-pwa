@@ -2185,8 +2185,8 @@ const OrdersManagement = ({ orders, setOrders }) => {
 
   const updatePaymentStatus = async (orderId, paymentStatus) => {
     try {
-      // Use the general orders update endpoint with payment_status field
-      await fetchApi.put(`/api/orders/${orderId}`, { payment_status: paymentStatus });
+      // Use the dedicated payment status endpoint
+      await fetchApi.put(`/api/orders/${orderId}/payment-status`, { payment_status: paymentStatus });
       setOrders(prevOrders => 
         prevOrders.map(order => 
           order.id === orderId ? { ...order, payment_status: paymentStatus } : order
