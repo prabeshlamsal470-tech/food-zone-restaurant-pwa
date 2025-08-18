@@ -2185,8 +2185,19 @@ const OrdersManagement = ({ orders, setOrders }) => {
 
   const updatePaymentStatus = async (orderId, paymentStatus) => {
     try {
-      // Use the dedicated payment status endpoint
-      await fetchApi.put(`/api/orders/${orderId}/payment-status`, { payment_status: paymentStatus });
+      // Use a direct database update approach
+      const response = await fetch(`${process.env.REACT_APP_API_URL || 'https://food-zone-backend-l00k.onrender.com'}/api/orders/${orderId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ payment_status: paymentStatus })
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to update payment status');
+      }
+      
       setOrders(prevOrders => 
         prevOrders.map(order => 
           order.id === orderId ? { ...order, payment_status: paymentStatus } : order
