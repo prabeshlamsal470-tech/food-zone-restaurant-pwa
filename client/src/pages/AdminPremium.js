@@ -2285,20 +2285,9 @@ const OrdersManagement = ({ orders, setOrders }) => {
                       <p className="text-lg font-bold text-gray-900">
                         NPR {order.total_amount || (order.items?.reduce((sum, item) => sum + (item.price * item.quantity), 0) || 0)}
                       </p>
-                      <div className="flex flex-col space-y-1">
-                        <span className={`px-3 py-1 text-sm rounded-full ${getStatusColor(order.status)}`}>
-                          {order.status}
-                        </span>
-                        {order.payment_status && order.payment_status !== order.status && (
-                          <span className={`px-3 py-1 text-xs rounded-full ${
-                            order.payment_status === 'paid' ? 'bg-green-100 text-green-700' : 
-                            order.payment_status === 'pending' ? 'bg-yellow-100 text-yellow-700' : 
-                            'bg-red-100 text-red-700'
-                          }`}>
-                            {order.payment_status}
-                          </span>
-                        )}
-                      </div>
+                      <span className={`px-3 py-1 text-sm rounded-full ${getStatusColor(order.status)}`}>
+                        {order.status}
+                      </span>
                     </div>
                     
                     {/* Status Update Buttons */}
