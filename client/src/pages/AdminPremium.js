@@ -2248,11 +2248,17 @@ const OrdersManagement = ({ orders, setOrders }) => {
                         <h3 className="font-semibold text-gray-900">
                           {order.order_type === 'dine-in' ? `Table ${order.table_id}` : 'Delivery Order'}
                         </h3>
-                        <p className="text-sm text-gray-500"><strong>Address:</strong> {order.customer_address} • {order.phone}</p>
-                        {order.latitude && order.longitude && (
-                          <p className="text-sm text-gray-500">
-                            <strong>GPS:</strong> {order.latitude}, {order.longitude}
-                          </p>
+                        {order.order_type === 'delivery' ? (
+                          <>
+                            <p className="text-sm text-gray-500"><strong>Address:</strong> {order.customer_address} • {order.phone}</p>
+                            {order.latitude && order.longitude && (
+                              <p className="text-sm text-gray-500">
+                                <strong>GPS:</strong> {order.latitude}, {order.longitude}
+                              </p>
+                            )}
+                          </>
+                        ) : (
+                          <p className="text-sm text-gray-500">{order.phone}</p>
                         )}
                         <p className="text-xs text-gray-500">
                           {new Date(order.created_at).toLocaleString()}
