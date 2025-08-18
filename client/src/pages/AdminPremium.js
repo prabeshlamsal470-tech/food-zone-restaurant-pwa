@@ -2289,7 +2289,7 @@ const OrdersManagement = ({ orders, setOrders }) => {
                         <span className={`px-3 py-1 text-sm rounded-full ${getStatusColor(order.status)}`}>
                           {order.status}
                         </span>
-                        {order.payment_status && (
+                        {order.payment_status && order.payment_status !== order.status && (
                           <span className={`px-3 py-1 text-xs rounded-full ${
                             order.payment_status === 'paid' ? 'bg-green-100 text-green-700' : 
                             order.payment_status === 'pending' ? 'bg-yellow-100 text-yellow-700' : 
