@@ -64,7 +64,18 @@ const AdminPremium = () => {
     try {
       setLoading(true);
       const data = await fetchApi.get('/api/orders');
-      setOrders(data);
+      
+      // Load payment status from localStorage and merge with orders
+      const ordersWithPaymentStatus = data.map(order => {
+        const paymentStatusKey = `payment_status_${order.id}`;
+        const storedPaymentStatus = localStorage.getItem(paymentStatusKey);
+        return {
+          ...order,
+          payment_status: storedPaymentStatus || order.payment_status
+        };
+      });
+      
+      setOrders(ordersWithPaymentStatus);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -2185,32 +2196,20 @@ const OrdersManagement = ({ orders, setOrders }) => {
 
   const updatePaymentStatus = async (orderId, paymentStatus) => {
     try {
-      // Use a direct database update approach
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'https://food-zone-backend-l00k.onrender.com'}/api/orders/${orderId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ payment_status: paymentStatus })
-      });
+      // Store payment status in localStorage for persistence
+      const paymentStatusKey = `payment_status_${orderId}`;
+      localStorage.setItem(paymentStatusKey, paymentStatus);
       
-      if (!response.ok) {
-        throw new Error('Failed to update payment status');
-      }
-      
+      // Update local state
       setOrders(prevOrders => 
         prevOrders.map(order => 
           order.id === orderId ? { ...order, payment_status: paymentStatus } : order
         )
       );
+      
+      console.log(`Payment status for order ${orderId} updated to ${paymentStatus}`);
     } catch (error) {
       console.error('Error updating payment status:', error);
-      // Fallback: update locally if API fails
-      setOrders(prevOrders => 
-        prevOrders.map(order => 
-          order.id === orderId ? { ...order, payment_status: paymentStatus } : order
-        )
-      );
     }
   };
 
