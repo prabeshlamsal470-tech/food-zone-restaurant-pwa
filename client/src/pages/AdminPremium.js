@@ -65,17 +65,25 @@ const AdminPremium = () => {
       setLoading(true);
       const data = await fetchApi.get('/api/orders');
       
-      // Load payment status from localStorage and merge with orders
-      const ordersWithPaymentStatus = data.map(order => {
-        const paymentStatusKey = `payment_status_${order.id}`;
-        const storedPaymentStatus = localStorage.getItem(paymentStatusKey);
-        return {
-          ...order,
-          payment_status: storedPaymentStatus || order.payment_status
+      // Sort orders by created_at (newest first) and status priority
+      const sortedOrders = data.sort((a, b) => {
+        const statusPriority = {
+          'pending': 1,
+          'preparing': 2,
+          'ready': 3,
+          'completed': 4,
+          'paid': 5,
+          'cancelled': 6
         };
+        
+        // First sort by status priority, then by creation time
+        const statusDiff = statusPriority[a.status] - statusPriority[b.status];
+        if (statusDiff !== 0) return statusDiff;
+        
+        return new Date(b.created_at) - new Date(a.created_at);
       });
       
-      setOrders(ordersWithPaymentStatus);
+      setOrders(sortedOrders);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -2196,13 +2204,29 @@ const OrdersManagement = ({ orders, setOrders }) => {
 
   const updatePaymentStatus = async (orderId, paymentStatus) => {
     try {
-      // Only allow marking as paid if order is completed
       const order = orders.find(o => o.id === orderId);
       if (order && order.status === 'completed' && paymentStatus === 'paid') {
+        // Update UI optimistically
+        setOrders(prevOrders => 
+          prevOrders.map(o => 
+            o.id === orderId ? { ...o, status: 'paid' } : o
+          )
+        );
+        
+        // Update backend
         await updateOrderStatus(orderId, 'paid');
+        
+        // Show success feedback
+        console.log(`Order ${orderId} marked as paid successfully`);
       }
     } catch (error) {
       console.error('Error updating payment status:', error);
+      // Revert optimistic update on error
+      setOrders(prevOrders => 
+        prevOrders.map(o => 
+          o.id === orderId ? { ...o, status: 'completed' } : o
+        )
+      );
     }
   };
 
@@ -2211,23 +2235,30 @@ const OrdersManagement = ({ orders, setOrders }) => {
     if (filter === 'active') return ['pending', 'preparing', 'ready'].includes(order.status);
     return order.status === filter;
   });
+  
+  // Get count for each filter
+  const getFilterCount = (filterType) => {
+    if (filterType === 'all') return orders.length;
+    if (filterType === 'active') return orders.filter(o => ['pending', 'preparing', 'ready'].includes(o.status)).length;
+    return orders.filter(o => o.status === filterType).length;
+  };
 
   const getStatusColor = (status) => {
     switch (status) {
       case 'pending':
-        return 'bg-yellow-100 text-yellow-700';
+        return 'bg-yellow-100 text-yellow-800 border border-yellow-200';
       case 'preparing':
-        return 'bg-blue-100 text-blue-700';
+        return 'bg-blue-100 text-blue-800 border border-blue-200';
       case 'ready':
-        return 'bg-green-100 text-green-700';
+        return 'bg-orange-100 text-orange-800 border border-orange-200';
       case 'completed':
-        return 'bg-gray-100 text-gray-700';
+        return 'bg-purple-100 text-purple-800 border border-purple-200';
       case 'paid':
-        return 'bg-green-100 text-green-700';
+        return 'bg-green-100 text-green-800 border border-green-200';
       case 'cancelled':
-        return 'bg-red-100 text-red-700';
+        return 'bg-red-100 text-red-800 border border-red-200';
       default:
-        return 'bg-gray-100 text-gray-700';
+        return 'bg-gray-100 text-gray-800 border border-gray-200';
     }
   };
 
@@ -2242,13 +2273,22 @@ const OrdersManagement = ({ orders, setOrders }) => {
               <button
                 key={filterType}
                 onClick={() => setFilter(filterType)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 relative ${
                   filter === filterType
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    ? 'bg-blue-600 text-white shadow-md'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200 hover:shadow-sm'
                 }`}
               >
                 {filterType.charAt(0).toUpperCase() + filterType.slice(1)}
+                {getFilterCount(filterType) > 0 && (
+                  <span className={`ml-2 px-2 py-0.5 rounded-full text-xs font-bold ${
+                    filter === filterType
+                      ? 'bg-white text-blue-600'
+                      : 'bg-blue-600 text-white'
+                  }`}>
+                    {getFilterCount(filterType)}
+                  </span>
+                )}
               </button>
             ))}
           </div>
@@ -2327,37 +2367,43 @@ const OrdersManagement = ({ orders, setOrders }) => {
                         {order.status === 'pending' && (
                           <button
                             onClick={() => updateOrderStatus(order.id, 'preparing')}
-                            className="px-3 py-1 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700"
+                            className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors duration-200 shadow-sm"
                           >
-                            Start Preparing
+                            🔥 Start Preparing
                           </button>
                         )}
                         
                         {order.status === 'preparing' && (
                           <button
                             onClick={() => updateOrderStatus(order.id, 'ready')}
-                            className="px-3 py-1 bg-orange-600 text-white text-sm rounded-lg hover:bg-orange-700"
+                            className="px-4 py-2 bg-orange-600 text-white text-sm font-medium rounded-lg hover:bg-orange-700 transition-colors duration-200 shadow-sm"
                           >
-                            Mark Ready
+                            ✅ Mark Ready
                           </button>
                         )}
                         
                         {order.status === 'ready' && (
                           <button
                             onClick={() => updateOrderStatus(order.id, 'completed')}
-                            className="px-3 py-1 bg-purple-600 text-white text-sm rounded-lg hover:bg-purple-700"
+                            className="px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 transition-colors duration-200 shadow-sm"
                           >
-                            Complete Order
+                            📦 Complete Order
                           </button>
                         )}
                         
                         {order.status === 'completed' && (
                           <button
                             onClick={() => updatePaymentStatus(order.id, 'paid')}
-                            className="px-3 py-1 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700"
+                            className="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors duration-200 shadow-sm"
                           >
-                            Mark Paid
+                            💰 Mark Paid
                           </button>
+                        )}
+                        
+                        {order.status === 'paid' && (
+                          <div className="px-4 py-2 bg-green-100 text-green-800 text-sm font-medium rounded-lg border border-green-200">
+                            ✅ Payment Complete
+                          </div>
                         )}
                       </div>
                     </div>
