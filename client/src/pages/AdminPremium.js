@@ -2231,9 +2231,10 @@ const OrdersManagement = ({ orders, setOrders }) => {
     } catch (error) {
       console.error('Error updating payment status:', error);
       // Revert optimistic update on error
+      const originalOrder = orders.find(o => o.id === orderId);
       setOrders(prevOrders => 
         prevOrders.map(o => 
-          o.id === orderId ? { ...o, payment_status: order.payment_status } : o
+          o.id === orderId ? { ...o, payment_status: originalOrder?.payment_status || 'pending' } : o
         )
       );
     }
