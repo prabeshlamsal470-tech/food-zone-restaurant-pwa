@@ -2196,8 +2196,9 @@ const OrdersManagement = ({ orders, setOrders }) => {
 
   const updatePaymentStatus = async (orderId, paymentStatus) => {
     try {
-      // Change order status to "paid" when payment is marked as paid
-      if (paymentStatus === 'paid') {
+      // Only allow marking as paid if order is completed
+      const order = orders.find(o => o.id === orderId);
+      if (order && order.status === 'completed' && paymentStatus === 'paid') {
         await updateOrderStatus(orderId, 'paid');
       }
     } catch (error) {
@@ -2331,35 +2332,34 @@ const OrdersManagement = ({ orders, setOrders }) => {
                             Start Preparing
                           </button>
                         )}
+                        
                         {order.status === 'preparing' && (
                           <button
                             onClick={() => updateOrderStatus(order.id, 'ready')}
-                            className="px-3 py-1 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700"
+                            className="px-3 py-1 bg-orange-600 text-white text-sm rounded-lg hover:bg-orange-700"
                           >
                             Mark Ready
                           </button>
                         )}
+                        
                         {order.status === 'ready' && (
                           <button
                             onClick={() => updateOrderStatus(order.id, 'completed')}
-                            className="px-3 py-1 bg-gray-600 text-white text-sm rounded-lg hover:bg-gray-700"
+                            className="px-3 py-1 bg-purple-600 text-white text-sm rounded-lg hover:bg-purple-700"
                           >
-                            Complete
+                            Complete Order
                           </button>
                         )}
-                      </div>
-                      
-                      {/* Payment Status Buttons */}
-                      {order.status === 'completed' && order.payment_status !== 'paid' && (
-                        <div className="flex space-x-2">
+                        
+                        {order.status === 'completed' && (
                           <button
                             onClick={() => updatePaymentStatus(order.id, 'paid')}
                             className="px-3 py-1 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700"
                           >
                             Mark Paid
                           </button>
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
