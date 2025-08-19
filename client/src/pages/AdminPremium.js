@@ -2313,7 +2313,7 @@ const OrdersManagement = ({ orders, setOrders }) => {
                         </h3>
                         {order.order_type === 'delivery' ? (
                           <>
-                            <p className="text-sm text-gray-500"><strong>Customer:</strong> {order.customer_name || 'N/A'} • {order.phone || 'N/A'}</p>
+                            <p className="text-sm text-gray-500"><strong>Customer:</strong> {order.customer_name || 'N/A'} • {order.customer_phone || 'N/A'}</p>
                             <p className="text-sm text-gray-500"><strong>Address:</strong> {order.customer_address || 'N/A'}</p>
                             {order.latitude && order.longitude && (
                               <p className="text-sm text-gray-500">
@@ -2322,7 +2322,7 @@ const OrdersManagement = ({ orders, setOrders }) => {
                             )}
                           </>
                         ) : (
-                          <p className="text-sm text-gray-500"><strong>Customer:</strong> {order.customer_name || 'N/A'} • {order.phone || 'N/A'}</p>
+                          <p className="text-sm text-gray-500"><strong>Customer:</strong> {order.customer_name || 'N/A'} • {order.customer_phone || 'N/A'}</p>
                         )}
                         <p className="text-xs text-gray-500">
                           {new Date(order.created_at).toLocaleString()}
