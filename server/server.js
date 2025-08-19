@@ -426,7 +426,6 @@ app.get('/api/menu', async (req, res) => {
       SELECT id, name, price, category, description, image_url, is_available, 
              preparation_time, is_vegetarian, is_spicy, allergens
       FROM menu_items 
-      WHERE is_available = true 
       ORDER BY category, name
     `);
     
@@ -437,6 +436,121 @@ app.get('/api/menu', async (req, res) => {
       success: false, 
       error: 'Failed to fetch menu items' 
     });
+  }
+});
+
+// Get single menu item
+app.get('/api/menu/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await query(`
+      SELECT id, name, price, category, description, image_url, is_available, 
+             preparation_time, is_vegetarian, is_spicy, allergens
+      FROM menu_items 
+      WHERE id = $1
+    `, [id]);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Menu item not found' });
+    }
+    
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('❌ Error fetching menu item:', error);
+    res.status(500).json({ error: 'Failed to fetch menu item' });
+  }
+});
+
+// Create new menu item
+app.post('/api/menu', async (req, res) => {
+  try {
+    const { name, price, category, description, image_url, is_available = true, preparation_time, is_vegetarian = false, is_spicy = false, allergens } = req.body;
+    
+    if (!name || !price || !category) {
+      return res.status(400).json({ error: 'Name, price, and category are required' });
+    }
+    
+    const result = await query(`
+      INSERT INTO menu_items (name, price, category, description, image_url, is_available, preparation_time, is_vegetarian, is_spicy, allergens)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      RETURNING *
+    `, [name, price, category, description, image_url, is_available, preparation_time, is_vegetarian, is_spicy, allergens]);
+    
+    res.status(201).json({ success: true, item: result.rows[0] });
+  } catch (error) {
+    console.error('❌ Error creating menu item:', error);
+    res.status(500).json({ error: 'Failed to create menu item' });
+  }
+});
+
+// Update menu item
+app.put('/api/menu/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, price, category, description, image_url, is_available, preparation_time, is_vegetarian, is_spicy, allergens } = req.body;
+    
+    const result = await query(`
+      UPDATE menu_items 
+      SET name = $1, price = $2, category = $3, description = $4, image_url = $5, 
+          is_available = $6, preparation_time = $7, is_vegetarian = $8, is_spicy = $9, allergens = $10,
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = $11
+      RETURNING *
+    `, [name, price, category, description, image_url, is_available, preparation_time, is_vegetarian, is_spicy, allergens, id]);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Menu item not found' });
+    }
+    
+    res.json({ success: true, item: result.rows[0] });
+  } catch (error) {
+    console.error('❌ Error updating menu item:', error);
+    res.status(500).json({ error: 'Failed to update menu item' });
+  }
+});
+
+// Delete menu item
+app.delete('/api/menu/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const result = await query(`
+      DELETE FROM menu_items 
+      WHERE id = $1
+      RETURNING *
+    `, [id]);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Menu item not found' });
+    }
+    
+    res.json({ success: true, message: 'Menu item deleted successfully' });
+  } catch (error) {
+    console.error('❌ Error deleting menu item:', error);
+    res.status(500).json({ error: 'Failed to delete menu item' });
+  }
+});
+
+// Toggle menu item availability
+app.patch('/api/menu/:id/toggle', async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const result = await query(`
+      UPDATE menu_items 
+      SET is_available = NOT is_available, updated_at = CURRENT_TIMESTAMP
+      WHERE id = $1
+      RETURNING *
+    `, [id]);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Menu item not found' });
+    }
+    
+    res.json({ success: true, item: result.rows[0] });
+  } catch (error) {
+    console.error('❌ Error toggling menu item availability:', error);
+    res.status(500).json({ error: 'Failed to toggle menu item availability' });
   }
 });
 
