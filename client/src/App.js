@@ -11,19 +11,21 @@ import DeliveryCart from './pages/DeliveryCart';
 import Admin from './pages/Admin';
 import AdminMobile from './pages/AdminMobile';
 import AdminPremium from './pages/AdminPremium';
+import StaffDashboard from './pages/StaffDashboard';
 import { CartProvider } from './context/CartContext';
 import { DeliveryCartProvider } from './context/DeliveryCartContext';
 
 function AppContent() {
   const location = useLocation();
   
-  // Check if current path is an admin page
+  // Check if current path is an admin or staff page
   const isAdminPage = location.pathname.startsWith('/admin');
+  const isStaffPage = location.pathname.startsWith('/staff');
   
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Only show Header and TableBanner on non-admin pages */}
-      {!isAdminPage && (
+      {/* Only show Header and TableBanner on non-admin and non-staff pages */}
+      {!isAdminPage && !isStaffPage && (
         <>
           <Header />
           <TableBanner />
@@ -34,6 +36,7 @@ function AppContent() {
         <Route path="/" element={<Homepage />} />
         <Route path="/menu" element={<Menu />} />
         <Route path="/delivery-cart" element={<DeliveryCart />} />
+        <Route path="/staff" element={<StaffDashboard />} />
         <Route path="/admin" element={<AdminPremium />} />
         <Route path="/admin-premium" element={<AdminPremium />} />
         <Route path="/admin-mobile" element={<AdminMobile />} />
@@ -41,8 +44,8 @@ function AppContent() {
         <Route path="/:tableId" element={<TableOrder />} />
       </Routes>
       
-      {/* Only show Floating Cart on non-admin pages */}
-      {!isAdminPage && <FloatingCart />}
+      {/* Only show Floating Cart on non-admin and non-staff pages */}
+      {!isAdminPage && !isStaffPage && <FloatingCart />}
     </div>
   );
 }

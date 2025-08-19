@@ -2,7 +2,9 @@ import React, { useState, useEffect } from 'react';
 import io from 'socket.io-client';
 import { getSocketUrl } from '../config/api';
 import audioManager from '../utils/audioNotifications';
-// import { pwaInstaller } from '../utils/pwaInstaller';
+import PushNotificationManager from '../utils/pushNotifications';
+import OfflineStorageManager from '../utils/offlineStorage';
+import audioAlertManager from '../utils/audioAlerts';
 import AdminSettings from '../components/AdminSettings';
 import { apiService, fetchApi } from '../services/apiService';
 
@@ -28,6 +30,13 @@ const Admin = () => {
   const [deleteDialog, setDeleteDialog] = useState({ show: false, orderId: null, orderNumber: '', password: '' });
   const [activeTab, setActiveTab] = useState('dine-in'); // 'dine-in', 'delivery', 'history', 'customers', or 'settings'
 
+  // PWA and notification states
+  const [pushManager, setPushManager] = useState(null);
+  const [pushEnabled, setPushEnabled] = useState(false);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [offlineStorage, setOfflineStorage] = useState(null);
+  const [notifications, setNotifications] = useState([]);
+
   useEffect(() => {
     fetchOrders();
     fetchCustomers();
@@ -35,6 +44,10 @@ const Admin = () => {
 
     // Initialize audio notifications
     audioManager.requestPermissions();
+
+    // Initialize PWA features
+    initializePWA();
+    initializeOfflineStorage();
 
     // Socket connection for real-time updates
     const newSocket = io(getSocketUrl());
@@ -49,6 +62,38 @@ const Admin = () => {
         audioManager.playDeliveryOrderSound();
       } else {
         audioManager.playTableOrderSound();
+      }
+      
+      // Play enhanced triple bell alert
+      audioAlertManager.playNotificationAlert();
+
+      // Show push notification
+      if (pushManager && pushEnabled) {
+        const notificationTitle = order.order_type === 'delivery' ? '🚚 New Delivery Order' : '🍽️ New Table Order';
+        const notificationBody = `Order #${order.order_number || order.id} from ${order.customer_name}`;
+        pushManager.showLocalNotification(notificationTitle, {
+          body: notificationBody,
+          icon: '/icon-192x192.png',
+          badge: '/icon-192x192.png',
+          vibrate: [200, 100, 200],
+          requireInteraction: true,
+          actions: [
+            { action: 'view', title: 'View Order' },
+            { action: 'dismiss', title: 'Dismiss' }
+          ]
+        });
+      }
+
+      // Show in-app notification
+      showNotification(
+        order.order_type === 'delivery' ? '🚚 New Delivery Order' : '🍽️ New Table Order',
+        `Order #${order.order_number || order.id} from ${order.customer_name}`,
+        'info'
+      );
+
+      // Store offline if needed
+      if (offlineStorage) {
+        offlineStorage.storeOrder(order);
       }
     });
 
@@ -68,8 +113,27 @@ const Admin = () => {
       );
     });
 
+    // Online/offline event listeners
+    const handleOnline = () => {
+      setIsOnline(true);
+      if (offlineStorage) {
+        offlineStorage.syncPendingActions();
+      }
+      showNotification('Connection Restored', 'Back online - syncing data', 'success');
+    };
+
+    const handleOffline = () => {
+      setIsOnline(false);
+      showNotification('Offline Mode', 'Working offline - changes will sync when reconnected', 'warning');
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
     return () => {
       newSocket.close();
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
     };
   }, []);
 
@@ -155,6 +219,80 @@ const Admin = () => {
     setError(null);
   };
 
+  // PWA initialization
+  const initializePWA = async () => {
+    try {
+      const manager = new PushNotificationManager();
+      setPushManager(manager);
+      
+      if (manager.isSupported()) {
+        const initialized = await manager.initialize();
+        setPushEnabled(initialized);
+        
+        if (initialized) {
+          showNotification('Admin PWA Ready', 'Push notifications enabled for order alerts', 'success');
+        } else {
+          showNotification('Admin PWA Setup', 'Local notifications enabled (server push unavailable)', 'info');
+        }
+      }
+    } catch (error) {
+      console.error('PWA initialization failed:', error);
+      showNotification('PWA Setup', 'Push notifications unavailable', 'error');
+    }
+  };
+
+  // Initialize offline storage
+  const initializeOfflineStorage = async () => {
+    try {
+      const storage = new OfflineStorageManager();
+      await storage.init();
+      setOfflineStorage(storage);
+    } catch (error) {
+      console.error('Offline storage initialization failed:', error);
+    }
+  };
+
+  // Toggle push notifications
+  const togglePushNotifications = async () => {
+    if (!pushManager) return;
+    
+    if (pushEnabled) {
+      await pushManager.unsubscribe();
+      setPushEnabled(false);
+      showNotification('Push Notifications', 'Disabled', 'info');
+    } else {
+      try {
+        const initialized = await pushManager.initialize();
+        setPushEnabled(initialized);
+        showNotification('Push Notifications', initialized ? 'Enabled - Local notifications active' : 'Failed to enable', initialized ? 'success' : 'error');
+      } catch (error) {
+        showNotification('Push Notifications', 'Failed to enable', 'error');
+      }
+    }
+  };
+
+  // Notification functions
+  const showNotification = (title, message, type = 'info') => {
+    const notification = {
+      id: Date.now(),
+      title,
+      message,
+      type,
+      timestamp: new Date().toISOString()
+    };
+    
+    setNotifications(prev => [notification, ...prev.slice(0, 4)]); // Keep only 5 notifications
+    
+    // Auto-remove after 5 seconds
+    setTimeout(() => {
+      setNotifications(prev => prev.filter(n => n.id !== notification.id));
+    }, 5000);
+  };
+
+  const removeNotification = (id) => {
+    setNotifications(prev => prev.filter(n => n.id !== id));
+  };
+
 
   const handleClearTable = (tableId) => {
     console.log('🔧 Clear table clicked for table:', tableId);
@@ -204,6 +342,30 @@ const Admin = () => {
       orderId,
       message: 'Mark this delivery order as complete?'
     });
+  };
+
+  // Enhanced order status update with offline support
+  const updateOrderStatusOffline = async (orderId, status) => {
+    if (isOnline) {
+      try {
+        await apiService.updateOrderStatus(orderId, status);
+        await fetchOrders();
+      } catch (error) {
+        console.error('Error updating order status:', error);
+        showNotification('Update Failed', 'Failed to update order status', 'error');
+      }
+    } else {
+      // Queue action for when back online
+      if (offlineStorage) {
+        await offlineStorage.queueAction({
+          type: 'updateOrderStatus',
+          orderId,
+          status,
+          timestamp: new Date().toISOString()
+        });
+        showNotification('Queued for Sync', 'Order update will sync when online', 'warning');
+      }
+    }
   };
 
   const confirmCompleteOrder = async () => {
@@ -460,11 +622,64 @@ const Admin = () => {
         </div>
       )}
 
+      {/* Notification Toast Container */}
+      <div className="fixed top-4 right-4 z-50 space-y-2">
+        {notifications.map((notification) => (
+          <div
+            key={notification.id}
+            className={`max-w-sm w-full bg-white shadow-lg rounded-lg pointer-events-auto ring-1 ring-black ring-opacity-5 overflow-hidden transform transition-all duration-300 ease-in-out ${
+              notification.type === 'success' ? 'border-l-4 border-green-500' :
+              notification.type === 'error' ? 'border-l-4 border-red-500' :
+              notification.type === 'warning' ? 'border-l-4 border-yellow-500' :
+              'border-l-4 border-blue-500'
+            }`}
+          >
+            <div className="p-4">
+              <div className="flex items-start">
+                <div className="flex-shrink-0">
+                  {notification.type === 'success' && <div className="text-green-500">✅</div>}
+                  {notification.type === 'error' && <div className="text-red-500">❌</div>}
+                  {notification.type === 'warning' && <div className="text-yellow-500">⚠️</div>}
+                  {notification.type === 'info' && <div className="text-blue-500">ℹ️</div>}
+                </div>
+                <div className="ml-3 w-0 flex-1 pt-0.5">
+                  <p className="text-sm font-medium text-gray-900">{notification.title}</p>
+                  <p className="mt-1 text-sm text-gray-500">{notification.message}</p>
+                </div>
+                <div className="ml-4 flex-shrink-0 flex">
+                  <button
+                    className="bg-white rounded-md inline-flex text-gray-400 hover:text-gray-500 focus:outline-none"
+                    onClick={() => removeNotification(notification.id)}
+                  >
+                    <span className="sr-only">Close</span>
+                    <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
       <div className="container mx-auto px-4 py-8">
         <div className="bg-white rounded-lg shadow-md p-6">
           <div className="flex justify-between items-center mb-6">
             <h1 className="text-3xl font-bold text-gray-800">🍽️ Food Zone Admin Panel</h1>
           <div className="flex items-center space-x-4">
+            {/* Connection Status */}
+            <div className={`flex items-center space-x-2 px-3 py-1 rounded-full text-sm font-medium ${
+              isOnline 
+                ? 'bg-green-100 text-green-800' 
+                : 'bg-red-100 text-red-800'
+            }`}>
+              <div className={`w-2 h-2 rounded-full ${
+                isOnline ? 'bg-green-500' : 'bg-red-500'
+              }`}></div>
+              {isOnline ? 'Online' : 'Offline'}
+            </div>
+
             {/* PWA Install Button */}
             <button 
               id="pwa-install-btn"
@@ -472,6 +687,19 @@ const Admin = () => {
               onClick={() => window.deferredPrompt && window.deferredPrompt.prompt()}
             >
               📱 Install App
+            </button>
+            
+            {/* Push Notifications Toggle */}
+            <button
+              onClick={togglePushNotifications}
+              className={`px-3 py-2 rounded-lg transition-colors font-medium ${
+                pushEnabled
+                  ? 'bg-green-500 hover:bg-green-600 text-white'
+                  : 'bg-gray-300 hover:bg-gray-400 text-gray-700'
+              }`}
+              title={pushEnabled ? 'Disable Push Notifications' : 'Enable Push Notifications'}
+            >
+              {pushEnabled ? '📱 Push On' : '📵 Push Off'}
             </button>
             
             {/* Audio Settings */}

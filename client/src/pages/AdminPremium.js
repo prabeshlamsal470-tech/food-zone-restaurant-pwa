@@ -49,6 +49,7 @@ const AdminPremium = () => {
         );
       });
 
+
       newSocket.on('tableCleared', ({ tableId }) => {
         setOrders(prevOrders => 
           prevOrders.filter(order => order.table_id !== tableId)
@@ -974,61 +975,61 @@ const TablesManagement = ({ orders, setOrders }) => {
   return (
     <div className="space-y-6">
       {/* Table Statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="bg-white rounded-2xl p-6 border border-slate-200">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+        <div className="bg-white rounded-2xl p-4 sm:p-6 border border-slate-200">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-slate-600 text-sm font-medium">Total Tables</p>
-              <p className="text-2xl font-bold text-slate-900">25</p>
+              <p className="text-slate-600 text-xs sm:text-sm font-medium">Total Tables</p>
+              <p className="text-xl sm:text-2xl font-bold text-slate-900">25</p>
             </div>
-            <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-              <span className="text-xl">🪑</span>
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+              <span className="text-lg sm:text-xl">🪑</span>
             </div>
           </div>
         </div>
         
-        <div className="bg-white rounded-2xl p-6 border border-slate-200">
+        <div className="bg-white rounded-2xl p-4 sm:p-6 border border-slate-200">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-slate-600 text-sm font-medium">Occupied</p>
-              <p className="text-2xl font-bold text-red-600">{occupiedTables.length}</p>
+              <p className="text-slate-600 text-xs sm:text-sm font-medium">Occupied</p>
+              <p className="text-xl sm:text-2xl font-bold text-red-600">{occupiedTables.length}</p>
             </div>
-            <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center">
-              <span className="text-xl">🔴</span>
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-red-100 rounded-xl flex items-center justify-center">
+              <span className="text-lg sm:text-xl">🔴</span>
             </div>
           </div>
         </div>
         
-        <div className="bg-white rounded-2xl p-6 border border-slate-200">
+        <div className="bg-white rounded-2xl p-4 sm:p-6 border border-slate-200">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-slate-600 text-sm font-medium">Available</p>
-              <p className="text-2xl font-bold text-green-600">{availableTables.length}</p>
+              <p className="text-slate-600 text-xs sm:text-sm font-medium">Available</p>
+              <p className="text-xl sm:text-2xl font-bold text-green-600">{availableTables.length}</p>
             </div>
-            <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
-              <span className="text-xl">🟢</span>
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-green-100 rounded-xl flex items-center justify-center">
+              <span className="text-lg sm:text-xl">🟢</span>
             </div>
           </div>
         </div>
         
-        <div className="bg-white rounded-2xl p-6 border border-slate-200">
+        <div className="bg-white rounded-2xl p-4 sm:p-6 border border-slate-200">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-slate-600 text-sm font-medium">Revenue Today</p>
-              <p className="text-2xl font-bold text-blue-600">
+              <p className="text-slate-600 text-xs sm:text-sm font-medium">Revenue Today</p>
+              <p className="text-xl sm:text-2xl font-bold text-blue-600">
                 NPR {occupiedTables.reduce((sum, t) => sum + t.totalAmount, 0)}
               </p>
             </div>
-            <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-              <span className="text-xl">💰</span>
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+              <span className="text-lg sm:text-xl">💰</span>
             </div>
           </div>
         </div>
       </div>
 
       {/* Table Grid */}
-      <div className="bg-white rounded-2xl p-6 border border-slate-200">
-        <div className="flex items-center justify-between mb-6">
+      <div className="bg-white rounded-2xl p-4 sm:p-6 border border-slate-200">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
           <h2 className="text-xl font-semibold">Table Layout</h2>
           <div className="flex items-center space-x-4 text-sm">
             <div className="flex items-center space-x-2">
@@ -1042,15 +1043,15 @@ const TablesManagement = ({ orders, setOrders }) => {
           </div>
         </div>
 
-        <div className="grid grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
           {tables.map((table) => (
             <div
               key={table.id}
               onClick={() => setSelectedTable(table)}
-              className={`p-4 rounded-xl border-2 cursor-pointer transition-all hover:shadow-md ${getTableStatusColor(table.status)}`}
+              className={`p-3 sm:p-4 rounded-xl border-2 cursor-pointer transition-all hover:shadow-md ${getTableStatusColor(table.status)}`}
             >
               <div className="text-center">
-                <div className="text-lg font-bold mb-1">Table {table.number}</div>
+                <div className="text-sm sm:text-lg font-bold mb-1">Table {table.number}</div>
                 <div className="text-xs capitalize mb-2">{table.status}</div>
                 {table.status === 'occupied' && (
                   <div className="text-xs">
@@ -1599,6 +1600,132 @@ const AnalyticsViewPlaceholder = ({ orders }) => {
 
   const analytics = getAnalyticsData();
 
+  // Export functions
+  const exportToCSV = () => {
+    const csvData = [
+      ['Date', 'Revenue', 'Orders'],
+      ...analytics.dailyRevenue.map(day => [day.date, day.revenue, day.orders]),
+      [],
+      ['Popular Items', 'Quantity'],
+      ...analytics.popularItems.map(item => [item.name, item.count]),
+      [],
+      ['Order Status', 'Count'],
+      ...Object.entries(analytics.ordersByStatus).map(([status, count]) => [status, count]),
+      [],
+      ['Summary'],
+      ['Total Revenue', analytics.totalRevenue],
+      ['Total Orders', analytics.totalOrders],
+      ['Average Order Value', analytics.avgOrderValue.toFixed(2)]
+    ];
+
+    const csvContent = csvData.map(row => row.join(',')).join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `food-zone-analytics-${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  };
+
+  const exportToPDF = () => {
+    const printWindow = window.open('', '_blank');
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Food Zone Analytics Report</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 20px; }
+          .header { text-align: center; margin-bottom: 30px; }
+          .section { margin-bottom: 25px; }
+          .section h3 { color: #333; border-bottom: 2px solid #4F46E5; padding-bottom: 5px; }
+          table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+          th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+          th { background-color: #f5f5f5; }
+          .summary-card { display: inline-block; margin: 10px; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>Food Zone Analytics Report</h1>
+          <p>Generated on ${new Date().toLocaleDateString()}</p>
+        </div>
+        
+        <div class="section">
+          <h3>Summary</h3>
+          <div class="summary-card">
+            <strong>Total Revenue:</strong> NPR ${analytics.totalRevenue}
+          </div>
+          <div class="summary-card">
+            <strong>Total Orders:</strong> ${analytics.totalOrders}
+          </div>
+          <div class="summary-card">
+            <strong>Average Order Value:</strong> NPR ${analytics.avgOrderValue.toFixed(2)}
+          </div>
+        </div>
+
+        <div class="section">
+          <h3>Daily Revenue (Last 7 Days)</h3>
+          <table>
+            <tr><th>Day</th><th>Revenue (NPR)</th><th>Orders</th></tr>
+            ${analytics.dailyRevenue.map(day => 
+              `<tr><td>${day.date}</td><td>${day.revenue}</td><td>${day.orders}</td></tr>`
+            ).join('')}
+          </table>
+        </div>
+
+        <div class="section">
+          <h3>Popular Items</h3>
+          <table>
+            <tr><th>Item Name</th><th>Quantity Sold</th></tr>
+            ${analytics.popularItems.map(item => 
+              `<tr><td>${item.name}</td><td>${item.count}</td></tr>`
+            ).join('')}
+          </table>
+        </div>
+
+        <div class="section">
+          <h3>Order Status Distribution</h3>
+          <table>
+            <tr><th>Status</th><th>Count</th></tr>
+            ${Object.entries(analytics.ordersByStatus).map(([status, count]) => 
+              `<tr><td>${status}</td><td>${count}</td></tr>`
+            ).join('')}
+          </table>
+        </div>
+      </body>
+      </html>
+    `;
+    
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+    printWindow.print();
+  };
+
+  const emailReport = () => {
+    const subject = `Food Zone Analytics Report - ${new Date().toLocaleDateString()}`;
+    const body = `
+Analytics Summary:
+- Total Revenue: NPR ${analytics.totalRevenue}
+- Total Orders: ${analytics.totalOrders}
+- Average Order Value: NPR ${analytics.avgOrderValue.toFixed(2)}
+
+Daily Revenue (Last 7 Days):
+${analytics.dailyRevenue.map(day => `${day.date}: NPR ${day.revenue} (${day.orders} orders)`).join('\n')}
+
+Popular Items:
+${analytics.popularItems.map(item => `${item.name}: ${item.count} sold`).join('\n')}
+
+Generated from Food Zone Admin Dashboard
+    `;
+    
+    const mailtoLink = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    window.location.href = mailtoLink;
+  };
+
   return (
     <div className="space-y-6">
       {/* Analytics Controls */}
@@ -1677,27 +1804,29 @@ const AnalyticsViewPlaceholder = ({ orders }) => {
       {/* Charts and Detailed Analytics */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Revenue Trend */}
-        <div className="bg-white rounded-2xl p-6 border border-slate-200">
+        <div className="bg-white rounded-2xl p-4 sm:p-6 border border-slate-200">
           <h3 className="text-lg font-semibold mb-4">Revenue Trend (Last 7 Days)</h3>
-          <div className="space-y-3">
+          <div className="space-y-4">
             {analytics.dailyRevenue.map((day, index) => (
-              <div key={index} className="flex items-center justify-between">
-                <span className="text-sm font-medium text-gray-600">{day.date}</span>
-                <div className="flex items-center space-x-4">
-                  <div className="flex-1 bg-gray-200 rounded-full h-2 w-32">
-                    <div 
-                      className="bg-blue-500 h-2 rounded-full transition-all duration-300"
-                      style={{ 
-                        width: `${Math.max(5, (day.revenue / Math.max(...analytics.dailyRevenue.map(d => d.revenue))) * 100)}%` 
-                      }}
-                    ></div>
+              <div key={index} className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-gray-600 min-w-0">{day.date}</span>
+                  <div className="flex items-center space-x-2 text-right">
+                    <span className="text-sm font-semibold text-gray-900 whitespace-nowrap">
+                      NPR {day.revenue}
+                    </span>
+                    <span className="text-xs text-gray-500 whitespace-nowrap">
+                      ({day.orders} orders)
+                    </span>
                   </div>
-                  <span className="text-sm font-semibold text-gray-900 w-20 text-right">
-                    NPR {day.revenue}
-                  </span>
-                  <span className="text-xs text-gray-500 w-16 text-right">
-                    ({day.orders} orders)
-                  </span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div 
+                    className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                    style={{ 
+                      width: `${Math.max(5, (day.revenue / Math.max(...analytics.dailyRevenue.map(d => d.revenue))) * 100)}%` 
+                    }}
+                  ></div>
                 </div>
               </div>
             ))}
@@ -1780,13 +1909,22 @@ const AnalyticsViewPlaceholder = ({ orders }) => {
       <div className="bg-white rounded-2xl p-6 border border-slate-200">
         <h3 className="text-lg font-semibold mb-4">Export Reports</h3>
         <div className="flex items-center space-x-4">
-          <button className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors">
+          <button 
+            onClick={exportToCSV}
+            className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+          >
             Export CSV
           </button>
-          <button className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors">
+          <button 
+            onClick={exportToPDF}
+            className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+          >
             Export PDF
           </button>
-          <button className="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors">
+          <button 
+            onClick={emailReport}
+            className="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors"
+          >
             Email Report
           </button>
         </div>
@@ -1838,8 +1976,7 @@ const StaffManagement = () => {
     const staffMember = staff.find(member => member.id === id);
     const confirmMessage = `Are you sure you want to remove ${staffMember?.name || 'this staff member'}?`;
     
-    // eslint-disable-next-line no-restricted-globals
-    if (confirm(confirmMessage)) {
+    if (window.confirm(confirmMessage)) {
       setStaff(prevStaff => prevStaff.filter(member => member.id !== id));
     }
   };
@@ -2202,54 +2339,18 @@ const OrdersManagement = ({ orders, setOrders }) => {
     }
   };
 
-  const updatePaymentStatus = async (orderId, paymentStatus) => {
-    try {
-      const order = orders.find(o => o.id === orderId);
-      if (order && order.status === 'completed' && paymentStatus === 'paid') {
-        // Update UI optimistically
-        setOrders(prevOrders => 
-          prevOrders.map(o => 
-            o.id === orderId ? { ...o, payment_status: 'paid' } : o
-          )
-        );
-        
-        // Update backend using payment status endpoint
-        const response = await fetch(`${process.env.REACT_APP_API_URL || 'https://food-zone-backend-l00k.onrender.com'}/api/orders/${orderId}/payment-status`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ payment_status: paymentStatus })
-        });
-        
-        if (!response.ok) {
-          throw new Error('Failed to update payment status');
-        }
-        
-        console.log(`Order ${orderId} payment status updated to ${paymentStatus}`);
-      }
-    } catch (error) {
-      console.error('Error updating payment status:', error);
-      // Revert optimistic update on error
-      const originalOrder = orders.find(o => o.id === orderId);
-      setOrders(prevOrders => 
-        prevOrders.map(o => 
-          o.id === orderId ? { ...o, payment_status: originalOrder?.payment_status || 'pending' } : o
-        )
-      );
-    }
-  };
-
   const filteredOrders = orders.filter(order => {
     if (filter === 'all') return true;
     if (filter === 'active') return ['pending', 'preparing', 'ready'].includes(order.status);
+    if (filter === 'paid') return order.status === 'completed';
     return order.status === filter;
   });
   
   // Get count for each filter
-  const getFilterCount = (filterType) => {
+    const getFilterCount = (filterType) => {
     if (filterType === 'all') return orders.length;
     if (filterType === 'active') return orders.filter(o => ['pending', 'preparing', 'ready'].includes(o.status)).length;
+    if (filterType === 'paid') return orders.filter(o => o.status === 'completed').length;
     return orders.filter(o => o.status === filterType).length;
   };
 
@@ -2262,14 +2363,16 @@ const OrdersManagement = ({ orders, setOrders }) => {
       case 'ready':
         return 'bg-orange-100 text-orange-800 border border-orange-200';
       case 'completed':
-        return 'bg-purple-100 text-purple-800 border border-purple-200';
-      case 'paid':
         return 'bg-green-100 text-green-800 border border-green-200';
       case 'cancelled':
         return 'bg-red-100 text-red-800 border border-red-200';
       default:
         return 'bg-gray-100 text-gray-800 border border-gray-200';
     }
+  };
+
+  const getStatusLabel = (status) => {
+    return status === 'completed' ? 'paid' : status;
   };
 
   return (
@@ -2279,17 +2382,17 @@ const OrdersManagement = ({ orders, setOrders }) => {
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-semibold">Order Management</h2>
           <div className="flex space-x-2">
-            {['all', 'active', 'pending', 'preparing', 'ready', 'completed', 'paid'].map((filterType) => (
+            {['all', 'active', 'pending', 'preparing', 'ready', 'paid'].map((filterType) => (
               <button
                 key={filterType}
                 onClick={() => setFilter(filterType)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 relative ${
+                className={`flex items-center px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 relative ${
                   filter === filterType
                     ? 'bg-blue-600 text-white shadow-md'
                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200 hover:shadow-sm'
                 }`}
               >
-                {filterType.charAt(0).toUpperCase() + filterType.slice(1)}
+                <span>{filterType.charAt(0).toUpperCase() + filterType.slice(1)}</span>
                 {getFilterCount(filterType) > 0 && (
                   <span className={`ml-2 px-2 py-0.5 rounded-full text-xs font-bold ${
                     filter === filterType
@@ -2366,13 +2469,8 @@ const OrdersManagement = ({ orders, setOrders }) => {
                       </p>
                       <div className="flex flex-col space-y-1">
                         <span className={`px-3 py-1 text-sm rounded-full ${getStatusColor(order.status)}`}>
-                          {order.status}
+                          {getStatusLabel(order.status)}
                         </span>
-                        {order.payment_status === 'paid' && (
-                          <span className="px-3 py-1 text-xs rounded-full bg-green-100 text-green-700">
-                            paid
-                          </span>
-                        )}
                       </div>
                     </div>
                     
@@ -2400,24 +2498,15 @@ const OrdersManagement = ({ orders, setOrders }) => {
                         {order.status === 'ready' && (
                           <button
                             onClick={() => updateOrderStatus(order.id, 'completed')}
-                            className="px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 transition-colors duration-200 shadow-sm"
-                          >
-                            📦 Complete Order
-                          </button>
-                        )}
-                        
-                        {order.status === 'completed' && order.payment_status !== 'paid' && (
-                          <button
-                            onClick={() => updatePaymentStatus(order.id, 'paid')}
                             className="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors duration-200 shadow-sm"
                           >
                             💰 Mark Paid
                           </button>
                         )}
                         
-                        {order.payment_status === 'paid' && (
+                        {order.status === 'completed' && (
                           <div className="px-4 py-2 bg-green-100 text-green-800 text-sm font-medium rounded-lg border border-green-200">
-                            ✅ Payment Complete
+                            ✅ Paid
                           </div>
                         )}
                       </div>

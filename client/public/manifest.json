@@ -1,15 +1,10 @@
 {
-  "name": "Food Zone Admin Panel",
-  "short_name": "Food Zone Admin",
-  "description": "Restaurant order management system for Food Zone Duwakot",
-  "start_url": "/admin",
-  "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#f59e0b",
-  "orientation": "portrait-primary",
+  "name": "Food Zone Restaurant Staff Dashboard",
+  "short_name": "Food Zone Staff",
+  "description": "Progressive Web App for Food Zone restaurant staff to manage orders with real-time notifications",
   "icons": [
     {
-      "src": "/images/Food Zone Restaurant Logo.jpg",
+      "src": "/images/logo.jpg",
       "sizes": "192x192",
       "type": "image/jpeg",
       "purpose": "maskable any"
