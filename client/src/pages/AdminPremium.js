@@ -2209,22 +2209,31 @@ const OrdersManagement = ({ orders, setOrders }) => {
         // Update UI optimistically
         setOrders(prevOrders => 
           prevOrders.map(o => 
-            o.id === orderId ? { ...o, status: 'paid' } : o
+            o.id === orderId ? { ...o, payment_status: 'paid' } : o
           )
         );
         
-        // Update backend
-        await updateOrderStatus(orderId, 'paid');
+        // Update backend using payment status endpoint
+        const response = await fetch(`${process.env.REACT_APP_API_URL || 'https://food-zone-backend-l00k.onrender.com'}/api/orders/${orderId}/payment-status`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ payment_status: paymentStatus })
+        });
         
-        // Show success feedback
-        console.log(`Order ${orderId} marked as paid successfully`);
+        if (!response.ok) {
+          throw new Error('Failed to update payment status');
+        }
+        
+        console.log(`Order ${orderId} payment status updated to ${paymentStatus}`);
       }
     } catch (error) {
       console.error('Error updating payment status:', error);
       // Revert optimistic update on error
       setOrders(prevOrders => 
         prevOrders.map(o => 
-          o.id === orderId ? { ...o, status: 'completed' } : o
+          o.id === orderId ? { ...o, payment_status: order.payment_status } : o
         )
       );
     }
@@ -2391,7 +2400,7 @@ const OrdersManagement = ({ orders, setOrders }) => {
                           </button>
                         )}
                         
-                        {order.status === 'completed' && (
+                        {order.status === 'completed' && order.payment_status !== 'paid' && (
                           <button
                             onClick={() => updatePaymentStatus(order.id, 'paid')}
                             className="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors duration-200 shadow-sm"
@@ -2400,7 +2409,7 @@ const OrdersManagement = ({ orders, setOrders }) => {
                           </button>
                         )}
                         
-                        {order.status === 'paid' && (
+                        {order.payment_status === 'paid' && (
                           <div className="px-4 py-2 bg-green-100 text-green-800 text-sm font-medium rounded-lg border border-green-200">
                             ✅ Payment Complete
                           </div>
