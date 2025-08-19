@@ -2196,18 +2196,10 @@ const OrdersManagement = ({ orders, setOrders }) => {
 
   const updatePaymentStatus = async (orderId, paymentStatus) => {
     try {
-      // Store payment status in localStorage for persistence
-      const paymentStatusKey = `payment_status_${orderId}`;
-      localStorage.setItem(paymentStatusKey, paymentStatus);
-      
-      // Update local state
-      setOrders(prevOrders => 
-        prevOrders.map(order => 
-          order.id === orderId ? { ...order, payment_status: paymentStatus } : order
-        )
-      );
-      
-      console.log(`Payment status for order ${orderId} updated to ${paymentStatus}`);
+      // Change order status to "paid" when payment is marked as paid
+      if (paymentStatus === 'paid') {
+        await updateOrderStatus(orderId, 'paid');
+      }
     } catch (error) {
       console.error('Error updating payment status:', error);
     }
@@ -2220,14 +2212,22 @@ const OrdersManagement = ({ orders, setOrders }) => {
   });
 
   const getStatusColor = (status) => {
-    const colors = {
-      pending: 'bg-yellow-100 text-yellow-700',
-      preparing: 'bg-blue-100 text-blue-700',
-      ready: 'bg-green-100 text-green-700',
-      completed: 'bg-gray-100 text-gray-700',
-      cancelled: 'bg-red-100 text-red-700'
-    };
-    return colors[status] || 'bg-gray-100 text-gray-700';
+    switch (status) {
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-700';
+      case 'preparing':
+        return 'bg-blue-100 text-blue-700';
+      case 'ready':
+        return 'bg-green-100 text-green-700';
+      case 'completed':
+        return 'bg-gray-100 text-gray-700';
+      case 'paid':
+        return 'bg-green-100 text-green-700';
+      case 'cancelled':
+        return 'bg-red-100 text-red-700';
+      default:
+        return 'bg-gray-100 text-gray-700';
+    }
   };
 
   return (
@@ -2237,7 +2237,7 @@ const OrdersManagement = ({ orders, setOrders }) => {
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-semibold">Order Management</h2>
           <div className="flex space-x-2">
-            {['all', 'active', 'pending', 'preparing', 'ready', 'completed'].map((filterType) => (
+            {['all', 'active', 'pending', 'preparing', 'ready', 'completed', 'paid'].map((filterType) => (
               <button
                 key={filterType}
                 onClick={() => setFilter(filterType)}
