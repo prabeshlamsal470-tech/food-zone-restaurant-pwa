@@ -142,7 +142,13 @@ class AudioAlertManager {
     if (!this.isEnabled || this.isPlaying) return;
     
     // Try Web Audio API first (better for PWA/offline)
-    await this.playTripleBell();
+    try {
+      await this.playTripleBell();
+    } catch (error) {
+      console.warn('Web Audio API failed, trying HTML5 audio:', error);
+      // Fallback to HTML5 audio
+      await this.playAudioFile('/sounds/notification-bell.mp3', 3);
+    }
   }
 
   // Enable/disable audio alerts
@@ -159,7 +165,8 @@ class AudioAlertManager {
   async requestPermissions() {
     try {
       // Try to initialize audio context
-      await this.init();
+      const initialized = await this.init();
+      if (!initialized) return false;
       
       // Play a silent sound to unlock audio on mobile
       if (this.audioContext) {
@@ -172,11 +179,33 @@ class AudioAlertManager {
         gainNode.gain.setValueAtTime(0, this.audioContext.currentTime);
         oscillator.start();
         oscillator.stop(this.audioContext.currentTime + 0.1);
+        
+        console.log('Audio context unlocked successfully');
       }
       
       return true;
     } catch (error) {
       console.warn('Audio permission request failed:', error);
+      return false;
+    }
+  }
+
+  // Test audio functionality
+  async testAudio() {
+    try {
+      await this.init();
+      if (this.audioContext && this.audioContext.state === 'running') {
+        console.log('Audio test: Playing single bell');
+        const bell = this.createBellSound(800, 0.3);
+        if (bell) {
+          bell.oscillator.start();
+          bell.oscillator.stop(this.audioContext.currentTime + bell.duration);
+          return true;
+        }
+      }
+      return false;
+    } catch (error) {
+      console.warn('Audio test failed:', error);
       return false;
     }
   }

@@ -64,8 +64,17 @@ const StaffDashboard = () => {
         const orderInfo = `${order.order_type === 'dine-in' ? `Table ${order.table_id}` : 'Delivery'} - NPR ${order.total_amount || 'N/A'}`;
         console.log('New Order Received:', orderInfo);
         
-        // Play triple bell alert
-        audioAlertManager.playNotificationAlert();
+        // Play triple bell alert with user interaction check
+        if (audioEnabled) {
+          // Ensure audio context is initialized with user interaction
+          audioAlertManager.init().then(() => {
+            audioAlertManager.playNotificationAlert();
+          }).catch(error => {
+            console.warn('Audio alert initialization failed:', error);
+            // Fallback to HTML5 audio
+            audioAlertManager.playAudioFile('/sounds/notification-bell.mp3', 3);
+          });
+        }
         
         // Send push notification that works on lock screen
         if (pushManager && pushEnabled) {
@@ -107,8 +116,23 @@ const StaffDashboard = () => {
       Notification.requestPermission();
     }
     
-    // Initialize audio alert manager
-    audioAlertManager.requestPermissions();
+    // Initialize audio alert manager with user interaction
+    const initializeAudio = async () => {
+      try {
+        await audioAlertManager.requestPermissions();
+        console.log('Audio alerts initialized successfully');
+      } catch (error) {
+        console.warn('Audio initialization failed:', error);
+      }
+    };
+    
+    // Add click listener to initialize audio on first user interaction
+    const handleFirstClick = async () => {
+      await initializeAudio();
+      document.removeEventListener('click', handleFirstClick);
+    };
+    
+    document.addEventListener('click', handleFirstClick);
     
     // Online/offline event listeners - silent handling
     const handleOnline = () => {
@@ -226,12 +250,26 @@ const StaffDashboard = () => {
     setNotifications(prev => prev.filter(n => n.id !== id));
   };
 
-  // Toggle audio alerts - silent feedback
-  const toggleAudioAlerts = () => {
+  // Toggle audio alerts with test sound
+  const toggleAudioAlerts = async () => {
     const newState = !audioEnabled;
     setAudioEnabled(newState);
     audioAlertManager.setEnabled(newState);
-    console.log(`Audio alerts ${newState ? 'enabled' : 'disabled'}`);
+    
+    // Test the audio when enabling
+    if (newState) {
+      try {
+        await audioAlertManager.init();
+        await audioAlertManager.playNotificationAlert();
+        console.log('Audio alerts enabled and tested');
+      } catch (error) {
+        console.warn('Audio test failed:', error);
+        // Try fallback audio
+        audioAlertManager.playAudioFile('/sounds/notification-bell.mp3', 1);
+      }
+    } else {
+      console.log('Audio alerts disabled');
+    }
   };
 
   const updateOrderStatus = async (orderId, newStatus) => {
