@@ -2323,10 +2323,15 @@ const OrdersManagement = ({ orders, setOrders }) => {
                         {order.order_type === 'delivery' ? (
                           <>
                             <p className="text-sm text-gray-500"><strong>Customer:</strong> {order.customer_name || 'N/A'} • {order.customer_phone || 'N/A'}</p>
-                            <p className="text-sm text-gray-500"><strong>Address:</strong> {order.customer_address || 'N/A'}</p>
-                            {order.latitude && order.longitude && (
+                            <p className="text-sm text-gray-500"><strong>Address:</strong> {order.delivery_address || 'N/A'}</p>
+                            {order.delivery_latitude && order.delivery_longitude && (
                               <p className="text-sm text-gray-500">
-                                <strong>GPS:</strong> {order.latitude}, {order.longitude}
+                                📍 <strong>GPS:</strong> {order.delivery_latitude}, {order.delivery_longitude}
+                              </p>
+                            )}
+                            {order.notes && (
+                              <p className="text-sm text-gray-500">
+                                📝 <strong>Instructions:</strong> {order.notes}
                               </p>
                             )}
                           </>
