@@ -20,6 +20,7 @@ Set these in Railway dashboard:
 DATABASE_URL=postgresql://username:password@host:port/database
 PORT=5001
 NODE_ENV=production
+ALLOWED_ORIGINS=https://foodzone.com.np,https://www.foodzone.com.np,https://foodzoneduwakot.netlify.app
 ADMIN_PASSWORD=FoodZone2024!
 RESTAURANT_NAME=Food Zone
 RESTAURANT_ADDRESS=Duwakot, Bhaktapur

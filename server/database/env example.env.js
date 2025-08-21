@@ -1,9 +1,19 @@
-# Food Zone Database Configuration
-DATABASE_URL=postgresql:postgresql:postgresql:DATABASE_URL=postgresql://postgres.ogztlyogblhgncqeieuy:@Foodzone123#@aws-1-ap-southeast-1.pooler.supabase.com:6543/postgres
-PORT=5001
-NODE_ENV=development
+# Food Zone Backend Configuration
 
-# Restaurant Configuration
+# Railway Database URL (replace with your actual URL)
+DATABASE_URL=postgresql://username:password@host:port/database
+
+# Server Configuration
+PORT=5001
+NODE_ENV=production
+
+# CORS Allowed Origins
+ALLOWED_ORIGINS=https://foodzone.com.np,https://www.foodzone.com.np,https://foodzoneduwakot.netlify.app
+
+# Admin Credentials
+ADMIN_PASSWORD=FoodZone2024!
+
+# Restaurant Details
 RESTAURANT_NAME="Food Zone Duwakot"
 RESTAURANT_PHONE="9851234567"
 RESTAURANT_ADDRESS="KMC Chowk, Duwakot, Bhaktapur"
