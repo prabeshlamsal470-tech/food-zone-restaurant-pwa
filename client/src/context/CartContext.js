@@ -102,6 +102,28 @@ export const CartProvider = ({ children }) => {
     }
   };
 
+  const setTableContext = (tableId) => {
+    setCurrentTable(tableId);
+    
+    // Load cart items for the new table
+    const savedCart = localStorage.getItem(`cart_table_${tableId}`);
+    const savedTimestamp = localStorage.getItem(`cart_timestamp_${tableId}`);
+    
+    if (savedCart && savedTimestamp) {
+      const oneHourAgo = Date.now() - (60 * 60 * 1000);
+      if (parseInt(savedTimestamp) > oneHourAgo) {
+        setCartItems(JSON.parse(savedCart));
+      } else {
+        // Clear expired cart
+        localStorage.removeItem(`cart_table_${tableId}`);
+        localStorage.removeItem(`cart_timestamp_${tableId}`);
+        setCartItems([]);
+      }
+    } else {
+      setCartItems([]);
+    }
+  };
+
   const getTotalPrice = () => {
     return cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
   };
@@ -119,7 +141,8 @@ export const CartProvider = ({ children }) => {
       clearCart,
       getTotalPrice,
       getTotalItems,
-      currentTable
+      currentTable,
+      setTableContext
     }}>
       {children}
     </CartContext.Provider>

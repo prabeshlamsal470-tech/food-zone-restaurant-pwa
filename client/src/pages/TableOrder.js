@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
-import { useCart } from '../context/CartContext';
+import { useParams, useNavigate } from 'react-router-dom';
 import io from 'socket.io-client';
-import { apiService, getSocketUrl } from '../services/apiService';
+import { fetchApi, getSocketUrl } from '../services/apiService';
+import { useCart } from '../context/CartContext';
 import { decryptTableCode } from '../utils/tableEncryption';
 
 const TableOrder = () => {
   const { tableId } = useParams();
   const navigate = useNavigate();
-  const { cartItems, addToCart, removeFromCart, updateQuantity, clearCart, getTotalPrice } = useCart();
+  const { cartItems, addToCart, removeFromCart, updateQuantity, clearCart, getTotalPrice, setTableContext } = useCart();
   const [menuItems, setMenuItems] = useState([]);
   const [showCheckout, setShowCheckout] = useState(false);
   const [customerInfo, setCustomerInfo] = useState({ name: '', phone: '' });
@@ -34,11 +34,13 @@ const TableOrder = () => {
       const decryptedTable = decryptTableCode(tableId);
       if (decryptedTable) {
         setActualTableNumber(decryptedTable);
+        // Set table context for cart and menu components
+        setTableContext(decryptedTable);
       } else {
         setActualTableNumber(null);
       }
     }
-  }, [tableId]);
+  }, [tableId, setTableContext]);
 
   useEffect(() => {
     if (actualTableNumber && actualTableNumber >= 1 && actualTableNumber <= 25) {
