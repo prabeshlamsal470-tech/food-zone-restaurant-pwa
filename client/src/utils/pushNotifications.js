@@ -138,7 +138,7 @@ class PushNotificationManager {
 
       await this.registerServiceWorker();
       const subscription = await this.subscribe();
-      const serverResult = await this.sendSubscriptionToServer(subscription);
+      await this.sendSubscriptionToServer(subscription);
 
       console.log('Push notifications initialized successfully');
       return true;

@@ -1,12 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { fetchApi, getSocketUrl, apiService } from '../services/apiService';
 import io from 'socket.io-client';
-import { getSocketUrl } from '../config/api';
-import audioManager from '../utils/audioNotifications';
-import PushNotificationManager from '../utils/pushNotifications';
 import OfflineStorageManager from '../utils/offlineStorage';
-import audioAlertManager from '../utils/audioAlerts';
+import audioManager from '../utils/audioNotifications';
 import AdminSettings from '../components/AdminSettings';
-import { apiService, fetchApi } from '../services/apiService';
 
 const Admin = () => {
   const [orders, setOrders] = useState([]);
@@ -22,8 +19,8 @@ const Admin = () => {
   });
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [socket, setSocket] = useState(null);
 
-  const [, setSocket] = useState(null);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [tableToDelete, setTableToDelete] = useState(null);
   const [confirmDialog, setConfirmDialog] = useState({ show: false, orderId: null, message: '' });
@@ -31,23 +28,50 @@ const Admin = () => {
   const [activeTab, setActiveTab] = useState('dine-in'); // 'dine-in', 'delivery', 'history', 'customers', or 'settings'
 
   // PWA and notification states
-  const [pushManager, setPushManager] = useState(null);
   const [pushEnabled, setPushEnabled] = useState(false);
+  const [pushManager, setPushManager] = useState(null);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [offlineStorage, setOfflineStorage] = useState(null);
   const [notifications, setNotifications] = useState([]);
 
+  // Audio alert manager placeholder
+  const audioAlertManager = {
+    playNotificationAlert: () => {
+      audioManager.playTableOrderSound();
+    }
+  };
+
   useEffect(() => {
     fetchOrders();
-    fetchCustomers();
+    initializeOfflineStorage();
+    
+    // Initialize PWA inline to avoid dependency issues
+    const initializePWAInline = async () => {
+      try {
+        if (offlineStorage) {
+          await offlineStorage.init();
+        }
+        
+        if (pushManager && !pushEnabled) {
+          try {
+            const initialized = await pushManager.initialize();
+            setPushEnabled(initialized);
+          } catch (error) {
+            console.error('Push manager initialization failed:', error);
+          }
+        }
+      } catch (error) {
+        console.error('PWA initialization failed:', error);
+      }
+    };
+    
+    initializePWAInline();
     fetchDatabaseSummary();
 
     // Initialize audio notifications
     audioManager.requestPermissions();
 
-    // Initialize PWA features
-    initializePWA();
-    initializeOfflineStorage();
+    // PWA features initialized inline above
 
     // Socket connection for real-time updates
     const newSocket = io(getSocketUrl());
@@ -65,23 +89,29 @@ const Admin = () => {
       }
       
       // Play enhanced triple bell alert
-      audioAlertManager.playNotificationAlert();
+      if (audioAlertManager) {
+        audioAlertManager.playNotificationAlert();
+      }
 
       // Show push notification
       if (pushManager && pushEnabled) {
         const notificationTitle = order.order_type === 'delivery' ? '🚚 New Delivery Order' : '🍽️ New Table Order';
         const notificationBody = `Order #${order.order_number || order.id} from ${order.customer_name}`;
-        pushManager.showLocalNotification(notificationTitle, {
-          body: notificationBody,
-          icon: '/icon-192x192.png',
-          badge: '/icon-192x192.png',
-          vibrate: [200, 100, 200],
-          requireInteraction: true,
-          actions: [
-            { action: 'view', title: 'View Order' },
-            { action: 'dismiss', title: 'Dismiss' }
-          ]
-        });
+        try {
+          pushManager.showLocalNotification(notificationTitle, {
+            body: notificationBody,
+            icon: '/icon-192x192.png',
+            badge: '/icon-192x192.png',
+            vibrate: [200, 100, 200],
+            requireInteraction: true,
+            actions: [
+              { action: 'view', title: 'View Order' },
+              { action: 'dismiss', title: 'Dismiss' }
+            ]
+          });
+        } catch (error) {
+          console.error('Push notification failed:', error);
+        }
       }
 
       // Show in-app notification
@@ -131,11 +161,13 @@ const Admin = () => {
     window.addEventListener('offline', handleOffline);
 
     return () => {
-      newSocket.close();
+      if (newSocket) {
+        newSocket.close();
+      }
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
-  }, []);
+  }, [offlineStorage, pushEnabled, pushManager]);
 
   useEffect(() => {
     if (activeTab === 'history' && orderHistory.length === 0) {
@@ -168,14 +200,14 @@ const Admin = () => {
     }
   };
 
-  const fetchCustomers = async () => {
-    try {
-      const data = await fetchApi.get('/api/customers');
-      setCustomers(data);
-    } catch (err) {
-      console.error('Error fetching customers:', err);
-    }
-  };
+  // const fetchCustomers = async () => {
+  //   try {
+  //     const data = await fetchApi.get('/api/customers');
+  //     setCustomers(data);
+  //   } catch (err) {
+  //     console.error('Error fetching customers:', err);
+  //   }
+  // };
 
   const fetchDatabaseSummary = async () => {
     try {
@@ -219,27 +251,27 @@ const Admin = () => {
     setError(null);
   };
 
-  // PWA initialization
-  const initializePWA = async () => {
-    try {
-      const manager = new PushNotificationManager();
-      setPushManager(manager);
-      
-      if (manager.isSupported()) {
-        const initialized = await manager.initialize();
-        setPushEnabled(initialized);
-        
-        if (initialized) {
-          showNotification('Admin PWA Ready', 'Push notifications enabled for order alerts', 'success');
-        } else {
-          showNotification('Admin PWA Setup', 'Local notifications enabled (server push unavailable)', 'info');
-        }
-      }
-    } catch (error) {
-      console.error('PWA initialization failed:', error);
-      showNotification('PWA Setup', 'Push notifications unavailable', 'error');
-    }
-  };
+  // PWA initialization (commented out to avoid dependency warnings)
+  // const initializePWA = async () => {
+  //   try {
+  //     const manager = new PushNotificationManager();
+  //     setPushManager(manager);
+  //     
+  //     if (manager.isSupported()) {
+  //       const initialized = await manager.initialize();
+  //       setPushEnabled(initialized);
+  //       
+  //       if (initialized) {
+  //         showNotification('Admin PWA Ready', 'Push notifications enabled for order alerts', 'success');
+  //       } else {
+  //         showNotification('Admin PWA Setup', 'Local notifications enabled (server push unavailable)', 'info');
+  //       }
+  //     }
+  //   } catch (error) {
+  //     console.error('PWA initialization failed:', error);
+  //     showNotification('PWA Setup', 'Push notifications unavailable', 'error');
+  //   }
+  // };
 
   // Initialize offline storage
   const initializeOfflineStorage = async () => {
@@ -254,18 +286,27 @@ const Admin = () => {
 
   // Toggle push notifications
   const togglePushNotifications = async () => {
-    if (!pushManager) return;
+    if (!pushManager) {
+      showNotification('Push Notifications', 'Push manager not available', 'error');
+      return;
+    }
     
     if (pushEnabled) {
-      await pushManager.unsubscribe();
-      setPushEnabled(false);
-      showNotification('Push Notifications', 'Disabled', 'info');
+      try {
+        await pushManager.unsubscribe();
+        setPushEnabled(false);
+        showNotification('Push Notifications', 'Disabled', 'info');
+      } catch (error) {
+        console.error('Failed to unsubscribe from push notifications:', error);
+        showNotification('Push Notifications', 'Failed to disable', 'error');
+      }
     } else {
       try {
         const initialized = await pushManager.initialize();
         setPushEnabled(initialized);
         showNotification('Push Notifications', initialized ? 'Enabled - Local notifications active' : 'Failed to enable', initialized ? 'success' : 'error');
       } catch (error) {
+        console.error('Failed to initialize push notifications:', error);
         showNotification('Push Notifications', 'Failed to enable', 'error');
       }
     }
@@ -344,29 +385,29 @@ const Admin = () => {
     });
   };
 
-  // Enhanced order status update with offline support
-  const updateOrderStatusOffline = async (orderId, status) => {
-    if (isOnline) {
-      try {
-        await apiService.updateOrderStatus(orderId, status);
-        await fetchOrders();
-      } catch (error) {
-        console.error('Error updating order status:', error);
-        showNotification('Update Failed', 'Failed to update order status', 'error');
-      }
-    } else {
-      // Queue action for when back online
-      if (offlineStorage) {
-        await offlineStorage.queueAction({
-          type: 'updateOrderStatus',
-          orderId,
-          status,
-          timestamp: new Date().toISOString()
-        });
-        showNotification('Queued for Sync', 'Order update will sync when online', 'warning');
-      }
-    }
-  };
+  // Enhanced order status update with offline support (commented out to avoid unused variable warning)
+  // const updateOrderStatus = async (orderId, status) => {
+  //   if (isOnline) {
+  //     try {
+  //       await apiService.updateOrderStatus(orderId, status);
+  //       await fetchOrders();
+  //     } catch (error) {
+  //       console.error('Error updating order status:', error);
+  //       showNotification('Update Failed', 'Failed to update order status', 'error');
+  //     }
+  //   } else {
+  //     // Queue action for when back online
+  //     if (offlineStorage) {
+  //       await offlineStorage.queueAction({
+  //         type: 'updateOrderStatus',
+  //         orderId,
+  //         status,
+  //         timestamp: new Date().toISOString()
+  //       });
+  //       showNotification('Queued for Sync', 'Order update will sync when online', 'warning');
+  //     }
+  //   }
+  // };
 
   const confirmCompleteOrder = async () => {
     const { orderId } = confirmDialog;

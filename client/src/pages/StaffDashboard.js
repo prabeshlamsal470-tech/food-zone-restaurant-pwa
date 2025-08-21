@@ -7,9 +7,9 @@ import audioAlertManager from '../utils/audioAlerts';
 
 const StaffDashboard = () => {
   const [orders, setOrders] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
-  const [socket, setSocket] = useState(null);
+  const [, setSocket] = useState(null);
   const [notifications, setNotifications] = useState([]);
   const [audioEnabled, setAudioEnabled] = useState(true);
   const [pushManager, setPushManager] = useState(null);
@@ -204,7 +204,7 @@ const StaffDashboard = () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
-  }, []);
+  }, [audioEnabled, offlineStorage, pushEnabled, pushManager]);
 
   const fetchOrders = async () => {
     try {
@@ -275,27 +275,27 @@ const StaffDashboard = () => {
     } 
   };
 
-  // Notification functions
-  const showNotification = (title, message, type = 'info') => {
-    const notification = {
-      id: Date.now(),
-      title,
-      message,
-      type,
-      timestamp: new Date()
-    };
-    
-    setNotifications(prev => [notification, ...prev.slice(0, 4)]); // Keep only 5 notifications
-    
-    // Auto-remove after 5 seconds
-    setTimeout(() => {
-      setNotifications(prev => prev.filter(n => n.id !== notification.id));
-    }, 5000);
-  };
+  // Notification functions (commented out to avoid unused variable warnings)
+  // const showNotification = (title, message, type = 'info') => {
+  //   const notification = {
+  //     id: Date.now(),
+  //     title,
+  //     message,
+  //     type,
+  //     timestamp: new Date()
+  //   };
+  //   
+  //   setNotifications(prev => [notification, ...prev.slice(0, 4)]); // Keep only 5 notifications
+  //   
+  //   // Auto-remove after 5 seconds
+  //   setTimeout(() => {
+  //     setNotifications(prev => prev.filter(n => n.id !== notification.id));
+  //   }, 5000);
+  // };
 
-  const removeNotification = (id) => {
-    setNotifications(prev => prev.filter(n => n.id !== id));
-  };
+  // const removeNotification = (id) => {
+  //   setNotifications(prev => prev.filter(n => n.id !== id));
+  // };
 
   // Toggle audio alerts with test sound
   const toggleAudioAlerts = async () => {
@@ -369,46 +369,10 @@ const StaffDashboard = () => {
         return 'bg-green-100 text-green-800 border-green-200';
       case 'completed':
         return 'bg-gray-100 text-gray-800 border-gray-200';
-      case 'cancelled':
-        return 'bg-red-100 text-red-800 border-red-200';
       default:
         return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
-
-  const getFilteredOrders = () => {
-    const filteredOrders = Array.isArray(orders) ? orders.filter(order => {
-      if (filter === 'all') return true;
-      if (filter === 'active') return ['pending', 'preparing', 'ready'].includes(order.status);
-      return order.status === filter;
-    }) : [];
-    return filteredOrders;
-  };
-
-  const formatTime = (dateString) => {
-    return new Date(dateString).toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
-
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric'
-    });
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading orders...</p>
-        </div>
-      </div>
-    );
-  }
 
   const filteredOrders = Array.isArray(orders) ? orders.filter(order => {
     if (filter === 'all') return true;

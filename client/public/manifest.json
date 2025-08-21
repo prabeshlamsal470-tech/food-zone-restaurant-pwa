@@ -1,7 +1,7 @@
 {
-  "name": "Food Zone Kitchen Staff",
-  "short_name": "Food Zone Kitchen",
-  "description": "Kitchen staff dashboard for receiving real-time orders",
+  "name": "Food Zone Restaurant - Foodzone.com.np",
+  "short_name": "Food Zone",
+  "description": "Food Zone Restaurant PWA - Order online at Foodzone.com.np",
   "icons": [
     {
       "src": "favicon.ico",

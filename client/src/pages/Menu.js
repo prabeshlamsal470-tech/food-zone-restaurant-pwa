@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import io from 'socket.io-client';
 import { fetchApi } from '../services/apiService';
-import { getSocketUrl } from '../config/api';
+import { Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useDeliveryCart } from '../context/DeliveryCartContext';
 

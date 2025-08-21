@@ -17,7 +17,7 @@
 Set these in Railway dashboard:
 
 ```env
-DATABASE_URL=postgresql://username:password@host:port/database
+DATABASE_URL=postgresql://postgres:SIPhohEQaPfxFPLQhbrYmvMHlROQEVKF@trolley.proxy.rlwy.net:41468/railway
 PORT=5001
 NODE_ENV=production
 ALLOWED_ORIGINS=https://foodzone.com.np,https://www.foodzone.com.np,https://foodzoneduwakot.netlify.app

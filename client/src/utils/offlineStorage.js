@@ -118,6 +118,9 @@ class OfflineStorageManager {
             await apiService.put(`/api/orders/${action.orderId}/status`, { status: action.status });
             break;
           // Add more action types as needed
+          default:
+            console.warn('Unknown action type:', action.type);
+            break;
         }
       } catch (error) {
         console.error('Failed to sync action:', action, error);
