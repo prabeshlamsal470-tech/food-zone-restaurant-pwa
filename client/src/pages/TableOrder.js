@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import io from 'socket.io-client';
 import { apiService, getSocketUrl } from '../services/apiService';
+import { decryptTableCode } from '../utils/tableEncryption';
 
 const TableOrder = () => {
   const { tableId } = useParams();
@@ -18,28 +19,50 @@ const TableOrder = () => {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [actualTableNumber, setActualTableNumber] = useState(null);
 
+  // Decrypt table code on component mount - ONLY encrypted codes allowed
   useEffect(() => {
-    if (tableId && !isNaN(tableId) && parseInt(tableId) >= 1 && parseInt(tableId) <= 25) {
-      fetchMenuItems();
+    if (tableId) {
+      // Block all numeric table IDs - only encrypted codes allowed
+      if (!isNaN(tableId)) {
+        setActualTableNumber(null);
+        return;
+      }
+      
+      // Only try to decrypt non-numeric table codes
+      const decryptedTable = decryptTableCode(tableId);
+      if (decryptedTable) {
+        setActualTableNumber(decryptedTable);
+      } else {
+        setActualTableNumber(null);
+      }
     }
   }, [tableId]);
 
+  useEffect(() => {
+    if (actualTableNumber && actualTableNumber >= 1 && actualTableNumber <= 25) {
+      fetchMenuItems();
+    }
+  }, [actualTableNumber]);
+
   // Socket connection for real-time table clearing
   useEffect(() => {
+    if (!actualTableNumber) return;
+    
     const socket = io(getSocketUrl());
     
     socket.on('tableCleared', (data) => {
       console.log('🔔 Table cleared event received:', data);
-      if (data.tableId === parseInt(tableId)) {
+      if (data.tableId === actualTableNumber) {
         clearCart();
         navigate('/');
         // Remove ALL localStorage items related to this table
-        localStorage.removeItem(`customerInfo_${tableId}`);
-        localStorage.removeItem(`tableSession_${tableId}`);
-        localStorage.removeItem(`cart_table_${tableId}`);
-        localStorage.removeItem(`cart_timestamp_${tableId}`);
-        localStorage.removeItem(`order_submitted_${tableId}`);
+        localStorage.removeItem(`customerInfo_${actualTableNumber}`);
+        localStorage.removeItem(`tableSession_${actualTableNumber}`);
+        localStorage.removeItem(`cart_table_${actualTableNumber}`);
+        localStorage.removeItem(`cart_timestamp_${actualTableNumber}`);
+        localStorage.removeItem(`order_submitted_${actualTableNumber}`);
         localStorage.removeItem('currentTable');
         localStorage.removeItem('tableTimestamp');
         
@@ -47,13 +70,13 @@ const TableOrder = () => {
         const keysToRemove = [];
         for (let i = 0; i < localStorage.length; i++) {
           const key = localStorage.key(i);
-          if (key && (key.includes(`_${tableId}`) || key.includes(`table_${tableId}`) || key.includes(`${tableId}_`))) {
+          if (key && (key.includes(`_${actualTableNumber}`) || key.includes(`table_${actualTableNumber}`) || key.includes(`${actualTableNumber}_`))) {
             keysToRemove.push(key);
           }
         }
         keysToRemove.forEach(key => localStorage.removeItem(key));
         
-        console.log('🧹 All localStorage cleared for table:', tableId);
+        console.log('🧹 All localStorage cleared for table:', actualTableNumber);
         
         // Show notification to customer
         alert('🍽️ Your table session has been cleared by restaurant staff. You will be redirected to the homepage.');
@@ -67,7 +90,7 @@ const TableOrder = () => {
     return () => {
       socket.disconnect();
     };
-  }, [tableId, clearCart, navigate]);
+  }, [actualTableNumber, clearCart, navigate]);
 
   const fetchMenuItems = async () => {
     try {
@@ -79,7 +102,6 @@ const TableOrder = () => {
       setLoading(false);
     }
   };
-
 
   const handleSubmitOrder = () => {
     // Clear any previous error messages
@@ -106,7 +128,7 @@ const TableOrder = () => {
 
     try {
       const orderData = {
-        tableId: parseInt(tableId),
+        tableId: actualTableNumber,
         customerName: customerInfo.name.trim(),
         phone: customerInfo.phone.trim(),
         items: cartItems.map(item => ({
@@ -124,7 +146,7 @@ const TableOrder = () => {
       setShowConfirmModal(false);
       
       // Store order submitted state for 30 minutes
-      localStorage.setItem(`order_submitted_${tableId}`, Date.now().toString());
+      localStorage.setItem(`order_submitted_${actualTableNumber}`, Date.now().toString());
     } catch (error) {
       console.error('Error submitting order:', error);
       setErrorMessage('Failed to submit order. Please try again.');
@@ -147,11 +169,18 @@ const TableOrder = () => {
            (item.description && item.description.toLowerCase().includes(searchQuery.toLowerCase()));
   });
 
-  if (!tableId || isNaN(tableId) || parseInt(tableId) < 1 || parseInt(tableId) > 25) {
+  if (!tableId || actualTableNumber === null) {
     return (
       <div className="container mx-auto px-4 py-8 text-center">
-        <h1 className="text-2xl font-bold text-red-600 mb-4">Invalid Table</h1>
-        <p>Please scan a valid QR code from tables 1-25.</p>
+        <h1 className="text-2xl font-bold text-red-600 mb-4">🔒 Access Denied</h1>
+        <p className="text-lg mb-4">Please scan the QR code from your table to place an order.</p>
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 max-w-md mx-auto">
+          <p className="text-yellow-800 text-sm">
+            <strong>Security Notice:</strong> Direct table access is disabled for your protection. 
+            Only QR code scanning is allowed.
+          </p>
+        </div>
+        <p className="text-sm text-gray-600 mt-4">Need help? Please contact our staff.</p>
       </div>
     );
   }
@@ -180,7 +209,7 @@ const TableOrder = () => {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold text-center mb-8">Order for Table {tableId}</h1>
+      <h1 className="text-3xl font-bold text-center mb-8">Order for Table {actualTableNumber}</h1>
 
       {/* Add Items Section */}
       <div className="bg-white rounded-lg shadow-md p-6 mb-8">
@@ -391,7 +420,7 @@ const TableOrder = () => {
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span className="font-medium">Table:</span>
-                    <span>{tableId}</span>
+                    <span>{actualTableNumber}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="font-medium">Name:</span>
