@@ -42,9 +42,36 @@ let restaurantSettings = {
   tableCount: 25 // Default, will be loaded from database
 };
 
+// Initialize menu_items table
+async function initializeMenuTable() {
+  try {
+    await query(`
+      CREATE TABLE IF NOT EXISTS menu_items (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(200) NOT NULL,
+        price DECIMAL(8,2) NOT NULL,
+        category VARCHAR(100) NOT NULL,
+        description TEXT,
+        image_url VARCHAR(500),
+        is_available BOOLEAN DEFAULT true,
+        preparation_time INTEGER DEFAULT 15,
+        is_vegetarian BOOLEAN DEFAULT false,
+        is_spicy BOOLEAN DEFAULT false,
+        allergens TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    console.log('✅ Menu items table initialized');
+  } catch (error) {
+    console.error('❌ Error initializing menu table:', error);
+  }
+}
+
 // Load settings from database on startup
 async function loadSettings() {
   try {
+    await initializeMenuTable();
     const result = await query('SELECT setting_key, setting_value FROM restaurant_settings');
     result.rows.forEach(row => {
       if (row.setting_key === 'table_count') {
