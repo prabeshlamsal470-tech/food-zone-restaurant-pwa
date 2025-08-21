@@ -17,7 +17,9 @@ const FloatingCart = () => {
   }
   
   // Determine if user is on a table page
-  const isTablePage = location.pathname.match(/^\/\d+$/) || location.pathname.match(/^\/[A-Z0-9]{12}$/);
+  const isNumericTablePage = location.pathname.match(/^\/\d+$/);
+  const isEncryptedTablePage = location.pathname.match(/^\/[A-Z0-9]{12}$/);
+  const isTablePage = isNumericTablePage || isEncryptedTablePage;
   const isTableCustomer = !!currentTable;
   
   // Calculate cart totals

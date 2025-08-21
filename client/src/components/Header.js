@@ -12,7 +12,9 @@ const Header = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   
   // Show delivery cart for non-table pages, table cart for table pages
-  const isTablePage = location.pathname.match(/^\/\d+$/) || location.pathname.match(/^\/[A-Z0-9]{12}$/);
+  const isNumericTablePage = location.pathname.match(/^\/\d+$/);
+  const isEncryptedTablePage = location.pathname.match(/^\/[A-Z0-9]+$/);
+  const isTablePage = isNumericTablePage || isEncryptedTablePage;
   const isDeliveryCartPage = location.pathname === '/delivery-cart';
   const displayItems = isTablePage ? totalItems : deliveryItems;
 
@@ -46,7 +48,7 @@ const Header = () => {
                 <span className="text-white font-bold text-lg">FZ</span>
               </div>
             </div>
-            <div className={`text-white transition-all duration-300 ${isScrolled ? 'opacity-0 w-0 overflow-hidden' : 'opacity-100'}`}>
+            <div className={`text-white transition-all duration-300 ${isScrolled || location.pathname !== '/' ? 'opacity-0 w-0 overflow-hidden' : 'opacity-100'}`}>
               <h1 className="text-xl font-bold">Food Zone</h1>
               <p className="text-sm opacity-90">Restaurant</p>
             </div>
@@ -59,7 +61,7 @@ const Header = () => {
                 location.pathname === '/menu' 
                   ? 'bg-yellow-400 text-black border-yellow-400 font-bold shadow-lg' 
                   : isTablePage || isDeliveryCartPage
-                    ? 'bg-gradient-to-r from-yellow-400 to-orange-500 text-black border-yellow-400 font-bold shadow-xl animate-pulse'
+                    ? 'bg-yellow-400 text-black border-yellow-400 font-bold shadow-lg'
                     : 'bg-white/10 text-white border-white/30 hover:bg-yellow-400 hover:text-black hover:border-yellow-400 font-semibold backdrop-blur-sm'
               }`}
             >

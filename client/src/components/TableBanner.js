@@ -1,20 +1,17 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 
 const TableBanner = () => {
   const { currentTable } = useCart();
+  const location = useLocation();
+  
+  // Don't show on table ordering pages (they have their own sticky bar)
+  const isTableOrderingPage = location.pathname.match(/^\/\d+$/) || location.pathname.match(/^\/[A-Z0-9]{12}$/);
+  
+  if (!currentTable || isTableOrderingPage) return null;
 
-  if (!currentTable) return null;
-
-  return (
-    <Link 
-      to={`/${currentTable}`}
-      className="bg-primary text-white py-2 px-4 text-center font-semibold sticky top-16 z-40 block hover:bg-orange-600 transition-colors cursor-pointer"
-    >
-      🪑 You are at Table Number {currentTable} - Click to Order
-    </Link>
-  );
+  return null; // Temporarily disabled to avoid duplicates
 };
 
 export default TableBanner;

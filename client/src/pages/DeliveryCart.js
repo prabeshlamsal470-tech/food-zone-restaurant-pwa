@@ -152,11 +152,13 @@ const DeliveryCart = () => {
   if (orderSubmitted) {
     return (
       <div className="container mx-auto px-4 py-8">
-        <div className="max-w-md mx-auto text-center py-12">
+        <div className="bg-green-50 border-2 border-green-200 rounded-xl p-8 text-center shadow-lg">
           <div className="text-6xl mb-4">✅</div>
-          <h2 className="text-2xl font-bold text-green-600 mb-2">Order Confirmed!</h2>
-          <p className="text-gray-600 mb-2">Your delivery order has been received.</p>
-          <p className="text-sm text-gray-500 mb-6">We'll contact you shortly with delivery details.</p>
+          <h2 className="text-2xl font-bold text-green-800 mb-4">Order Submitted Successfully!</h2>
+          <p className="text-gray-700 mb-6">
+            Thank you for your order! We'll prepare your food and deliver it to your location.
+            You'll receive updates via SMS.
+          </p>
           <Link 
             to="/menu"
             className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition-colors"
@@ -210,16 +212,17 @@ const DeliveryCart = () => {
       )}
 
       {/* Prominent Menu Banner */}
-      <div className="bg-gradient-to-r from-yellow-400 to-orange-500 rounded-xl p-6 mb-8 text-center shadow-lg">
-        <div className="flex items-center justify-center space-x-4">
-          <span className="text-4xl">🍽️</span>
+      <div className="bg-gradient-to-r from-yellow-300 via-orange-400 to-red-500 rounded-2xl p-8 mb-8 text-center shadow-2xl transform hover:scale-105 transition-all duration-300 animate-pulse hover:animate-none">
+        <div className="flex items-center justify-center space-x-6">
+          <span className="text-6xl animate-bounce">🍽️</span>
           <div>
-            <h2 className="text-xl font-bold text-black mb-2">Want to add more items?</h2>
+            <h2 className="text-3xl font-extrabold text-white mb-3">🌟 BROWSE FULL MENU 🌟</h2>
+            <p className="text-lg text-white mb-4 opacity-90">Discover more delicious items to add to your order!</p>
             <Link 
               to="/menu"
-              className="bg-black text-white px-6 py-3 rounded-lg hover:bg-gray-800 transition-colors font-semibold inline-flex items-center space-x-2"
+              className="bg-white text-orange-600 px-8 py-4 rounded-xl hover:bg-gray-100 transition-all duration-300 font-extrabold text-xl shadow-lg hover:shadow-xl transform hover:scale-110 inline-flex items-center space-x-3"
             >
-              <span>🛍️</span>
+              <span className="text-2xl">📋</span>
               <span>Browse Full Menu</span>
             </Link>
           </div>

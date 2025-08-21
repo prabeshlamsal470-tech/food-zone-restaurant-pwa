@@ -36,6 +36,9 @@ const TableOrder = () => {
         setActualTableNumber(decryptedTable);
         // Set table context for cart and menu components
         setTableContext(decryptedTable);
+        // Store the encrypted table URL for proper navigation
+        sessionStorage.setItem('currentTableUrl', window.location.pathname);
+        localStorage.setItem('currentTableUrl', window.location.pathname);
       } else {
         setActualTableNumber(null);
       }
@@ -233,24 +236,7 @@ const TableOrder = () => {
       </div>
 
       <div className="container mx-auto px-4 py-8">
-        {/* Prominent Menu Banner */}
-        <div className="bg-gradient-to-r from-orange-400 to-red-500 rounded-xl p-6 mb-8 text-center shadow-lg">
-          <div className="flex items-center justify-center space-x-4">
-            <span className="text-4xl">🍽️</span>
-            <div>
-              <h2 className="text-xl font-bold text-white mb-2">Browse our full menu for Table {actualTableNumber}</h2>
-              <Link 
-                to="/menu"
-                className="bg-white text-orange-600 px-6 py-3 rounded-lg hover:bg-gray-100 transition-colors font-semibold inline-flex items-center space-x-2"
-              >
-                <span>📋</span>
-                <span>View Complete Menu</span>
-              </Link>
-            </div>
-          </div>
-        </div>
-
-      <h1 className="text-3xl font-bold text-center mb-8">Order for Table {actualTableNumber}</h1>
+        <h1 className="text-3xl font-bold text-center mb-8">Order for Table {actualTableNumber}</h1>
 
       {/* Add Items Section */}
       <div className="bg-white rounded-lg shadow-md p-6 mb-8">

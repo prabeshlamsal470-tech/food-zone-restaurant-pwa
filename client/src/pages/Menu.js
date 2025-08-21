@@ -97,16 +97,36 @@ const Menu = () => {
       
       {/* Table Customer Notice */}
       {isTableCustomer && (
-        <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-6 text-center">
-          <div className="text-orange-600">
-            <h3 className="font-semibold mb-2">🪑 You're dining at Table {currentTable}</h3>
-            <p className="text-sm mb-3">To place your order, please use your table's ordering system.</p>
-            <Link
-              to={`/${currentTable}`}
-              className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition-colors inline-block"
+        <div className="bg-gradient-to-br from-orange-50 to-amber-50 border-2 border-orange-300 rounded-2xl p-6 mb-8 text-center shadow-lg transform hover:scale-105 transition-all duration-300">
+          <div className="text-orange-700">
+            <div className="flex items-center justify-center mb-4">
+              <span className="text-4xl mr-3">🪑</span>
+              <h3 className="text-2xl font-bold">You're dining at Table {currentTable}</h3>
+            </div>
+            <p className="text-lg mb-6 text-orange-600">Ready to order? Please select your favorite food from our menu.</p>
+            <button
+              onClick={() => {
+                // Get the encrypted table URL from sessionStorage or localStorage
+                const encryptedTableUrl = sessionStorage.getItem('currentTableUrl') || localStorage.getItem('currentTableUrl');
+                if (encryptedTableUrl) {
+                  window.location.href = encryptedTableUrl;
+                } else {
+                  // Check if we came from an encrypted table URL in referrer
+                  const referrer = document.referrer;
+                  const encryptedMatch = referrer.match(/\/([A-Z0-9]{12})$/);
+                  if (encryptedMatch) {
+                    window.location.href = `/${encryptedMatch[1]}`;
+                  } else {
+                    // Fallback to numeric (shouldn't happen in production)
+                    window.location.href = `/${currentTable}`;
+                  }
+                }
+              }}
+              className="bg-gradient-to-r from-orange-500 to-red-500 text-white px-8 py-4 rounded-xl hover:from-orange-600 hover:to-red-600 transition-all duration-300 font-bold text-lg shadow-lg hover:shadow-xl transform hover:scale-105 inline-flex items-center space-x-3"
             >
-              Go to Table {currentTable} Ordering
-            </Link>
+              <span className="text-2xl">🍽️</span>
+              <span>Go Back to Table {currentTable}</span>
+            </button>
           </div>
         </div>
       )}

@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { decryptTableCode } from '../utils/tableEncryption';
 
 const CartContext = createContext();
 
@@ -17,10 +18,21 @@ export const CartProvider = ({ children }) => {
   // Get current table from URL or localStorage
   useEffect(() => {
     const path = window.location.pathname;
-    const tableMatch = path.match(/^\/(\d+)$/);
+    const numericTableMatch = path.match(/^\/(\d+)$/);
+    const encryptedTableMatch = path.match(/^\/([A-Z0-9]{12})$/);
     
-    if (tableMatch) {
-      const tableId = parseInt(tableMatch[1]);
+    let tableId = null;
+    
+    if (numericTableMatch) {
+      // Numeric table (blocked in production but may exist in dev)
+      tableId = parseInt(numericTableMatch[1]);
+    } else if (encryptedTableMatch) {
+      // Encrypted table - decrypt to get actual table number
+      const encryptedCode = encryptedTableMatch[1];
+      tableId = decryptTableCode(encryptedCode);
+    }
+    
+    if (tableId && tableId >= 1 && tableId <= 25) {
       setCurrentTable(tableId);
       
       // Load cart items for current table
