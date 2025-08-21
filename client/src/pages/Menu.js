@@ -101,12 +101,12 @@ const Menu = () => {
           <div className="text-orange-600">
             <h3 className="font-semibold mb-2">🪑 You're dining at Table {currentTable}</h3>
             <p className="text-sm mb-3">To place your order, please use your table's ordering system.</p>
-            <button
-              onClick={() => window.location.href = `/${currentTable}`}
-              className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition-colors"
+            <Link
+              to={`/${currentTable}`}
+              className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition-colors inline-block"
             >
               Go to Table {currentTable} Ordering
-            </button>
+            </Link>
           </div>
         </div>
       )}

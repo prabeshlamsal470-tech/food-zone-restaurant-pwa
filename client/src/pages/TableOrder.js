@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import io from 'socket.io-client';
-import { fetchApi, getSocketUrl } from '../services/apiService';
+import { fetchApi, getSocketUrl, apiService } from '../services/apiService';
 import { useCart } from '../context/CartContext';
 import { decryptTableCode } from '../utils/tableEncryption';
 
@@ -210,23 +210,45 @@ const TableOrder = () => {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      {/* Prominent Menu Banner */}
-      <div className="bg-gradient-to-r from-orange-400 to-red-500 rounded-xl p-6 mb-8 text-center shadow-lg">
-        <div className="flex items-center justify-center space-x-4">
-          <span className="text-4xl">🍽️</span>
-          <div>
-            <h2 className="text-xl font-bold text-white mb-2">Browse our full menu for Table {actualTableNumber}</h2>
+    <div className="min-h-screen bg-gray-50">
+      {/* Sticky Table Bar - Same as numeric URLs */}
+      <div className="sticky top-0 z-50 bg-gradient-to-r from-orange-500 to-red-600 text-white shadow-lg">
+        <div className="container mx-auto px-4 py-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <span className="text-2xl">🪑</span>
+              <div>
+                <h2 className="text-lg font-bold">You are at Table Number {actualTableNumber}</h2>
+                <p className="text-sm opacity-90">Click to Order</p>
+              </div>
+            </div>
             <Link 
               to="/menu"
-              className="bg-white text-orange-600 px-6 py-3 rounded-lg hover:bg-gray-100 transition-colors font-semibold inline-flex items-center space-x-2"
+              className="bg-white text-orange-600 px-4 py-2 rounded-lg hover:bg-gray-100 transition-colors font-semibold text-sm"
             >
-              <span>📋</span>
-              <span>View Complete Menu</span>
+              📋 Full Menu
             </Link>
           </div>
         </div>
       </div>
+
+      <div className="container mx-auto px-4 py-8">
+        {/* Prominent Menu Banner */}
+        <div className="bg-gradient-to-r from-orange-400 to-red-500 rounded-xl p-6 mb-8 text-center shadow-lg">
+          <div className="flex items-center justify-center space-x-4">
+            <span className="text-4xl">🍽️</span>
+            <div>
+              <h2 className="text-xl font-bold text-white mb-2">Browse our full menu for Table {actualTableNumber}</h2>
+              <Link 
+                to="/menu"
+                className="bg-white text-orange-600 px-6 py-3 rounded-lg hover:bg-gray-100 transition-colors font-semibold inline-flex items-center space-x-2"
+              >
+                <span>📋</span>
+                <span>View Complete Menu</span>
+              </Link>
+            </div>
+          </div>
+        </div>
 
       <h1 className="text-3xl font-bold text-center mb-8">Order for Table {actualTableNumber}</h1>
 
@@ -472,6 +494,7 @@ const TableOrder = () => {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 };
