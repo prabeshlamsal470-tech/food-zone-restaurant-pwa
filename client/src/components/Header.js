@@ -12,7 +12,7 @@ const Header = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   
   // Show delivery cart for non-table pages, table cart for table pages
-  const isTablePage = location.pathname.match(/^\/\d+$/);
+  const isTablePage = location.pathname.match(/^\/\d+$/) || location.pathname.match(/^\/[A-Z0-9]{12}$/);
   const isDeliveryCartPage = location.pathname === '/delivery-cart';
   const displayItems = isTablePage ? totalItems : deliveryItems;
 
