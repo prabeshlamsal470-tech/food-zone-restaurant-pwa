@@ -1,4 +1,4 @@
-# Geo Tage Food Zone - Restaurant Ordering System
+# Food Zone Restaurant - Ordering System (Foodzone.com.np)
 
 A full-stack restaurant ordering system built with React (frontend) and Express.js (backend) featuring real-time order management and QR code table ordering.
 

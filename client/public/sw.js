@@ -25,40 +25,98 @@ self.addEventListener('install', (event) => {
 
 // Activate event
 self.addEventListener('activate', (event) => {
-  console.log('✅ Service Worker activated');
+  console.log('🚀 Service Worker activated for kitchen operations');
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME) {
-            return caches.delete(cacheName);
-          }
-        })
-      );
-    })
+    Promise.all([
+      self.clients.claim(),
+      setupBackgroundSync(),
+      startKeepAlive()
+    ])
   );
-  self.clients.claim(); // Take control immediately
 });
 
-// Fetch event
+// Setup background sync for persistent connectivity
+async function setupBackgroundSync() {
+  try {
+    if ('sync' in self.registration) {
+      await self.registration.sync.register('kitchen-orders-sync');
+      backgroundSyncRegistered = true;
+      console.log('📡 Background sync registered for kitchen orders');
+    }
+  } catch (error) {
+    console.warn('Background sync not supported:', error);
+  }
+}
+
+// Keep-alive mechanism for kitchen staff
+function startKeepAlive() {
+  if (keepAliveInterval) clearInterval(keepAliveInterval);
+  
+  keepAliveInterval = setInterval(() => {
+    // Ping to maintain connection awareness
+    self.clients.matchAll().then(clients => {
+      clients.forEach(client => {
+        client.postMessage({
+          type: 'KEEP_ALIVE_PING',
+          timestamp: Date.now()
+        });
+      });
+    });
+  }, 30000); // Every 30 seconds
+  
+  console.log('⏰ Keep-alive mechanism started for kitchen staff');
+}
+
 self.addEventListener('fetch', (event) => {
   event.respondWith(
     caches.match(event.request)
       .then((response) => {
-        // Return cached version or fetch from network
-        return response || fetch(event.request);
+        if (response) {
+          return response;
+        }
+        return fetch(event.request);
       }
     )
   );
 });
 
-// Background sync for offline functionality
+// Background sync for kitchen operations
 self.addEventListener('sync', (event) => {
-  if (event.tag === 'background-sync') {
-    console.log('🔄 Background sync triggered');
-    event.waitUntil(doBackgroundSync());
+  if (event.tag === 'kitchen-orders-sync') {
+    console.log('🔄 Kitchen orders background sync triggered');
+    event.waitUntil(syncKitchenOrders());
   }
 });
+
+// Background sync function for kitchen orders
+async function syncKitchenOrders() {
+  try {
+    console.log('📡 Syncing kitchen orders in background...');
+    
+    // Attempt to reconnect to backend for order updates
+    const response = await fetch('https://food-zone-backend-l00k.onrender.com/api/orders/today');
+    if (response.ok) {
+      const orders = await response.json();
+      
+      // Notify all clients about updated orders
+      const clients = await self.clients.matchAll();
+      clients.forEach(client => {
+        client.postMessage({
+          type: 'BACKGROUND_ORDERS_UPDATE',
+          orders: orders
+        });
+      });
+      
+      console.log('✅ Kitchen orders synced successfully');
+    }
+  } catch (error) {
+    console.error('❌ Kitchen orders sync failed:', error);
+    // Retry sync after delay
+    setTimeout(() => {
+      self.registration.sync.register('kitchen-orders-sync');
+    }, 60000); // Retry after 1 minute
+  }
+}
 
 // Enhanced audio alert function for service worker
 function playTripleBellAlert() {
@@ -163,27 +221,32 @@ self.addEventListener('notificationclick', (event) => {
   }
 });
 
-// Keep service worker alive for background processing
+// Handle messages from main thread
 self.addEventListener('message', (event) => {
-  if (event.data && event.data.type === 'KEEP_ALIVE') {
-    console.log('💓 Service Worker keep-alive ping');
-    event.ports[0].postMessage({ status: 'alive' });
-  }
+  console.log('🔔 Service worker received message:', event.data);
   
   if (event.data && event.data.type === 'NEW_ORDER') {
-    console.log('🔔 New order notification via service worker');
+    const { orderType, tableId, totalAmount, orderInfo } = event.data;
+    const displayInfo = orderInfo || (orderType === 'dine-in' ? `Table ${tableId}` : 'Delivery');
     
-    // Show notification even when app is in background
-    const options = {
-      body: `New ${event.data.orderType} order received`,
-      icon: '/favicon.ico',
-      badge: '/favicon.ico',
-      vibrate: [200, 100, 200, 100, 200],
+    // Play triple bell alert for background notifications
+    playTripleBellAlert();
+    
+    // Show persistent notification for lock screen
+    self.registration.showNotification('🍽️ Food Zone - New Order!', {
+      body: `${displayInfo} - NPR ${totalAmount || 'N/A'}`,
+      icon: '/icon-192x192.png',
+      badge: '/icon-192x192.png',
+      vibrate: [400, 200, 400, 200, 400, 200, 400],
       requireInteraction: true,
-      silent: false
-    };
-
-    self.registration.showNotification('🍽️ Food Zone - New Order!', options);
+      silent: false,
+      tag: 'food-zone-order-' + Date.now(),
+      renotify: true,
+      actions: [
+        { action: 'view', title: 'View Order' },
+        { action: 'dismiss', title: 'Dismiss' }
+      ]
+    });
   }
 });
 

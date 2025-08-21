@@ -83,12 +83,12 @@ app.get('*', (req, res) => {
 
 ## 🌐 Domain Configuration
 
-### For Custom Domain:
+### For Custom Domain (Foodzone.com.np):
 1. **Point domain** to your Hostinger server
 2. **Update CORS settings** in server.js:
    ```javascript
    const corsOptions = {
-     origin: ['https://yourdomain.com', 'https://www.yourdomain.com'],
+     origin: ['https://foodzone.com.np', 'https://www.foodzone.com.np'],
      credentials: true
    };
    ```
@@ -116,10 +116,10 @@ app.get('*', (req, res) => {
 
 ## 🔍 Testing After Deployment
 
-1. **Visit your domain**
-2. **Test table ordering**: `yourdomain.com/1` (for table 1)
-3. **Test delivery ordering**: `yourdomain.com/delivery-cart`
-4. **Test admin panel**: `yourdomain.com/admin`
+1. **Visit your domain**: `foodzone.com.np`
+2. **Test table ordering**: `foodzone.com.np/1` (for table 1)
+3. **Test delivery ordering**: `foodzone.com.np/delivery-cart`
+4. **Test admin panel**: `foodzone.com.np/admin`
 5. **Verify database connections**
 
 ## 🆘 Troubleshooting

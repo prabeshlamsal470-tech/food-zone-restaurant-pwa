@@ -19,86 +19,133 @@ const StaffDashboard = () => {
 
   useEffect(() => {
     fetchOrders();
-    initializePWA();
     initializeOfflineStorage();
+    initializePWA();
     
-    // Initialize socket connection
-    const socketUrl = getSocketUrl();
-    console.log('Connecting to socket:', socketUrl);
-    const newSocket = io(socketUrl, {
+    const newSocket = io(getSocketUrl(), {
       transports: ['websocket', 'polling'],
       timeout: 20000,
       reconnection: true,
-      reconnectionAttempts: 5,
-      reconnectionDelay: 1000
+      reconnectionAttempts: Infinity, // Keep trying to reconnect for kitchen staff
+      reconnectionDelayMax: 5000,
+      forceNew: true,
     });
+    
     setSocket(newSocket);
     
-    // Socket connection events
     newSocket.on('connect', () => {
-      console.log('✅ Socket connected successfully');
+      console.log('🍳 Kitchen connected to server');
+      setIsOnline(true);
+      
+      // Register for kitchen-specific events
+      newSocket.emit('join-kitchen', { role: 'kitchen-staff' });
     });
     
-    newSocket.on('disconnect', () => {
-      console.log('❌ Socket disconnected');
+    newSocket.on('disconnect', (reason) => {
+      console.log('🍳 Kitchen disconnected:', reason);
+      setIsOnline(false);
+      
+      // Auto-reconnect for kitchen operations
+      if (reason === 'io server disconnect') {
+        newSocket.connect();
+      }
     });
-    
+
     newSocket.on('connect_error', (error) => {
-      console.error('Socket connection error:', error);
+      console.error('Kitchen connection error:', error);
+      setIsOnline(false);
     });
+    
+    // Handle service worker keep-alive pings
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.addEventListener('message', (event) => {
+        if (event.data.type === 'KEEP_ALIVE_PING') {
+          // Respond to keep-alive and check socket status
+          if (!newSocket.connected) {
+            console.log('🔄 Reconnecting socket due to keep-alive check');
+            newSocket.connect();
+          }
+        } else if (event.data.type === 'BACKGROUND_ORDERS_UPDATE') {
+          // Update orders from background sync
+          setOrders(event.data.orders);
+          console.log('📡 Orders updated from background sync');
+        }
+      });
+    }
     
     // Socket event listeners
     newSocket.on('newOrder', (order) => {
       console.log('📨 New order received via socket:', order);
       
-      // Only add order if it's from today
-      const orderDate = new Date(order.created_at);
-      const today = new Date();
-      const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-      const todayEnd = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
-      
-      if (orderDate >= todayStart && orderDate < todayEnd) {
-        setOrders(prevOrders => [order, ...prevOrders]);
-        
-        // Log new order (no UI notification)
-        const orderInfo = `${order.order_type === 'dine-in' ? `Table ${order.table_id}` : 'Delivery'} - NPR ${order.total_amount || 'N/A'}`;
-        console.log('New Order Received:', orderInfo);
-        
-        // Play triple bell alert with user interaction check
-        if (audioEnabled) {
-          // Ensure audio context is initialized with user interaction
-          audioAlertManager.init().then(() => {
-            audioAlertManager.playNotificationAlert();
-          }).catch(error => {
-            console.warn('Audio alert initialization failed:', error);
-            // Fallback to HTML5 audio
-            audioAlertManager.playAudioFile('/sounds/notification-bell.mp3', 3);
-          });
+      // Force immediate order update without date filtering for real-time updates
+      setOrders(prevOrders => {
+        // Check if order already exists to prevent duplicates
+        const existingOrder = prevOrders.find(o => o.id === order.id);
+        if (existingOrder) {
+          return prevOrders;
         }
-        
-        // Send push notification that works on lock screen
-        if (pushManager && pushEnabled) {
-          pushManager.showLocalNotification('🍽️ Food Zone - New Order!', {
+        return [order, ...prevOrders];
+      });
+      
+      // Log new order (no UI notification)
+      const orderInfo = `${order.order_type === 'dine-in' ? `Table ${order.table_id}` : 'Delivery'} - NPR ${order.total_amount || 'N/A'}`;
+      console.log('New Order Received:', orderInfo);
+      
+      // Play triple bell alert with user interaction check
+      if (audioEnabled) {
+        // Ensure audio context is initialized with user interaction
+        audioAlertManager.init().then(() => {
+          audioAlertManager.playNotificationAlert();
+        }).catch(error => {
+          console.warn('Audio alert initialization failed:', error);
+          // Fallback to HTML5 audio
+          audioAlertManager.playAudioFile('/sounds/notification-bell.mp3', 3);
+        });
+      }
+      
+      // Send push notification that works on lock screen
+      if (pushManager && pushEnabled) {
+        pushManager.showLocalNotification('🍽️ Food Zone - New Order!', {
+          body: orderInfo,
+          tag: 'new-order',
+          requireInteraction: true,
+          vibrate: [200, 100, 200, 100, 200],
+          actions: [
+            { action: 'view', title: 'View Order' },
+            { action: 'dismiss', title: 'Dismiss' }
+          ]
+        });
+      }
+      
+      // Send message to service worker for background notifications and lock screen alerts
+      if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+        navigator.serviceWorker.controller.postMessage({
+          type: 'NEW_ORDER',
+          orderType: order.order_type,
+          tableId: order.table_id,
+          totalAmount: order.total_amount,
+          orderInfo: orderInfo
+        });
+      }
+      
+      // Force service worker notification for lock screen
+      if ('serviceWorker' in navigator && 'PushManager' in window) {
+        navigator.serviceWorker.ready.then(registration => {
+          registration.showNotification('🍽️ Food Zone - New Order!', {
             body: orderInfo,
-            tag: 'new-order',
+            icon: '/icon-192x192.png',
+            badge: '/icon-192x192.png',
+            vibrate: [400, 200, 400, 200, 400, 200, 400],
             requireInteraction: true,
-            vibrate: [200, 100, 200, 100, 200],
+            silent: false,
+            tag: 'food-zone-order-' + Date.now(),
+            renotify: true,
             actions: [
               { action: 'view', title: 'View Order' },
               { action: 'dismiss', title: 'Dismiss' }
             ]
           });
-        }
-        
-        // Also send message to service worker for background notifications
-        if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-          navigator.serviceWorker.controller.postMessage({
-            type: 'NEW_ORDER',
-            orderType: order.order_type,
-            tableId: order.table_id,
-            amount: order.total_amount
-          });
-        }
+        });
       }
     });
 
