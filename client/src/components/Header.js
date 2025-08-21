@@ -13,6 +13,7 @@ const Header = () => {
   
   // Show delivery cart for non-table pages, table cart for table pages
   const isTablePage = location.pathname.match(/^\/\d+$/);
+  const isDeliveryCartPage = location.pathname === '/delivery-cart';
   const displayItems = isTablePage ? totalItems : deliveryItems;
 
   // Handle scroll effect
@@ -57,16 +58,20 @@ const Header = () => {
               className={`flex items-center space-x-3 px-6 py-3 rounded-xl border-2 transition-all duration-300 transform hover:scale-105 ${
                 location.pathname === '/menu' 
                   ? 'bg-yellow-400 text-black border-yellow-400 font-bold shadow-lg' 
-                  : 'bg-white/10 text-white border-white/30 hover:bg-yellow-400 hover:text-black hover:border-yellow-400 font-semibold backdrop-blur-sm'
+                  : isTablePage || isDeliveryCartPage
+                    ? 'bg-gradient-to-r from-yellow-400 to-orange-500 text-black border-yellow-400 font-bold shadow-xl animate-pulse'
+                    : 'bg-white/10 text-white border-white/30 hover:bg-yellow-400 hover:text-black hover:border-yellow-400 font-semibold backdrop-blur-sm'
               }`}
             >
               <span className="text-3xl">🍽️</span>
-              <span className="text-lg font-bold">View Menu</span>
+              <span className="text-lg font-bold">
+                {isTablePage || isDeliveryCartPage ? 'Browse Menu' : 'View Menu'}
+              </span>
             </Link>
           </nav>
 
-          {/* Table Cart - for dine-in customers */}
-          {totalItems > 0 && currentTable && isTablePage && (
+          {/* Table Cart - for dine-in customers (hide on table ordering page) */}
+          {totalItems > 0 && currentTable && !isTablePage && (
             <Link 
               to={`/${currentTable}`}
               className="bg-primary text-white px-3 py-1 rounded-full text-sm font-semibold hover:bg-orange-600 transition-colors"
@@ -75,8 +80,8 @@ const Header = () => {
             </Link>
           )}
           
-          {/* Delivery Cart - for delivery customers */}
-          {deliveryItems > 0 && !isTablePage && (
+          {/* Delivery Cart - for delivery customers (hide on delivery cart page) */}
+          {deliveryItems > 0 && !isTablePage && !isDeliveryCartPage && (
             <Link 
               to="/delivery-cart"
               className="bg-green-600 text-white px-3 py-1 rounded-full text-sm font-semibold hover:bg-green-700 transition-colors"

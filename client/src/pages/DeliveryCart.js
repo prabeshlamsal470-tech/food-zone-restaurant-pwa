@@ -208,6 +208,23 @@ const DeliveryCart = () => {
           </div>
         </div>
       )}
+
+      {/* Prominent Menu Banner */}
+      <div className="bg-gradient-to-r from-yellow-400 to-orange-500 rounded-xl p-6 mb-8 text-center shadow-lg">
+        <div className="flex items-center justify-center space-x-4">
+          <span className="text-4xl">🍽️</span>
+          <div>
+            <h2 className="text-xl font-bold text-black mb-2">Want to add more items?</h2>
+            <Link 
+              to="/menu"
+              className="bg-black text-white px-6 py-3 rounded-lg hover:bg-gray-800 transition-colors font-semibold inline-flex items-center space-x-2"
+            >
+              <span>🛍️</span>
+              <span>Browse Full Menu</span>
+            </Link>
+          </div>
+        </div>
+      </div>
       
       <h1 className="text-3xl font-bold text-center mb-8">🚚 Delivery Order</h1>
 

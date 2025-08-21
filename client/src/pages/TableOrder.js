@@ -211,11 +211,28 @@ const TableOrder = () => {
 
   return (
     <div className="container mx-auto px-4 py-8">
+      {/* Prominent Menu Banner */}
+      <div className="bg-gradient-to-r from-orange-400 to-red-500 rounded-xl p-6 mb-8 text-center shadow-lg">
+        <div className="flex items-center justify-center space-x-4">
+          <span className="text-4xl">🍽️</span>
+          <div>
+            <h2 className="text-xl font-bold text-white mb-2">Browse our full menu for Table {actualTableNumber}</h2>
+            <Link 
+              to="/menu"
+              className="bg-white text-orange-600 px-6 py-3 rounded-lg hover:bg-gray-100 transition-colors font-semibold inline-flex items-center space-x-2"
+            >
+              <span>📋</span>
+              <span>View Complete Menu</span>
+            </Link>
+          </div>
+        </div>
+      </div>
+
       <h1 className="text-3xl font-bold text-center mb-8">Order for Table {actualTableNumber}</h1>
 
       {/* Add Items Section */}
       <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-        <h2 className="text-xl font-semibold mb-4">Add Items to Your Order</h2>
+        <h2 className="text-xl font-semibold mb-4">Quick Search & Add Items</h2>
         
         {/* Menu Search */}
         <div className="mb-4">
@@ -232,16 +249,6 @@ const TableOrder = () => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
             </div>
-          </div>
-          
-          {/* Browse Menu Button */}
-          <div className="mt-3 text-center">
-            <Link 
-              to="/menu"
-              className="inline-flex items-center px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
-            >
-              📋 Browse Full Menu
-            </Link>
           </div>
         </div>
 
