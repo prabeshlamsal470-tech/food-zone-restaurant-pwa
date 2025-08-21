@@ -1877,6 +1877,49 @@ res.status(500).json({ error: 'Failed to get table payments', details: error.mes
 }
 });
 
+// Direct endpoint to populate menu data (for production deployment)
+app.post('/api/populate-menu', async (req, res) => {
+  try {
+    console.log('🔄 Populating menu data...');
+    
+    // First ensure table exists
+    await initializeMenuTable();
+    
+    // Clear existing data
+    await query('DELETE FROM menu_items');
+    
+    // Insert all menu items
+    for (const item of menuItems) {
+      await query(`
+        INSERT INTO menu_items (name, price, category, description, image_url, is_available, preparation_time, is_vegetarian, is_spicy) 
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      `, [
+        item.name,
+        item.price,
+        item.category,
+        item.description || '',
+        item.image_url || '/images/default-food.jpg',
+        item.is_available !== false,
+        item.preparation_time || 15,
+        item.is_vegetarian || false,
+        item.is_spicy || false
+      ]);
+    }
+    
+    const count = await query('SELECT COUNT(*) as count FROM menu_items');
+    console.log(`✅ Menu populated with ${count.rows[0].count} items`);
+    
+    res.json({ 
+      success: true, 
+      message: `Menu populated with ${count.rows[0].count} items`,
+      count: parseInt(count.rows[0].count)
+    });
+  } catch (error) {
+    console.error('❌ Error populating menu:', error);
+    res.status(500).json({ error: 'Failed to populate menu', details: error.message });
+  }
+});
+
 const PORT = process.env.PORT || 5001;
 server.listen(PORT, () => {
 console.log(`Server running on port ${PORT}`);
