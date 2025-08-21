@@ -1,8 +1,7 @@
 # Food Zone Backend Configuration
 
 # Railway Database URL (replace with your actual URL)
-DATABASE_URL=postgresql://username:password@host:port/database
-
+DATABASE_URL=postgresql:postgresql://postgres:SIPhohEQaPfxFPLQhbrYmvMHlROQEVKF@postgres.railway.internal:5432/railway
 # Server Configuration
 PORT=5001
 NODE_ENV=production
