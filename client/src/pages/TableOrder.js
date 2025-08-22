@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import io from 'socket.io-client';
-import { fetchApi, getSocketUrl, apiService } from '../services/apiService';
+import { getSocketUrl, apiService } from '../services/apiService';
 import { useCart } from '../context/CartContext';
 import { decryptTableCode } from '../utils/tableEncryption';
 
