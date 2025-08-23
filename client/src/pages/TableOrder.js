@@ -55,8 +55,9 @@ const TableOrder = () => {
       const cacheTime = localStorage.getItem(cacheKey + '_time');
       const now = Date.now();
       
-      // Use cache if less than 5 minutes old
-      if (cachedData && cacheTime && (now - parseInt(cacheTime)) < 300000) {
+      // Use cache if less than 2 minutes old for faster loading
+      if (cachedData && cacheTime && (now - parseInt(cacheTime)) < 120000) {
+        console.log('Using cached menu data');
         setMenuItems(JSON.parse(cachedData));
         setLoading(false);
         return;
@@ -88,7 +89,19 @@ const TableOrder = () => {
       // Try to use cached data as fallback
       const cachedData = localStorage.getItem('menuItems_cache');
       if (cachedData) {
+        console.log('Using cached menu data as fallback');
         setMenuItems(JSON.parse(cachedData));
+      } else {
+        // Use mock data if no cache available
+        console.log('Using mock menu data as fallback');
+        const mockMenu = [
+          { id: 1, name: 'Chicken Momo', price: 180, category: 'Appetizers', description: 'Steamed chicken dumplings' },
+          { id: 2, name: 'Chicken Thali', price: 350, category: 'Main Course', description: 'Complete chicken meal set' },
+          { id: 3, name: 'Burger Combo', price: 280, category: 'Fast Food', description: 'Burger with fries and drink' },
+          { id: 4, name: 'Cheese Pizza', price: 450, category: 'Pizza', description: 'Classic cheese pizza' },
+          { id: 5, name: 'Fried Rice', price: 220, category: 'Main Course', description: 'Chicken fried rice' }
+        ];
+        setMenuItems(mockMenu);
       }
     } finally {
       setLoading(false);

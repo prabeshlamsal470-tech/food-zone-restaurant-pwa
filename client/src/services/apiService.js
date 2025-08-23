@@ -27,7 +27,7 @@ const isMockMode = () => false;
 // Create axios instance with base configuration
 const apiClient = axios.create({
   baseURL: getApiUrl(),
-  timeout: 5000, // Reduced timeout for faster failure detection
+  timeout: 15000, // Increased timeout for Render cold starts
   headers: {
     'Content-Type': 'application/json',
   },
@@ -161,9 +161,9 @@ export const fetchApi = {
       return { data: [] };
     }
     
-    // Add timeout and faster failure for better UX
+    // Add timeout with longer duration for Render cold starts
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout for cold starts
     
     try {
       const response = await fetch(getApiUrl(endpoint), {

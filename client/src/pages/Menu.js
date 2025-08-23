@@ -100,13 +100,16 @@ const Menu = () => {
   // Memoized filtered items to prevent recalculation (using debounced search)
   const filteredItems = useMemo(() => {
     return menuItems.filter(item => {
-      const matchesCategory = selectedCategory === 'All' || item.category === selectedCategory;
-      const matchesSearch = debouncedSearchQuery === '' || 
-        item.name.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
-        item.category.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
-        (item.description && item.description.toLowerCase().includes(debouncedSearchQuery.toLowerCase()));
+      if (!item || !item.name) return false;
       
-      return matchesCategory && matchesSearch;
+      const matchesSearch = searchQuery === '' || 
+        item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (item.category && item.category.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (item.description && item.description.toLowerCase().includes(searchQuery.toLowerCase()));
+      
+      const matchesCategory = selectedCategory === 'All' || item.category === selectedCategory;
+      
+      return matchesSearch && matchesCategory;
     });
   }, [menuItems, selectedCategory, debouncedSearchQuery]);
   
