@@ -10,7 +10,7 @@ const Reception = () => {
   const [tableStatuses, setTableStatuses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('active'); // 'active', 'completed' or 'tables'
-  const [socket, setSocket] = useState(null);
+  // const [socket, setSocket] = useState(null);
   const [clearingTable, setClearingTable] = useState(null);
   const [pushManager, setPushManager] = useState(null);
   const [pushEnabled, setPushEnabled] = useState(false);
@@ -26,7 +26,7 @@ const Reception = () => {
     
     // Initialize socket connection
     const newSocket = io(getSocketUrl());
-    setSocket(newSocket);
+    // setSocket(newSocket);
     
     newSocket.on('connect', () => {
       console.log('🏨 Reception connected to server');

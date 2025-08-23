@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { useCart } from '../context/CartContext';
-import { useDeliveryCart } from '../context/DeliveryCartContext';
+// import { useCart } from '../context/CartContext';
+// import { useDeliveryCart } from '../context/DeliveryCartContext';
 
 const Header = () => {
   const location = useLocation();
-  const { getTotalItems, currentTable } = useCart();
-  const { getDeliveryTotalItems } = useDeliveryCart();
-  const totalItems = getTotalItems();
-  const deliveryItems = getDeliveryTotalItems();
+  // const { getTotalItems, currentTable } = useCart();
+  // const { getDeliveryTotalItems } = useDeliveryCart();
+  // const totalItems = getTotalItems();
+  // const deliveryItems = getDeliveryTotalItems();
   const [isScrolled, setIsScrolled] = useState(false);
   
   // Show delivery cart for non-table pages, table cart for table pages
@@ -17,8 +17,8 @@ const Header = () => {
   const isTablePage = isNumericTablePage || isEncryptedTablePage;
   const isDeliveryCartPage = location.pathname === '/delivery-cart';
   const isMenuPage = location.pathname === '/menu';
-  const isTableMenuPage = isMenuPage && currentTable; // Menu page accessed from a table
-  const displayItems = isTablePage ? totalItems : deliveryItems;
+  // const isTableMenuPage = isMenuPage && currentTable; // Menu page accessed from a table
+  // const displayItems = isTablePage ? totalItems : deliveryItems;
 
   // Handle scroll effect
   useEffect(() => {

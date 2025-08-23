@@ -361,13 +361,13 @@ const Admin = () => {
     }
   };
 
-  const handleCompleteDeliveryOrder = async (orderId) => {
-    setConfirmDialog({
-      show: true,
-      orderId,
-      message: 'Mark this delivery order as complete?'
-    });
-  };
+  // const handleCompleteDeliveryOrder = async (orderId) => {
+  //   setConfirmDialog({
+  //     show: true,
+  //     orderId,
+  //     message: 'Mark this delivery order as complete?'
+  //   });
+  // };
 
 
   const confirmCompleteOrder = async () => {
