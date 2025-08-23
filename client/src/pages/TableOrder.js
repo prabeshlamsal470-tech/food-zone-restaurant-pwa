@@ -79,6 +79,22 @@ const TableOrder = () => {
         menuData = [];
       }
       
+      // Add happy hour items if it's happy hour time (11 AM - 2 PM)
+      const currentHour = new Date().getHours();
+      const isHappyHour = currentHour >= 11 && currentHour < 14;
+      
+      if (isHappyHour) {
+        const happyHourItems = [
+          { id: 1001, name: 'Chicken Momo', price: 125, category: 'Happy Hour', description: 'Delicious steamed chicken dumplings' },
+          { id: 1002, name: 'Chicken Fried Rice', price: 145, category: 'Happy Hour', description: 'Aromatic fried rice with tender chicken pieces' },
+          { id: 1003, name: 'Veg Fried Rice', price: 110, category: 'Happy Hour', description: 'Flavorful vegetarian fried rice with fresh vegetables' },
+          { id: 1004, name: 'Burger', price: 150, category: 'Happy Hour', description: 'Juicy beef burger with fresh toppings' },
+          { id: 1005, name: 'Chicken Chowmein', price: 110, category: 'Happy Hour', description: 'Stir-fried noodles with chicken and vegetables' },
+          { id: 1006, name: 'Veg Chowmein', price: 80, category: 'Happy Hour', description: 'Vegetarian stir-fried noodles with fresh vegetables' }
+        ];
+        menuData = [...menuData, ...happyHourItems];
+      }
+      
       // Cache the data for faster subsequent loads
       localStorage.setItem(cacheKey, JSON.stringify(menuData));
       localStorage.setItem(cacheKey + '_time', now.toString());
@@ -92,15 +108,32 @@ const TableOrder = () => {
         console.log('Using cached menu data as fallback');
         setMenuItems(JSON.parse(cachedData));
       } else {
-        // Use mock data if no cache available
+        // Use mock data with happy hour items if no cache available
         console.log('Using mock menu data as fallback');
-        const mockMenu = [
+        const currentHour = new Date().getHours();
+        const isHappyHour = currentHour >= 11 && currentHour < 14;
+        
+        let mockMenu = [
           { id: 1, name: 'Chicken Momo', price: 180, category: 'Appetizers', description: 'Steamed chicken dumplings' },
           { id: 2, name: 'Chicken Thali', price: 350, category: 'Main Course', description: 'Complete chicken meal set' },
           { id: 3, name: 'Burger Combo', price: 280, category: 'Fast Food', description: 'Burger with fries and drink' },
           { id: 4, name: 'Cheese Pizza', price: 450, category: 'Pizza', description: 'Classic cheese pizza' },
           { id: 5, name: 'Fried Rice', price: 220, category: 'Main Course', description: 'Chicken fried rice' }
         ];
+        
+        // Add happy hour items if it's happy hour time
+        if (isHappyHour) {
+          const happyHourItems = [
+            { id: 1001, name: 'Chicken Momo', price: 125, category: 'Happy Hour', description: 'Delicious steamed chicken dumplings' },
+            { id: 1002, name: 'Chicken Fried Rice', price: 145, category: 'Happy Hour', description: 'Aromatic fried rice with tender chicken pieces' },
+            { id: 1003, name: 'Veg Fried Rice', price: 110, category: 'Happy Hour', description: 'Flavorful vegetarian fried rice with fresh vegetables' },
+            { id: 1004, name: 'Burger', price: 150, category: 'Happy Hour', description: 'Juicy beef burger with fresh toppings' },
+            { id: 1005, name: 'Chicken Chowmein', price: 110, category: 'Happy Hour', description: 'Stir-fried noodles with chicken and vegetables' },
+            { id: 1006, name: 'Veg Chowmein', price: 80, category: 'Happy Hour', description: 'Vegetarian stir-fried noodles with fresh vegetables' }
+          ];
+          mockMenu = [...mockMenu, ...happyHourItems];
+        }
+        
         setMenuItems(mockMenu);
       }
     } finally {

@@ -57,7 +57,13 @@ const Menu = () => {
       const response = await fetchApi.get('/api/menu');
       
       // fetchApi.get returns the parsed JSON directly, not wrapped in .data
-      const menuData = Array.isArray(response) ? response : (response.data || response || []);
+      let menuData = Array.isArray(response) ? response : (response.data || response || []);
+      
+      // Add happy hour items if it's happy hour time
+      if (isHappyHour) {
+        menuData = [...menuData, ...happyHourItems];
+      }
+      
       setMenuItems(menuData);
       
       // Cache the data
@@ -66,8 +72,12 @@ const Menu = () => {
     } catch (error) {
       console.error('Error fetching menu:', error);
       console.error('Error details:', error.message, error.stack);
-      // Set empty array on error to prevent infinite loading
-      setMenuItems([]);
+      // Use happy hour items as fallback if it's happy hour time
+      if (isHappyHour) {
+        setMenuItems(happyHourItems);
+      } else {
+        setMenuItems([]);
+      }
     } finally {
       setLoading(false);
     }
