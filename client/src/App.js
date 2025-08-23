@@ -10,6 +10,7 @@ import { DeliveryCartProvider } from './context/DeliveryCartContext';
 // Lazy load all page components for better performance
 const Homepage = React.lazy(() => import('./pages/Homepage'));
 const Menu = React.lazy(() => import('./pages/Menu'));
+const Tables = React.lazy(() => import('./pages/Tables'));
 const TableOrder = React.lazy(() => import('./pages/TableOrder'));
 const DeliveryCart = React.lazy(() => import('./pages/DeliveryCart'));
 const Admin = React.lazy(() => import('./pages/Admin'));
@@ -51,6 +52,7 @@ function AppContent() {
         <Routes>
           <Route path="/" element={<Homepage />} />
           <Route path="/menu" element={<Menu />} />
+          <Route path="/tables" element={<Tables />} />
           <Route path="/delivery-cart" element={<DeliveryCart />} />
           <Route path="/staff" element={<StaffDashboard />} />
           <Route path="/reception" element={<Reception />} />

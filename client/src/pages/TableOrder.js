@@ -4,6 +4,7 @@ import io from 'socket.io-client';
 import { getSocketUrl, apiService } from '../services/apiService';
 import { useCart } from '../context/CartContext';
 import { decryptTableCode } from '../utils/tableEncryption';
+import LoadingSpinner from '../components/LoadingSpinner';
 
 const TableOrder = () => {
   const { tableId } = useParams();
@@ -47,10 +48,48 @@ const TableOrder = () => {
 
   const fetchMenuItems = async () => {
     try {
+      setLoading(true);
+      // Check cache first for instant loading
+      const cacheKey = 'menuItems_cache';
+      const cachedData = localStorage.getItem(cacheKey);
+      const cacheTime = localStorage.getItem(cacheKey + '_time');
+      const now = Date.now();
+      
+      // Use cache if less than 5 minutes old
+      if (cachedData && cacheTime && (now - parseInt(cacheTime)) < 300000) {
+        setMenuItems(JSON.parse(cachedData));
+        setLoading(false);
+        return;
+      }
+      
       const response = await apiService.getMenu();
-      setMenuItems(response.data);
+      console.log('Menu API Response:', response);
+      
+      // Handle different response structures
+      let menuData = [];
+      if (Array.isArray(response)) {
+        menuData = response;
+      } else if (response && Array.isArray(response.data)) {
+        menuData = response.data;
+      } else if (response && response.menu && Array.isArray(response.menu)) {
+        menuData = response.menu;
+      } else {
+        console.warn('Unexpected menu response structure:', response);
+        menuData = [];
+      }
+      
+      // Cache the data for faster subsequent loads
+      localStorage.setItem(cacheKey, JSON.stringify(menuData));
+      localStorage.setItem(cacheKey + '_time', now.toString());
+      
+      setMenuItems(menuData);
     } catch (error) {
       console.error('Error fetching menu:', error);
+      // Try to use cached data as fallback
+      const cachedData = localStorage.getItem('menuItems_cache');
+      if (cachedData) {
+        setMenuItems(JSON.parse(cachedData));
+      }
     } finally {
       setLoading(false);
     }
@@ -58,9 +97,26 @@ const TableOrder = () => {
 
   useEffect(() => {
     if (actualTableNumber && actualTableNumber >= 1 && actualTableNumber <= 25) {
+      // Start loading immediately without delay
       fetchMenuItems();
+    } else if (!actualTableNumber && tableId && !isNaN(tableId)) {
+      // Handle numeric table IDs with immediate feedback
+      setLoading(false);
     }
   }, [actualTableNumber]);
+  
+  // Preload menu data when component mounts for faster access
+  useEffect(() => {
+    // Preload menu data in background for instant access
+    const preloadMenu = async () => {
+      try {
+        await apiService.getMenu();
+      } catch (error) {
+        console.log('Background preload failed:', error);
+      }
+    };
+    preloadMenu();
+  }, []);
 
   // Socket connection for real-time table clearing
   useEffect(() => {
@@ -203,11 +259,8 @@ const TableOrder = () => {
 
   if (loading) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading menu...</p>
-        </div>
+      <div className="flex justify-center items-center min-h-screen">
+        <LoadingSpinner message="Loading dine-in menu..." />
       </div>
     );
   }
@@ -226,7 +279,7 @@ const TableOrder = () => {
               </div>
             </div>
             <Link 
-              to="/menu"
+              to={`/menu?table=${actualTableNumber}`}
               className="bg-white text-orange-600 px-4 py-2 rounded-lg hover:bg-gray-100 transition-colors font-semibold text-sm"
             >
               📋 Full Menu

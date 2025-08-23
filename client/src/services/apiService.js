@@ -27,7 +27,7 @@ const isMockMode = () => false;
 // Create axios instance with base configuration
 const apiClient = axios.create({
   baseURL: getApiUrl(),
-  timeout: 10000,
+  timeout: 5000, // Reduced timeout for faster failure detection
   headers: {
     'Content-Type': 'application/json',
   },
@@ -161,20 +161,32 @@ export const fetchApi = {
       return { data: [] };
     }
     
-    const response = await fetch(getApiUrl(endpoint), {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
-      ...options,
-    });
+    // Add timeout and faster failure for better UX
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
     
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+    try {
+      const response = await fetch(getApiUrl(endpoint), {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          ...options.headers,
+        },
+        signal: controller.signal,
+        ...options,
+      });
+      
+      clearTimeout(timeoutId);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      return response.json();
+    } catch (error) {
+      clearTimeout(timeoutId);
+      throw error;
     }
-    
-    return response.json();
   },
   
   post: async (endpoint, data, options = {}) => {
