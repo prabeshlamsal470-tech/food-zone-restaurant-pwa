@@ -19,13 +19,12 @@ const AdminPremium = React.lazy(() => import('./pages/AdminPremium'));
 const StaffDashboard = React.lazy(() => import('./pages/StaffDashboard'));
 const Reception = React.lazy(() => import('./pages/Reception'));
 
-// Loading component for Suspense fallback
+// Minimal loading component for faster initial render
 const LoadingSpinner = () => (
   <div className="min-h-screen flex items-center justify-center bg-gray-50">
     <div className="text-center">
-      <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-amber-600 mb-4"></div>
-      <div className="text-lg font-semibold text-gray-700">Loading Food Zone...</div>
-      <div className="text-sm text-gray-500 mt-2">Please wait a moment</div>
+      <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-amber-600 mb-2"></div>
+      <div className="text-sm text-gray-600">Loading...</div>
     </div>
   </div>
 );

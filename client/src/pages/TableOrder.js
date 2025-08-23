@@ -14,7 +14,7 @@ const TableOrder = () => {
   const [showCheckout, setShowCheckout] = useState(false);
   const [customerInfo, setCustomerInfo] = useState({ name: '', phone: '' });
   const [orderSubmitted, setOrderSubmitted] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   // const [showMenuSearch, setShowMenuSearch] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -48,7 +48,6 @@ const TableOrder = () => {
 
   const fetchMenuItems = async () => {
     try {
-      setLoading(true);
       // Check cache first for instant loading
       const cacheKey = 'menuItems_cache';
       const cachedData = localStorage.getItem(cacheKey);
@@ -59,7 +58,6 @@ const TableOrder = () => {
       if (cachedData && cacheTime && (now - parseInt(cacheTime)) < 120000) {
         console.log('Using cached menu data');
         setMenuItems(JSON.parse(cachedData));
-        setLoading(false);
         return;
       }
       
@@ -143,26 +141,36 @@ const TableOrder = () => {
 
   useEffect(() => {
     if (actualTableNumber && actualTableNumber >= 1 && actualTableNumber <= 25) {
-      // Start loading immediately without delay
-      fetchMenuItems();
+      // Only fetch if not already cached
+      const cacheKey = 'menuItems_cache';
+      const cachedData = localStorage.getItem(cacheKey);
+      const cacheTime = localStorage.getItem(cacheKey + '_time');
+      const now = Date.now();
+      
+      if (cachedData && cacheTime && (now - parseInt(cacheTime)) < 120000) {
+        // Use cache immediately without API call
+        setMenuItems(JSON.parse(cachedData));
+      } else {
+        // Only fetch if no valid cache
+        fetchMenuItems();
+      }
     } else if (!actualTableNumber && tableId && !isNaN(tableId)) {
       // Handle numeric table IDs with immediate feedback
       setLoading(false);
     }
   }, [actualTableNumber]);
   
-  // Preload menu data when component mounts for faster access
-  useEffect(() => {
-    // Preload menu data in background for instant access
-    const preloadMenu = async () => {
-      try {
-        await apiService.getMenu();
-      } catch (error) {
-        console.log('Background preload failed:', error);
-      }
-    };
-    preloadMenu();
-  }, []);
+  // Skip background preload to reduce initial load time
+  // useEffect(() => {
+  //   const preloadMenu = async () => {
+  //     try {
+  //       await apiService.getMenu();
+  //     } catch (error) {
+  //       console.log('Background preload failed:', error);
+  //     }
+  //   };
+  //   preloadMenu();
+  // }, []);
 
   // Socket connection for real-time table clearing
   useEffect(() => {
