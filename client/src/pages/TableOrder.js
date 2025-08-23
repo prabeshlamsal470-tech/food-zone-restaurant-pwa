@@ -45,6 +45,17 @@ const TableOrder = () => {
     }
   }, [tableId, setTableContext]);
 
+  const fetchMenuItems = async () => {
+    try {
+      const response = await apiService.getMenu();
+      setMenuItems(response.data);
+    } catch (error) {
+      console.error('Error fetching menu:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (actualTableNumber && actualTableNumber >= 1 && actualTableNumber <= 25) {
       fetchMenuItems();
@@ -96,17 +107,6 @@ const TableOrder = () => {
       socket.disconnect();
     };
   }, [actualTableNumber, clearCart, navigate]);
-
-  const fetchMenuItems = async () => {
-    try {
-      const response = await apiService.getMenu();
-      setMenuItems(response.data);
-    } catch (error) {
-      console.error('Error fetching menu:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleSubmitOrder = () => {
     // Clear any previous error messages

@@ -12,9 +12,13 @@ const mockMenuItems = [
   { id: 5, name: 'Fried Rice', price: 220, category: 'Main Course', description: 'Chicken fried rice', image: '/images/Combo Meals.jpg' }
 ];
 
-const mockOrders = [
-  { id: 1, table_id: 5, customer_name: 'John Doe', customer_phone: '9841234567', items: [{ name: 'Chicken Momo', quantity: 2, price: 180 }], total: 360, status: 'pending', order_type: 'dine-in', created_at: new Date().toISOString() },
-  { id: 2, table_id: 'Delivery', customer_name: 'Jane Smith', customer_phone: '9847654321', items: [{ name: 'Burger Combo', quantity: 1, price: 280 }], total: 280, status: 'preparing', order_type: 'delivery', created_at: new Date().toISOString(), delivery_address: 'Duwakot, Bhaktapur' }
+// Create mock orders with mutable status for testing
+let mockOrders = [
+  { id: 1, table_id: 5, customer_name: 'John Doe', customer_phone: '9841234567', items: [{ name: 'Chicken Momo', quantity: 2, price: 180 }], total_amount: 360, status: 'pending', order_type: 'dine-in', created_at: new Date().toISOString(), order_number: 'ORD001' },
+  { id: 2, table_id: 'Delivery', customer_name: 'Jane Smith', customer_phone: '9847654321', items: [{ name: 'Burger Combo', quantity: 1, price: 280 }], total_amount: 280, status: 'preparing', order_type: 'delivery', created_at: new Date().toISOString(), delivery_address: 'Duwakot, Bhaktapur', order_number: 'ORD002' },
+  { id: 3, table_id: 3, customer_name: 'Mike Johnson', customer_phone: '9841111111', items: [{ name: 'Chicken Thali', quantity: 1, price: 350 }, { name: 'Cheese Pizza', quantity: 1, price: 450 }], total_amount: 800, status: 'ready', order_type: 'dine-in', created_at: new Date().toISOString(), order_number: 'ORD003' },
+  { id: 4, table_id: 7, customer_name: 'Sarah Wilson', customer_phone: '9842222222', items: [{ name: 'Fried Rice', quantity: 2, price: 220 }], total_amount: 440, status: 'completed', order_type: 'dine-in', created_at: new Date().toISOString(), order_number: 'ORD004' },
+  { id: 5, table_id: 'Delivery', customer_name: 'David Brown', customer_phone: '9843333333', items: [{ name: 'Cheese Pizza', quantity: 1, price: 450 }], total_amount: 450, status: 'pending', order_type: 'delivery', created_at: new Date().toISOString(), delivery_address: 'Kathmandu, Nepal', order_number: 'ORD005' }
 ];
 
 // Check if we're in mock mode - disabled for production
@@ -22,18 +26,32 @@ const isMockMode = () => false;
 
 // Create axios instance with base configuration
 const apiClient = axios.create({
-  baseURL: isMockMode() ? 'https://mock-api' : getApiUrl(),
+  baseURL: getApiUrl(),
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-// Request interceptor to add base URL
-apiClient.interceptors.request.use((config) => {
-  if (!config.url.startsWith('http')) {
-    config.url = getApiUrl(config.url);
+// Mock API service for testing
+const mockApiService = {
+  updateOrderStatus: async (orderId, status) => {
+    console.log(`Mock: Updating order ${orderId} to status ${status}`);
+    // Update the mock order status
+    const order = mockOrders.find(o => o.id === parseInt(orderId));
+    if (order) {
+      order.status = status;
+    }
+    return { success: true };
+  },
+  clearTableAdmin: async (tableId) => {
+    console.log(`Mock: Clearing table ${tableId}`);
+    return { data: { success: true, movedToHistory: 1 } };
   }
+};
+
+// Request interceptor - no longer needed since baseURL is set correctly
+apiClient.interceptors.request.use((config) => {
   return config;
 });
 
@@ -134,12 +152,13 @@ export const fetchApi = {
     if (isMockMode()) {
       // Return mock data based on endpoint
       if (endpoint.includes('/menu')) {
-        return mockMenuItems;
+        return { data: mockMenuItems };
       }
       if (endpoint.includes('/orders')) {
-        return mockOrders;
+        console.log('Mock API: Returning orders:', mockOrders);
+        return { data: mockOrders };
       }
-      return [];
+      return { data: [] };
     }
     
     const response = await fetch(getApiUrl(endpoint), {
@@ -182,6 +201,12 @@ export const fetchApi = {
   },
   
   put: async (endpoint, data, options = {}) => {
+    if (isMockMode()) {
+      // Mock status update - just return success
+      console.log('Mock PUT:', endpoint, data);
+      return { success: true, data: data };
+    }
+    
     const response = await fetch(getApiUrl(endpoint), {
       method: 'PUT',
       headers: {
@@ -201,4 +226,4 @@ export const fetchApi = {
 };
 
 export { getSocketUrl };
-export default apiService;
+export default isMockMode() ? mockApiService : apiService;

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { fetchApi, getSocketUrl, apiService } from '../services/apiService';
+import { fetchApi, getSocketUrl } from '../services/apiService';
+import apiService from '../services/apiService';
 import io from 'socket.io-client';
 import OfflineStorageManager from '../utils/offlineStorage';
 import audioManager from '../utils/audioNotifications';
@@ -177,11 +178,14 @@ const Admin = () => {
   const fetchOrders = async () => {
     try {
       setLoading(true);
-      const data = await fetchApi.get('/api/orders');
-      setOrders(data);
-    } catch (err) {
-      setError(err.message);
-      console.error('Error fetching orders:', err);
+      const response = await fetchApi.get('/api/orders');
+      console.log('Admin Dashboard - API Response:', response);
+      const allOrders = Array.isArray(response.data) ? response.data : response || [];
+      console.log('Admin Dashboard - All Orders:', allOrders);
+      setOrders(allOrders);
+    } catch (error) {
+      console.error('Error fetching orders:', error);
+      setOrders([]);
     } finally {
       setLoading(false);
     }
@@ -345,6 +349,16 @@ const Admin = () => {
   const cancelClearTable = () => {
     setShowConfirmModal(false);
     setTableToDelete(null);
+  };
+
+  const updateOrderStatus = async (orderId, newStatus) => {
+    try {
+      await apiService.updateOrderStatus(orderId, newStatus);
+      await fetchOrders();
+      console.log(`✅ Order ${orderId} status updated to ${newStatus}`);
+    } catch (error) {
+      console.error('Error updating order status:', error);
+    }
   };
 
   const handleCompleteDeliveryOrder = async (orderId) => {
@@ -799,12 +813,49 @@ const Admin = () => {
                       <div className="text-2xl font-bold text-primary">
                         NPR {getTotalOrderValue(order.items, order.total)}/-
                       </div>
-                      <button
-                        onClick={() => handleClearTable(order.table_id)}
-                        className="mt-2 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
-                      >
-                        Clear Table
-                      </button>
+                      
+                      {/* Order Status Management */}
+                      <div className="mt-2 space-y-2">
+                        {order.status === 'pending' && (
+                          <button
+                            onClick={() => updateOrderStatus(order.id, 'preparing')}
+                            className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                          >
+                            🔥 Start Preparing
+                          </button>
+                        )}
+                        
+                        {order.status === 'preparing' && (
+                          <button
+                            onClick={() => updateOrderStatus(order.id, 'ready')}
+                            className="w-full bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition-colors text-sm"
+                          >
+                            ✅ Mark Ready
+                          </button>
+                        )}
+                        
+                        {order.status === 'ready' && (
+                          <button
+                            onClick={() => updateOrderStatus(order.id, 'completed')}
+                            className="w-full bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors text-sm"
+                          >
+                            📋 Mark Completed
+                          </button>
+                        )}
+                        
+                        {order.status === 'completed' && (
+                          <div className="w-full bg-green-100 text-green-800 px-4 py-2 rounded-lg text-sm font-medium text-center border border-green-200">
+                            ✅ Completed
+                          </div>
+                        )}
+                        
+                        <button
+                          onClick={() => handleClearTable(order.table_id)}
+                          className="w-full bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors text-sm"
+                        >
+                          Clear Table
+                        </button>
+                      </div>
                     </div>
                   </div>
                   
@@ -917,12 +968,42 @@ const Admin = () => {
                       <div className="text-2xl font-bold text-green-600">
                         NPR {getTotalOrderValue(order.items, order.total)}/-
                       </div>
-                      <button
-                        onClick={() => handleCompleteDeliveryOrder(order.id)}
-                        className="mt-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
-                      >
-                        Mark Complete
-                      </button>
+                      
+                      {/* Order Status Management */}
+                      <div className="mt-2 space-y-2">
+                        {order.status === 'pending' && (
+                          <button
+                            onClick={() => updateOrderStatus(order.id, 'preparing')}
+                            className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                          >
+                            🔥 Start Preparing
+                          </button>
+                        )}
+                        
+                        {order.status === 'preparing' && (
+                          <button
+                            onClick={() => updateOrderStatus(order.id, 'ready')}
+                            className="w-full bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition-colors text-sm"
+                          >
+                            ✅ Mark Ready
+                          </button>
+                        )}
+                        
+                        {order.status === 'ready' && (
+                          <button
+                            onClick={() => updateOrderStatus(order.id, 'completed')}
+                            className="w-full bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors text-sm"
+                          >
+                            📋 Mark Completed
+                          </button>
+                        )}
+                        
+                        {order.status === 'completed' && (
+                          <div className="w-full bg-green-100 text-green-800 px-4 py-2 rounded-lg text-sm font-medium text-center border border-green-200">
+                            ✅ Completed
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                   

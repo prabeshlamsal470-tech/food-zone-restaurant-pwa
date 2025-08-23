@@ -25,7 +25,24 @@ export const DeliveryCartProvider = ({ children }) => {
       
       // Check if cart is less than 1 hour old
       if (now - timestamp < oneHour) {
-        setDeliveryCartItems(JSON.parse(savedCart));
+        const cartItems = JSON.parse(savedCart);
+        // Filter out items with invalid string IDs (like 'hh1', 'hh2', etc.)
+        const validItems = cartItems.filter(item => 
+          typeof item.id === 'number' && !isNaN(item.id)
+        );
+        
+        // If we filtered out invalid items, update localStorage
+        if (validItems.length !== cartItems.length) {
+          console.log('🧹 Filtered out invalid cart items with string IDs');
+          if (validItems.length > 0) {
+            localStorage.setItem('delivery_cart', JSON.stringify(validItems));
+          } else {
+            localStorage.removeItem('delivery_cart');
+            localStorage.removeItem('delivery_cart_timestamp');
+          }
+        }
+        
+        setDeliveryCartItems(validItems);
       } else {
         // Clear expired cart
         localStorage.removeItem('delivery_cart');
@@ -39,24 +56,25 @@ export const DeliveryCartProvider = ({ children }) => {
     localStorage.setItem('delivery_cart_timestamp', Date.now().toString());
   };
 
-  const addToDeliveryCart = (item, quantity = 1) => {
+  const addToDeliveryCart = (item) => {
+    // Validate item ID is a number
+    if (typeof item.id !== 'number' || isNaN(item.id)) {
+      console.error(' Cannot add item with invalid ID:', item.id);
+      return;
+    }
+    
     setDeliveryCartItems(prevItems => {
       const existingItem = prevItems.find(cartItem => cartItem.id === item.id);
       let newItems;
       
       if (existingItem) {
         newItems = prevItems.map(cartItem =>
-          cartItem.id === item.id 
-            ? { ...cartItem, quantity: cartItem.quantity + quantity }
+          cartItem.id === item.id
+            ? { ...cartItem, quantity: cartItem.quantity + 1 }
             : cartItem
         );
       } else {
-        const newItem = {
-          ...item,
-          quantity,
-          addedAt: new Date().toISOString()
-        };
-        newItems = [...prevItems, newItem];
+        newItems = [...prevItems, { ...item, quantity: 1 }];
       }
       
       saveDeliveryCart(newItems);

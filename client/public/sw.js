@@ -1,15 +1,26 @@
 // Food Zone PWA Service Worker - Enhanced for Staff Dashboard
-const CACHE_NAME = 'food-zone-staff-v3';
+const CACHE_NAME = 'food-zone-v1.0.4';
 const urlsToCache = [
-  '/staff',
-  '/admin',
+  '/',
   '/static/js/bundle.js',
   '/static/css/main.css',
-  '/images/Food Zone Restaurant Logo.jpg',
   '/manifest.json',
-  '/sounds/table-order.mp3',
-  '/sounds/delivery-order.mp3'
+  '/images/logo.jpg',
+  '/menu',
+  '/delivery-cart',
+  '/reception',
+  '/staff'
 ];
+
+// Cache strategies
+const CACHE_STRATEGIES = {
+  // Cache first for static assets
+  CACHE_FIRST: 'cache-first',
+  // Network first for dynamic content
+  NETWORK_FIRST: 'network-first',
+  // Stale while revalidate for frequently updated content
+  STALE_WHILE_REVALIDATE: 'stale-while-revalidate'
+};
 
 // Install Service Worker
 self.addEventListener('install', (event) => {

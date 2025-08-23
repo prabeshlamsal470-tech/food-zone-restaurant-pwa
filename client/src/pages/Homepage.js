@@ -170,20 +170,28 @@ const Homepage = () => {
                     </h4>
                     <div className="space-y-3 text-lg">
                       <div className="flex justify-between items-center">
-                        <span>🍛 Dal Bhat Set</span>
-                        <span className="font-bold text-yellow-300">NPR 180</span>
+                        <span>🥟 Chicken Momo</span>
+                        <span className="font-bold text-yellow-300">NPR 125</span>
                       </div>
                       <div className="flex justify-between items-center">
-                        <span>🥟 Momo Combo</span>
-                        <span className="font-bold text-yellow-300">NPR 220</span>
+                        <span>🍛 Chicken Fried Rice</span>
+                        <span className="font-bold text-yellow-300">NPR 145</span>
                       </div>
                       <div className="flex justify-between items-center">
-                        <span>🍔 Burger + Fries</span>
-                        <span className="font-bold text-yellow-300">NPR 280</span>
+                        <span>🍛 Veg Fried Rice</span>
+                        <span className="font-bold text-yellow-300">NPR 110</span>
                       </div>
                       <div className="flex justify-between items-center">
-                        <span>🍜 Noodles Special</span>
-                        <span className="font-bold text-yellow-300">NPR 200</span>
+                        <span>🍔 Burger</span>
+                        <span className="font-bold text-yellow-300">NPR 150</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span>🍜 Chicken Chawmein</span>
+                        <span className="font-bold text-yellow-300">NPR 110</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span>🍜 Veg Chawmein</span>
+                        <span className="font-bold text-yellow-300">NPR 80</span>
                       </div>
                     </div>
                     <div className="mt-4 text-sm text-yellow-200">

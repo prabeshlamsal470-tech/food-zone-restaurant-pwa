@@ -8,7 +8,7 @@ import audioAlertManager from '../utils/audioAlerts';
 const StaffDashboard = () => {
   const [orders, setOrders] = useState([]);
   const [, setLoading] = useState(true);
-  const [filter, setFilter] = useState('all');
+  const [filter, setFilter] = useState('pending');
   const [, setSocket] = useState(null);
   const [notifications, setNotifications] = useState([]);
   const [audioEnabled, setAudioEnabled] = useState(true);
@@ -98,8 +98,8 @@ const StaffDashboard = () => {
           audioAlertManager.playNotificationAlert();
         }).catch(error => {
           console.warn('Audio alert initialization failed:', error);
-          // Fallback to HTML5 audio
-          audioAlertManager.playAudioFile('/sounds/notification-bell.mp3', 3);
+          // Fallback to kitchen alarm audio
+          audioAlertManager.playKitchenAlarmFile('/sounds/kitchen-alarm.mp3', 5);
         });
       }
       
@@ -209,7 +209,9 @@ const StaffDashboard = () => {
   const fetchOrders = async () => {
     try {
       const response = await fetchApi.get('/api/orders');
+      console.log('Staff Dashboard - API Response:', response);
       const allOrders = Array.isArray(response.data) ? response.data : response || [];
+      console.log('Staff Dashboard - All Orders:', allOrders);
       
       // Filter orders to only show today's orders
       const today = new Date();
@@ -311,8 +313,8 @@ const StaffDashboard = () => {
         console.log('Audio alerts enabled and tested');
       } catch (error) {
         console.warn('Audio test failed:', error);
-        // Try fallback audio
-        audioAlertManager.playAudioFile('/sounds/notification-bell.mp3', 1);
+        // Try fallback kitchen alarm
+        audioAlertManager.playKitchenAlarmFile('/sounds/kitchen-alarm.mp3', 5);
       }
     } else {
       console.log('Audio alerts disabled');
@@ -324,7 +326,6 @@ const StaffDashboard = () => {
       if (isOnline) {
         await fetchApi.put(`/api/orders/${orderId}/status`, { status: newStatus });
       } else {
-        // Store action for later sync when back online
         if (offlineStorage) {
           await offlineStorage.storePendingAction({
             type: 'UPDATE_ORDER_STATUS',
@@ -333,50 +334,36 @@ const StaffDashboard = () => {
           });
         }
       }
-      
-      // Update local state immediately for better UX
       setOrders(prevOrders => 
         prevOrders.map(order => 
           order.id === orderId ? { ...order, status: newStatus } : order
         )
       );
-      
-      // Show status update notification
       const statusMessages = {
         'preparing': 'Order started preparing',
         'ready': 'Order is ready for pickup',
-        'completed': 'Order marked as paid'
+        'completed': 'Order completed'
       };
-      
       if (statusMessages[newStatus]) {
         const message = isOnline ? statusMessages[newStatus] : `${statusMessages[newStatus]} (will sync when online)`;
         console.log('Status Updated:', message);
       }
     } catch (error) {
       console.error('Error updating order status:', error);
-      // Only show error notifications for critical failures
-      console.log('Error: Failed to update order status');
     }
   };
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'pending':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'preparing':
-        return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'ready':
-        return 'bg-green-100 text-green-800 border-green-200';
-      case 'completed':
-        return 'bg-gray-100 text-gray-800 border-gray-200';
-      default:
-        return 'bg-gray-100 text-gray-800 border-gray-200';
+      case 'pending': return 'bg-yellow-100 text-yellow-800';
+      case 'preparing': return 'bg-blue-100 text-blue-800';
+      case 'ready': return 'bg-orange-100 text-orange-800';
+      case 'completed': return 'bg-green-100 text-green-800';
+      default: return 'bg-gray-100 text-gray-800';
     }
   };
 
   const filteredOrders = Array.isArray(orders) ? orders.filter(order => {
-    if (filter === 'all') return true;
-    if (filter === 'active') return ['pending', 'preparing', 'ready'].includes(order.status);
     return order.status === filter;
   }) : [];
   const activeOrders = Array.isArray(orders) ? orders.filter(order => ['pending', 'preparing', 'ready'].includes(order.status)) : [];
@@ -452,7 +439,7 @@ const StaffDashboard = () => {
               {/* Push Notifications Toggle */}
               <button
                 onClick={togglePushNotifications}
-                className={`flex items-center space-x-1 px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
+                className={`flex items-center space-x-1 px-3 py-1 rounded-lg text-xs font-medium transition-all duration-200 ${
                   pushEnabled 
                     ? 'bg-blue-100 text-blue-800 hover:bg-blue-200' 
                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -467,12 +454,12 @@ const StaffDashboard = () => {
                 onClick={toggleAudioAlerts}
                 className={`px-3 py-2 rounded-lg transition-colors font-medium ${
                   audioEnabled
-                    ? 'bg-green-500 hover:bg-green-600 text-white'
+                    ? 'bg-red-500 hover:bg-red-600 text-white'
                     : 'bg-gray-300 hover:bg-gray-400 text-gray-700'
                 }`}
-                title={audioEnabled ? 'Disable Triple Bell Alerts' : 'Enable Triple Bell Alerts'}
+                title={audioEnabled ? 'Disable Kitchen Alarm' : 'Enable Kitchen Alarm'}
               >
-                {audioEnabled ? '🔔 Bell On' : '🔇 Bell Off'}
+                {audioEnabled ? '🚨 Alarm On' : '🔇 Alarm Off'}
               </button>
               
               <div className="flex items-center space-x-2 text-xs sm:text-sm text-gray-500">
@@ -502,8 +489,6 @@ const StaffDashboard = () => {
           </div>
           <div className="flex flex-wrap gap-2">
             {[
-              { key: 'all', label: 'All Orders', count: Array.isArray(orders) ? orders.length : 0 },
-              { key: 'active', label: 'Active', count: Array.isArray(orders) ? orders.filter(o => ['pending', 'preparing', 'ready'].includes(o.status)).length : 0 },
               { key: 'pending', label: 'Pending', count: Array.isArray(orders) ? orders.filter(o => o.status === 'pending').length : 0 },
               { key: 'preparing', label: 'Preparing', count: Array.isArray(orders) ? orders.filter(o => o.status === 'preparing').length : 0 },
               { key: 'ready', label: 'Ready', count: Array.isArray(orders) ? orders.filter(o => o.status === 'ready').length : 0 },
@@ -539,7 +524,7 @@ const StaffDashboard = () => {
             <div className="text-gray-400 text-4xl sm:text-6xl mb-4">📋</div>
             <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-2">No orders found</h3>
             <p className="text-sm sm:text-base text-gray-500">
-              {filter === 'all' ? 'No orders have been placed yet.' : `No ${filter} orders at the moment.`}
+              {`No ${filter} orders at the moment.`}
             </p>
           </div>
         ) : (
@@ -598,7 +583,7 @@ const StaffDashboard = () => {
                       </p>
                       <div className="flex flex-col space-y-1">
                         <span className={`px-3 py-1 text-sm rounded-full ${getStatusColor(order.status)}`}>
-                          {order.status === 'completed' ? 'paid' : order.status}
+                          {order.status}
                         </span>
                       </div>
                     </div>
@@ -627,15 +612,15 @@ const StaffDashboard = () => {
                         {order.status === 'ready' && (
                           <button
                             onClick={() => updateOrderStatus(order.id, 'completed')}
-                            className="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors duration-200 shadow-sm"
+                            className="px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 transition-colors duration-200 shadow-sm"
                           >
-                            💰 Mark Paid
+                            📋 Mark Completed
                           </button>
                         )}
                         
                         {order.status === 'completed' && (
                           <div className="px-4 py-2 bg-green-100 text-green-800 text-sm font-medium rounded-lg border border-green-200">
-                            ✅ Paid
+                            ✅ Completed
                           </div>
                         )}
                       </div>

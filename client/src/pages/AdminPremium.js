@@ -73,8 +73,7 @@ const AdminPremium = () => {
           'preparing': 2,
           'ready': 3,
           'completed': 4,
-          'paid': 5,
-          'cancelled': 6
+          'cancelled': 5
         };
         
         // First sort by status priority, then by creation time
@@ -2342,7 +2341,7 @@ const OrdersManagement = ({ orders, setOrders }) => {
   const filteredOrders = orders.filter(order => {
     if (filter === 'all') return true;
     if (filter === 'active') return ['pending', 'preparing', 'ready'].includes(order.status);
-    if (filter === 'paid') return order.status === 'completed';
+    if (filter === 'completed') return order.status === 'completed';
     return order.status === filter;
   });
   
@@ -2350,7 +2349,7 @@ const OrdersManagement = ({ orders, setOrders }) => {
     const getFilterCount = (filterType) => {
     if (filterType === 'all') return orders.length;
     if (filterType === 'active') return orders.filter(o => ['pending', 'preparing', 'ready'].includes(o.status)).length;
-    if (filterType === 'paid') return orders.filter(o => o.status === 'completed').length;
+    if (filterType === 'completed') return orders.filter(o => o.status === 'completed').length;
     return orders.filter(o => o.status === filterType).length;
   };
 
@@ -2372,7 +2371,7 @@ const OrdersManagement = ({ orders, setOrders }) => {
   };
 
   const getStatusLabel = (status) => {
-    return status === 'completed' ? 'paid' : status;
+    return status;
   };
 
   return (
@@ -2382,7 +2381,7 @@ const OrdersManagement = ({ orders, setOrders }) => {
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-semibold">Order Management</h2>
           <div className="flex space-x-2">
-            {['all', 'active', 'pending', 'preparing', 'ready', 'paid'].map((filterType) => (
+            {['all', 'active', 'pending', 'preparing', 'ready', 'completed'].map((filterType) => (
               <button
                 key={filterType}
                 onClick={() => setFilter(filterType)}
@@ -2500,13 +2499,13 @@ const OrdersManagement = ({ orders, setOrders }) => {
                             onClick={() => updateOrderStatus(order.id, 'completed')}
                             className="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors duration-200 shadow-sm"
                           >
-                            💰 Mark Paid
+                            ✅ Completed
                           </button>
                         )}
                         
                         {order.status === 'completed' && (
                           <div className="px-4 py-2 bg-green-100 text-green-800 text-sm font-medium rounded-lg border border-green-200">
-                            ✅ Paid
+                            ✅ Completed
                           </div>
                         )}
                       </div>

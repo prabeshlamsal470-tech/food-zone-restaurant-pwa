@@ -21,8 +21,8 @@ class AudioAlertManager {
     }
   }
 
-  // Create a loud bell/ring sound
-  createBellSound(frequency = 800, duration = 0.5) {
+  // Create a loud kitchen alarm sound
+  createKitchenAlarm(frequency = 1200, duration = 1.0) {
     if (!this.audioContext) return null;
 
     const oscillator = this.audioContext.createOscillator();
@@ -34,27 +34,29 @@ class AudioAlertManager {
     filterNode.connect(gainNode);
     gainNode.connect(this.audioContext.destination);
 
-    // Configure bell sound
-    oscillator.type = 'sine';
+    // Configure urgent alarm sound
+    oscillator.type = 'square'; // Harsher, more attention-grabbing
     oscillator.frequency.setValueAtTime(frequency, this.audioContext.currentTime);
-    oscillator.frequency.exponentialRampToValueAtTime(frequency * 0.5, this.audioContext.currentTime + duration);
+    // Create warbling effect for urgency
+    oscillator.frequency.linearRampToValueAtTime(frequency * 1.5, this.audioContext.currentTime + duration * 0.5);
+    oscillator.frequency.linearRampToValueAtTime(frequency, this.audioContext.currentTime + duration);
 
-    // Add filter for bell-like resonance
-    filterNode.type = 'bandpass';
-    filterNode.frequency.setValueAtTime(frequency, this.audioContext.currentTime);
-    filterNode.Q.setValueAtTime(10, this.audioContext.currentTime);
+    // Add filter for cutting through noise
+    filterNode.type = 'highpass';
+    filterNode.frequency.setValueAtTime(800, this.audioContext.currentTime);
+    filterNode.Q.setValueAtTime(5, this.audioContext.currentTime);
 
-    // Volume envelope (loud start, quick fade)
+    // Volume envelope (very loud, sustained)
     gainNode.gain.setValueAtTime(0, this.audioContext.currentTime);
-    gainNode.gain.linearRampToValueAtTime(0.8, this.audioContext.currentTime + 0.01); // Loud start
-    gainNode.gain.exponentialRampToValueAtTime(0.1, this.audioContext.currentTime + duration * 0.3);
+    gainNode.gain.linearRampToValueAtTime(0.9, this.audioContext.currentTime + 0.02); // Very loud start
+    gainNode.gain.setValueAtTime(0.9, this.audioContext.currentTime + duration * 0.8); // Sustained volume
     gainNode.gain.exponentialRampToValueAtTime(0.001, this.audioContext.currentTime + duration);
 
     return { oscillator, gainNode, duration };
   }
 
-  // Play bell sound 3 times with intervals
-  async playTripleBell() {
+  // Play urgent kitchen alarm 5 times with intervals
+  async playUrgentKitchenAlarm() {
     if (!this.isEnabled || this.isPlaying) return;
     
     this.isPlaying = true;
@@ -69,22 +71,22 @@ class AudioAlertManager {
         await this.audioContext.resume();
       }
 
-      // Play 3 bell sounds with different frequencies for variety
-      const frequencies = [800, 1000, 800]; // High-low-high pattern
-      const interval = 0.8; // Time between bells
+      // Play 5 urgent alarm sounds with varying frequencies for maximum attention
+      const frequencies = [1200, 1500, 1200, 1500, 1200]; // Alternating high frequencies
+      const interval = 0.6; // Faster intervals for urgency
 
-      for (let i = 0; i < 3; i++) {
-        const bell = this.createBellSound(frequencies[i], 0.6);
-        if (bell) {
+      for (let i = 0; i < 5; i++) {
+        const alarm = this.createKitchenAlarm(frequencies[i], 0.8);
+        if (alarm) {
           const startTime = this.audioContext.currentTime + (i * interval);
-          bell.oscillator.start(startTime);
-          bell.oscillator.stop(startTime + bell.duration);
+          alarm.oscillator.start(startTime);
+          alarm.oscillator.stop(startTime + alarm.duration);
         }
         
-        // Add vibration if available (mobile devices)
+        // Add strong vibration pattern for mobile devices
         if (navigator.vibrate) {
           setTimeout(() => {
-            navigator.vibrate([300, 100, 300]); // Strong vibration pattern
+            navigator.vibrate([500, 100, 500, 100, 500]); // Very strong vibration
           }, i * interval * 1000);
         }
       }
@@ -92,16 +94,16 @@ class AudioAlertManager {
       // Reset playing flag after all sounds complete
       setTimeout(() => {
         this.isPlaying = false;
-      }, (3 * interval + 0.6) * 1000);
+      }, (5 * interval + 0.8) * 1000);
 
     } catch (error) {
-      console.warn('Audio alert failed:', error);
+      console.warn('Kitchen alarm failed:', error);
       this.isPlaying = false;
     }
   }
 
-  // Alternative method using HTML5 Audio for better mobile support
-  async playAudioFile(audioUrl, times = 3) {
+  // Play kitchen alarm audio file with maximum volume and urgency
+  async playKitchenAlarmFile(audioUrl, times = 5) {
     if (!this.isEnabled || this.isPlaying) return;
     
     this.isPlaying = true;
@@ -110,44 +112,45 @@ class AudioAlertManager {
       for (let i = 0; i < times; i++) {
         const audio = new Audio(audioUrl);
         audio.volume = 1.0; // Maximum volume
+        audio.playbackRate = 1.1; // Slightly faster for urgency
         
-        // Play with delay between repetitions
+        // Play with shorter delay for urgency
         setTimeout(async () => {
           try {
             await audio.play();
             
-            // Add vibration
+            // Add intense vibration pattern
             if (navigator.vibrate) {
-              navigator.vibrate([400, 200, 400]);
+              navigator.vibrate([600, 150, 600, 150, 600]);
             }
           } catch (error) {
-            console.warn(`Audio play attempt ${i + 1} failed:`, error);
+            console.warn(`Kitchen alarm play attempt ${i + 1} failed:`, error);
           }
-        }, i * 1000); // 1 second between plays
+        }, i * 700); // Faster intervals (0.7 seconds)
       }
       
       // Reset playing flag
       setTimeout(() => {
         this.isPlaying = false;
-      }, times * 1000 + 2000);
+      }, times * 700 + 2000);
       
     } catch (error) {
-      console.warn('Audio file playback failed:', error);
+      console.warn('Kitchen alarm file playback failed:', error);
       this.isPlaying = false;
     }
   }
 
-  // Create notification sound using Web Audio API (works offline)
+  // Create urgent kitchen notification sound
   async playNotificationAlert() {
     if (!this.isEnabled || this.isPlaying) return;
     
     // Try Web Audio API first (better for PWA/offline)
     try {
-      await this.playTripleBell();
+      await this.playUrgentKitchenAlarm();
     } catch (error) {
-      console.warn('Web Audio API failed, trying HTML5 audio:', error);
-      // Fallback to HTML5 audio
-      await this.playAudioFile('/sounds/notification-bell.mp3', 3);
+      console.warn('Web Audio API failed, trying kitchen alarm file:', error);
+      // Fallback to kitchen alarm audio file
+      await this.playKitchenAlarmFile('/sounds/kitchen-alarm.mp3', 5);
     }
   }
 

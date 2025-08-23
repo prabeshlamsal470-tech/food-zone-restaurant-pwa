@@ -103,12 +103,12 @@ async function initializeDatabaseWithSampleData() {
          ('Mike Johnson', '9873333333', 'mike@example.com', 1, 180.00)`,
         
         // Insert orders
-        `INSERT INTO orders (order_number, order_type, customer_id, customer_name, customer_phone, delivery_address, table_id, subtotal, total, status, payment_status, payment_method, notes) VALUES
-         ('FZ-2024-001', 'delivery', 2, 'Jane Smith', '9847654321', 'Duwakot, Bhaktapur', NULL, 280.00, 330.00, 'completed', 'paid', 'digital', 'Extra spicy'),
-         ('FZ-2024-002', 'dine-in', 1, 'John Doe', '9841234567', NULL, 5, 360.00, 360.00, 'completed', 'paid', 'cash', NULL),
-         ('FZ-2024-003', 'delivery', 4, 'Sita Patel', '9862222222', 'Madhyapur Thimi', NULL, 450.00, 500.00, 'preparing', 'paid', 'digital', 'Call before delivery'),
-         ('FZ-2024-004', 'dine-in', 3, 'Ram Sharma', '9851111111', NULL, 12, 320.00, 320.00, 'ready', 'pending', NULL, 'Birthday special'),
-         ('FZ-2024-005', 'delivery', 5, 'Mike Johnson', '9873333333', 'Bhaktapur Durbar Square', NULL, 180.00, 230.00, 'pending', 'paid', 'card', 'Office delivery')`,
+        `INSERT INTO orders (order_number, order_type, customer_id, customer_name, customer_phone, delivery_address, table_id, subtotal, total, status, payment_method, notes) VALUES
+         ('FZ-2024-001', 'delivery', 2, 'Jane Smith', '9847654321', 'Duwakot, Bhaktapur', NULL, 280.00, 330.00, 'completed', 'digital', 'Extra spicy'),
+         ('FZ-2024-002', 'dine-in', 1, 'John Doe', '9841234567', NULL, 5, 360.00, 360.00, 'completed', 'cash', NULL),
+         ('FZ-2024-003', 'delivery', 4, 'Sita Patel', '9862222222', 'Madhyapur Thimi', NULL, 450.00, 500.00, 'preparing', 'digital', 'Call before delivery'),
+         ('FZ-2024-004', 'dine-in', 3, 'Ram Sharma', '9851111111', NULL, 12, 320.00, 320.00, 'ready', NULL, 'Birthday special'),
+         ('FZ-2024-005', 'delivery', 5, 'Mike Johnson', '9873333333', 'Bhaktapur Durbar Square', NULL, 180.00, 230.00, 'pending', 'card', 'Office delivery')`,
         
         // Insert order items
         `INSERT INTO order_items (order_id, menu_item_id, menu_item_name, menu_item_category, price, quantity, subtotal) VALUES
@@ -1487,7 +1487,7 @@ app.post('/api/init/db', async (req, res) => {
         session_end TIMESTAMP,
         status VARCHAR(20) DEFAULT 'occupied' CHECK (status IN ('occupied', 'ordering', 'dining', 'payment_pending', 'completed', 'cleared')),
         total_amount DECIMAL(10,2) DEFAULT 0,
-        payment_status VARCHAR(20) DEFAULT 'unpaid' CHECK (payment_status IN ('unpaid', 'partial', 'paid')),
+        payment_status VARCHAR(20) DEFAULT 'unpaid' CHECK (payment_status IN ('unpaid', 'partial', 'completed')),
         notes TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -1513,7 +1513,6 @@ app.post('/api/init/db', async (req, res) => {
         discount DECIMAL(10,2) DEFAULT 0,
         total DECIMAL(10,2) NOT NULL,
         status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'preparing', 'ready', 'completed', 'cancelled')),
-        payment_status VARCHAR(20) DEFAULT 'pending' CHECK (payment_status IN ('pending', 'paid')),
         payment_method VARCHAR(20) CHECK (payment_method IN ('cash', 'digital', 'card')),
         notes TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

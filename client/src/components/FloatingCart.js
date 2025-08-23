@@ -51,7 +51,9 @@ const FloatingCart = () => {
     // Show table cart for table customers even on other pages
     cartItemCount = tableCartCount;
     totalPrice = getTotalPrice();
-    cartLink = `/${currentTable}`;
+    // Use the stored encrypted table URL instead of numeric
+    const encryptedTableUrl = sessionStorage.getItem('currentTableUrl') || localStorage.getItem('currentTableUrl');
+    cartLink = encryptedTableUrl || `/${currentTable}`;
     cartType = `Table ${currentTable}`;
     cartColor = 'bg-primary hover:bg-orange-600';
   }
