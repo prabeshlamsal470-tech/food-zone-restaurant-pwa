@@ -65,8 +65,8 @@ export const cleanupMemory = (refs = []) => {
 
 // Optimize bundle size by dynamic imports
 export const loadComponentAsync = (componentPath) => {
-  const React = require('react');
-  return React.lazy(() => import(componentPath));
+  // Dynamic import for React lazy loading
+  return import('react').then(React => React.lazy(() => import(componentPath)));
 };
 
 // Image optimization
