@@ -1,25 +1,44 @@
 import React, { useState, useEffect, useMemo, useCallback, lazy, Suspense } from 'react';
-import { fetchApi } from '../services/apiService';
-import { Link, useLocation, useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useDeliveryCart } from '../context/DeliveryCartContext';
-import useDebounce from '../hooks/useDebounce';
-import useIntersectionObserver from '../hooks/useIntersectionObserver';
-import ErrorBoundary from '../components/ErrorBoundary';
+import { fetchApi } from '../services/apiService';
+import { tablePreloader } from '../utils/tablePreloader';
+import { seamlessNavigation } from '../utils/seamlessNavigation';
+
+// Custom hook for debouncing
+const useDebounce = (value, delay) => {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+  useEffect(() => {
+    const handler = setTimeout(() => setDebouncedValue(value), delay);
+    return () => clearTimeout(handler);
+  }, [value, delay]);
+  return debouncedValue;
+};
 
 // Lazy load components
 const MenuItemCard = lazy(() => import('../components/MenuItemCard'));
 const HappyHourSection = lazy(() => import('../components/HappyHourSection'));
 
 const Menu = () => {
-  // Initialize with instant mock data to prevent blank page
-  const [menuItems, setMenuItems] = useState([
-    { id: 1, name: 'Chicken Momo', price: 180, category: 'Appetizers', description: 'Steamed chicken dumplings' },
-    { id: 2, name: 'Chicken Thali', price: 350, category: 'Main Course', description: 'Complete chicken meal set' },
-    { id: 3, name: 'Burger Combo', price: 280, category: 'Fast Food', description: 'Burger with fries and drink' },
-    { id: 4, name: 'Cheese Pizza', price: 450, category: 'Pizza', description: 'Classic cheese pizza' },
-    { id: 5, name: 'Fried Rice', price: 220, category: 'Main Course', description: 'Chicken fried rice' }
-  ]);
+  // Initialize with instant preloaded data for seamless experience
+  const [menuItems, setMenuItems] = useState(() => {
+    // Check for preloaded menu data first
+    const preloadedMenu = localStorage.getItem('preloadedMenu');
+    if (preloadedMenu) {
+      try {
+        const parsed = JSON.parse(preloadedMenu);
+        if (Date.now() - parsed.timestamp < 120000) { // 2 minutes fresh
+          return parsed.data;
+        }
+      } catch (error) {
+        console.log('Preloaded menu parse error, using fallback');
+      }
+    }
+    
+    // Fallback to instant mock data
+    return tablePreloader.getFallbackMenu();
+  });
   const [loading, setLoading] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
@@ -129,7 +148,24 @@ const Menu = () => {
     }
   }, []);
 
-  // Set table context from URL parameter for instant table recognition
+  // Set table context from URL 
+  useEffect(() => {
+    const handleInstantMenuPopulation = (event) => {
+      const { tableNumber } = event.detail;
+      if (tableNumber) {
+        setTableContext(tableNumber);
+        // Get preloaded data instantly
+        const preloadedData = seamlessNavigation.getCachedData(tableNumber);
+        if (preloadedData?.menu) {
+          setMenuItems(preloadedData.menu);
+        }
+      }
+    };
+
+    window.addEventListener('populateMenuInstantly', handleInstantMenuPopulation);
+    return () => window.removeEventListener('populateMenuInstantly', handleInstantMenuPopulation);
+  }, [setTableContext]);
+
   useEffect(() => {
     if (tableParam && !currentTable) {
       // Handle both numeric and encrypted table parameters
@@ -260,18 +296,26 @@ const Menu = () => {
     }
   }, [isLoadingMore, hasMoreItems]);
   
-  // Intersection observer for auto-loading more items
-  const [loadMoreRef, isLoadMoreVisible] = useIntersectionObserver({
-    threshold: 0.1,
-    rootMargin: '100px'
-  });
+  // Simple load more functionality without intersection observer
+  const [loadMoreRef, setLoadMoreRef] = useState(null);
   
   // Auto-load more items when load more button comes into view
   useEffect(() => {
-    if (isLoadMoreVisible && hasMoreItems && !isLoadingMore) {
-      loadMoreItems();
-    }
-  }, [isLoadMoreVisible, hasMoreItems, isLoadingMore, loadMoreItems]);
+    const loadMoreButton = loadMoreRef;
+    if (!loadMoreButton) return;
+    
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting && hasMoreItems && !isLoadingMore) {
+        loadMoreItems();
+      }
+    }, {
+      rootMargin: '100px',
+      threshold: 0.1
+    });
+    
+    observer.observe(loadMoreButton);
+    return () => observer.disconnect();
+  }, [loadMoreRef, hasMoreItems, isLoadingMore, loadMoreItems]);
   
   // Reset visible items when category or search changes
   useEffect(() => {
@@ -290,7 +334,7 @@ const Menu = () => {
   }
 
   return (
-    <ErrorBoundary>
+    <div>
       <div className="container mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold text-center mb-8">Our Menu</h1>
       
@@ -538,23 +582,21 @@ const Menu = () => {
         </div>
       )}
 
-      {/* Delivery Cart Notice - Only for non-table customers */}
-      {deliveryCartItems.length > 0 && canOrderDelivery && (
-        <div className="bg-green-50 border border-green-200 rounded-lg p-4 mt-8 text-center">
-          <div className="text-green-600">
-            <h3 className="font-semibold mb-2">🚚 You have {deliveryCartItems.length} items in your delivery cart</h3>
-            <p className="text-sm mb-3">Ready to place your delivery order?</p>
-            <Link 
-              to="/delivery-cart"
-              className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition-colors"
-            >
-              Go to Delivery Cart
-            </Link>
-          </div>
+      {/* Delivery Cart Notice */}
+      {!isTableCustomer && deliveryCartItems.length > 0 && (
+        <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+          <h3 className="font-semibold mb-2">🚚 You have {deliveryCartItems.length} items in your delivery cart</h3>
+          <p className="text-sm mb-3">Ready to place your delivery order?</p>
+          <Link 
+            to="/delivery-cart"
+            className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition-colors"
+          >
+            Go to Delivery Cart
+          </Link>
         </div>
       )}
       </div>
-    </ErrorBoundary>
+    </div>
   );
 };
 

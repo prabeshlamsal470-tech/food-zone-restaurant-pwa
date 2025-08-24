@@ -1,23 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import io from 'socket.io-client';
 import { getSocketUrl, apiService } from '../services/apiService';
 import { useCart } from '../context/CartContext';
 import { decryptTableCode } from '../utils/tableEncryption';
+import { tablePreloader } from '../utils/tablePreloader';
+import { seamlessNavigation } from '../utils/seamlessNavigation';
 import LoadingSpinner from '../components/LoadingSpinner';
 
 const TableOrder = () => {
   const { tableId } = useParams();
   const navigate = useNavigate();
   const { cartItems, addToCart, removeFromCart, updateQuantity, setTableContext, clearCart, getTotalPrice } = useCart();
-  // Initialize with instant mock data to prevent blank page
-  const [menuItems, setMenuItems] = useState([
-    { id: 1, name: 'Chicken Momo', price: 180, category: 'Appetizers', description: 'Steamed chicken dumplings' },
-    { id: 2, name: 'Chicken Thali', price: 350, category: 'Main Course', description: 'Complete chicken meal set' },
-    { id: 3, name: 'Burger Combo', price: 280, category: 'Fast Food', description: 'Burger with fries and drink' },
-    { id: 4, name: 'Cheese Pizza', price: 450, category: 'Pizza', description: 'Classic cheese pizza' },
-    { id: 5, name: 'Fried Rice', price: 220, category: 'Main Course', description: 'Chicken fried rice' }
-  ]);
+  // Initialize with instant preloaded data for seamless experience
+  const [menuItems, setMenuItems] = useState(() => tablePreloader.getFallbackMenu().slice(0, 10));
   const [showCheckout, setShowCheckout] = useState(false);
   const [customerInfo, setCustomerInfo] = useState({ name: '', phone: '' });
   const [orderSubmitted, setOrderSubmitted] = useState(false);
@@ -29,7 +25,7 @@ const TableOrder = () => {
   const [errorMessage, setErrorMessage] = useState('');
   const [actualTableNumber, setActualTableNumber] = useState(null);
 
-  // Decrypt table code on component mount - ONLY encrypted codes allowed
+  // Instant table setup with seamless preloading
   useEffect(() => {
     if (tableId) {
       // Block all numeric table IDs - only encrypted codes allowed
@@ -42,11 +38,26 @@ const TableOrder = () => {
       const decryptedTable = decryptTableCode(tableId);
       if (decryptedTable) {
         setActualTableNumber(decryptedTable);
-        // Set table context for cart and menu components
+        // Set table context INSTANTLY for seamless experience
         setTableContext(decryptedTable);
         // Store the encrypted table URL for proper navigation
         sessionStorage.setItem('currentTableUrl', window.location.pathname);
         localStorage.setItem('currentTableUrl', window.location.pathname);
+        
+        // Preload table data instantly in background
+        tablePreloader.preloadTableData(decryptedTable).then(data => {
+          if (data.menu && data.menu.length > 10) {
+            setMenuItems(data.menu);
+          }
+        }).catch(error => {
+          console.log('Background preload failed, keeping fallback data');
+        });
+        
+        // Prefetch likely next tables for instant navigation
+        seamlessNavigation.prefetchLikelyTables(decryptedTable);
+        
+        // Preload menu page for instant table-to-menu navigation
+        seamlessNavigation.preloadMenuPage();
         
         // Initialize with happy hour items if it's happy hour time
         const now = new Date();
@@ -268,6 +279,11 @@ const TableOrder = () => {
       socket.disconnect();
     };
   }, [actualTableNumber, clearCart, navigate]);
+
+  const handleViewMenu = useCallback(() => {
+    // Instant seamless navigation to menu
+    seamlessNavigation.navigateToMenuInstantly(navigate, actualTableNumber);
+  }, [navigate, actualTableNumber]);
 
   const handleSubmitOrder = () => {
     // Clear any previous error messages
