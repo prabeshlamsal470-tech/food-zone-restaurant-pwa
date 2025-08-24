@@ -1,33 +1,39 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-// import { useCart } from '../context/CartContext';
-// import { useDeliveryCart } from '../context/DeliveryCartContext';
 
-const Header = () => {
+const Header = React.memo(() => {
   const location = useLocation();
-  // const { getTotalItems, currentTable } = useCart();
-  // const { getDeliveryTotalItems } = useDeliveryCart();
-  // const totalItems = getTotalItems();
-  // const deliveryItems = getDeliveryTotalItems();
   const [isScrolled, setIsScrolled] = useState(false);
   
-  // Show delivery cart for non-table pages, table cart for table pages
-  const isNumericTablePage = location.pathname.match(/^\/\d+$/);
-  const isEncryptedTablePage = location.pathname.match(/^\/[A-Za-z0-9]{12,}$/);
-  const isTablePage = isNumericTablePage || isEncryptedTablePage;
-  const isDeliveryCartPage = location.pathname === '/delivery-cart';
-  const isMenuPage = location.pathname === '/menu';
-  // const isTableMenuPage = isMenuPage && currentTable; // Menu page accessed from a table
-  // const displayItems = isTablePage ? totalItems : deliveryItems;
+  // Memoize page type calculations to prevent re-renders
+  const pageInfo = useMemo(() => {
+    const path = location.pathname;
+    return {
+      isNumericTablePage: /^\/\d+$/.test(path),
+      isEncryptedTablePage: /^\/[A-Za-z0-9]{12,}$/.test(path),
+      isDeliveryCartPage: path === '/delivery-cart',
+      isMenuPage: path === '/menu'
+    };
+  }, [location.pathname]);
+  
+  const isTablePage = pageInfo.isNumericTablePage || pageInfo.isEncryptedTablePage;
 
-  // Handle scroll effect
+  // Optimized scroll handler with throttling
   useEffect(() => {
+    let ticking = false;
+    
     const handleScroll = () => {
-      const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-      setIsScrolled(scrollTop > 50);
+      if (!ticking) {
+        requestAnimationFrame(() => {
+          const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+          setIsScrolled(scrollTop > 50);
+          ticking = false;
+        });
+        ticking = true;
+      }
     };
 
-    window.addEventListener('scroll', handleScroll);
+    window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
@@ -56,19 +62,20 @@ const Header = () => {
             </div>
           </Link>
           
-          <nav className="flex items-center">
-            {!isMenuPage && !isTablePage && !isNumericTablePage && !isEncryptedTablePage && (
+          <nav className="flex items-center space-x-6">
+            {/* Show menu button only on table pages and delivery cart page, but not on menu page */}
+            {(isTablePage || pageInfo.isDeliveryCartPage) && !pageInfo.isMenuPage && (
               <Link 
                 to="/menu" 
-                className={`flex items-center space-x-3 px-6 py-3 rounded-xl border-2 transition-all duration-300 transform hover:scale-105 ${
-                  isDeliveryCartPage
-                    ? 'bg-yellow-400 text-black border-yellow-400 font-bold shadow-lg'
-                    : 'bg-white/10 text-white border-white/30 hover:bg-yellow-400 hover:text-black hover:border-yellow-400 font-semibold backdrop-blur-sm'
-                }`}
+                className="bg-gradient-to-r from-yellow-400 to-yellow-500 hover:from-yellow-500 hover:to-yellow-600 text-black font-semibold px-6 py-2 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
               >
-                <span className="text-3xl">🍽️</span>
-                <span className="text-lg font-bold">
-                  {isDeliveryCartPage ? 'Browse Menu' : 'View Menu'}
+                <span className="flex items-center space-x-2">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                  </svg>
+                  <span>
+                    {pageInfo.isDeliveryCartPage ? 'Browse Menu' : 'View Menu'}
+                  </span>
                 </span>
               </Link>
             )}
@@ -78,6 +85,6 @@ const Header = () => {
       </div>
     </header>
   );
-};
+});
 
 export default Header;

@@ -19,28 +19,35 @@ const AdminPremium = React.lazy(() => import('./pages/AdminPremium'));
 const StaffDashboard = React.lazy(() => import('./pages/StaffDashboard'));
 const Reception = React.lazy(() => import('./pages/Reception'));
 
-// Minimal loading component for faster initial render
-const LoadingSpinner = () => (
-  <div className="min-h-screen flex items-center justify-center bg-gray-50">
-    <div className="text-center">
-      <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-amber-600 mb-2"></div>
-      <div className="text-sm text-gray-600">Loading...</div>
+// Ultra-minimal loading component for instant render
+const LoadingSpinner = React.memo(() => (
+  <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',backgroundColor:'#f9fafb'}}>
+    <div style={{textAlign:'center'}}>
+      <div style={{display:'inline-block',animation:'spin 1s linear infinite',borderRadius:'50%',width:'32px',height:'32px',borderBottom:'2px solid #d97706',marginBottom:'8px'}}></div>
+      <div style={{fontSize:'14px',color:'#4b5563'}}>Loading...</div>
     </div>
   </div>
-);
+));
 
-function AppContent() {
+const AppContent = React.memo(() => {
   const location = useLocation();
   
-  // Check if current path is an admin, staff, or reception page
-  const isAdminPage = location.pathname.startsWith('/admin');
-  const isStaffPage = location.pathname.startsWith('/staff');
-  const isReceptionPage = location.pathname.startsWith('/reception');
+  // Memoize page type checks to prevent re-calculations
+  const pageType = React.useMemo(() => {
+    const path = location.pathname;
+    return {
+      isAdminPage: path.startsWith('/admin'),
+      isStaffPage: path.startsWith('/staff'),
+      isReceptionPage: path.startsWith('/reception')
+    };
+  }, [location.pathname]);
+  
+  const showHeaderAndCart = !pageType.isAdminPage && !pageType.isStaffPage && !pageType.isReceptionPage;
   
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Only show Header and TableBanner on non-admin, non-staff, and non-reception pages */}
-      {!isAdminPage && !isStaffPage && !isReceptionPage && (
+      {/* Only show Header and TableBanner on customer pages */}
+      {showHeaderAndCart && (
         <>
           <Header />
           <TableBanner />
@@ -63,11 +70,11 @@ function AppContent() {
         </Routes>
       </Suspense>
       
-      {/* Only show Floating Cart on non-admin, non-staff, and non-reception pages */}
-      {!isAdminPage && !isStaffPage && !isReceptionPage && <FloatingCart />}
+      {/* Only show Floating Cart on customer pages */}
+      {showHeaderAndCart && <FloatingCart />}
     </div>
   );
-}
+});
 
 function App() {
   return (
