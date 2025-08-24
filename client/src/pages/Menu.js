@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useMemo, useCallback, lazy, Suspense } from 'react';
-import { useLocation, useNavigate, useSearchParams, Link } from 'react-router-dom';
-import { useCart } from '../context/CartContext';
-import { useDeliveryCart } from '../context/DeliveryCartContext';
+import { useSearchParams, Link } from 'react-router-dom';
 import { fetchApi } from '../services/apiService';
 import { tablePreloader } from '../utils/tablePreloader';
 import { seamlessNavigation } from '../utils/seamlessNavigation';
+import { useCart } from '../context/CartContext';
+import { useDeliveryCart } from '../context/DeliveryCartContext';
 
 // Custom hook for debouncing
 const useDebounce = (value, delay) => {
