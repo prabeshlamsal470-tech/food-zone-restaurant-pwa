@@ -13,7 +13,7 @@ const HappyHourSection = lazy(() => import('../components/HappyHourSection'));
 
 const Menu = () => {
   const [menuItems, setMenuItems] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [isHappyHour, setIsHappyHour] = useState(false);
@@ -54,6 +54,28 @@ const Menu = () => {
         return;
       }
       
+      // Show instant mock data for super fast loading
+      let instantMenu = [
+        { id: 1, name: 'Chicken Momo', price: 180, category: 'Appetizers', description: 'Steamed chicken dumplings' },
+        { id: 2, name: 'Chicken Thali', price: 350, category: 'Main Course', description: 'Complete chicken meal set' },
+        { id: 3, name: 'Burger Combo', price: 280, category: 'Fast Food', description: 'Burger with fries and drink' },
+        { id: 4, name: 'Cheese Pizza', price: 450, category: 'Pizza', description: 'Classic cheese pizza' },
+        { id: 5, name: 'Fried Rice', price: 220, category: 'Main Course', description: 'Chicken fried rice' },
+        { id: 6, name: 'Veg Momo', price: 150, category: 'Appetizers', description: 'Steamed vegetable dumplings' },
+        { id: 7, name: 'Chicken Chowmein', price: 180, category: 'Noodles', description: 'Stir-fried noodles with chicken' },
+        { id: 8, name: 'Veg Burger', price: 200, category: 'Fast Food', description: 'Vegetarian burger with fries' }
+      ];
+      
+      // Add happy hour items if it's happy hour time
+      if (isHappyHour) {
+        instantMenu = [...instantMenu, ...happyHourItems];
+      }
+      
+      // Set instant menu immediately for super fast loading
+      setMenuItems(instantMenu);
+      setLoading(false);
+      
+      // Then fetch real data in background
       const response = await fetchApi.get('/api/menu');
       
       // fetchApi.get returns the parsed JSON directly, not wrapped in .data

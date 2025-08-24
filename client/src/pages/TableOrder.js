@@ -58,9 +58,40 @@ const TableOrder = () => {
       if (cachedData && cacheTime && (now - parseInt(cacheTime)) < 120000) {
         console.log('Using cached menu data');
         setMenuItems(JSON.parse(cachedData));
+        setLoading(false);
         return;
       }
       
+      // Show mock data immediately for instant loading
+      const currentHour = new Date().getHours();
+      const isHappyHour = currentHour >= 11 && currentHour < 14;
+      
+      let instantMenu = [
+        { id: 1, name: 'Chicken Momo', price: 180, category: 'Appetizers', description: 'Steamed chicken dumplings' },
+        { id: 2, name: 'Chicken Thali', price: 350, category: 'Main Course', description: 'Complete chicken meal set' },
+        { id: 3, name: 'Burger Combo', price: 280, category: 'Fast Food', description: 'Burger with fries and drink' },
+        { id: 4, name: 'Cheese Pizza', price: 450, category: 'Pizza', description: 'Classic cheese pizza' },
+        { id: 5, name: 'Fried Rice', price: 220, category: 'Main Course', description: 'Chicken fried rice' }
+      ];
+      
+      // Add happy hour items if it's happy hour time
+      if (isHappyHour) {
+        const happyHourItems = [
+          { id: 1001, name: 'Chicken Momo', price: 125, category: 'Happy Hour', description: 'Delicious steamed chicken dumplings' },
+          { id: 1002, name: 'Chicken Fried Rice', price: 145, category: 'Happy Hour', description: 'Aromatic fried rice with tender chicken pieces' },
+          { id: 1003, name: 'Veg Fried Rice', price: 110, category: 'Happy Hour', description: 'Flavorful vegetarian fried rice with fresh vegetables' },
+          { id: 1004, name: 'Burger', price: 150, category: 'Happy Hour', description: 'Juicy beef burger with fresh toppings' },
+          { id: 1005, name: 'Chicken Chowmein', price: 110, category: 'Happy Hour', description: 'Stir-fried noodles with chicken and vegetables' },
+          { id: 1006, name: 'Veg Chowmein', price: 80, category: 'Happy Hour', description: 'Vegetarian stir-fried noodles with fresh vegetables' }
+        ];
+        instantMenu = [...instantMenu, ...happyHourItems];
+      }
+      
+      // Set instant menu immediately
+      setMenuItems(instantMenu);
+      setLoading(false);
+      
+      // Then try to fetch real data in background
       const response = await apiService.getMenu();
       console.log('Menu API Response:', response);
       
@@ -78,9 +109,6 @@ const TableOrder = () => {
       }
       
       // Add happy hour items if it's happy hour time (11 AM - 2 PM)
-      const currentHour = new Date().getHours();
-      const isHappyHour = currentHour >= 11 && currentHour < 14;
-      
       if (isHappyHour) {
         const happyHourItems = [
           { id: 1001, name: 'Chicken Momo', price: 125, category: 'Happy Hour', description: 'Delicious steamed chicken dumplings' },
@@ -108,8 +136,6 @@ const TableOrder = () => {
       } else {
         // Use mock data with happy hour items if no cache available
         console.log('Using mock menu data as fallback');
-        const currentHour = new Date().getHours();
-        const isHappyHour = currentHour >= 11 && currentHour < 14;
         
         let mockMenu = [
           { id: 1, name: 'Chicken Momo', price: 180, category: 'Appetizers', description: 'Steamed chicken dumplings' },
@@ -120,7 +146,8 @@ const TableOrder = () => {
         ];
         
         // Add happy hour items if it's happy hour time
-        if (isHappyHour) {
+        const currentHour = new Date().getHours();
+        if (currentHour >= 11 && currentHour < 14) {
           const happyHourItems = [
             { id: 1001, name: 'Chicken Momo', price: 125, category: 'Happy Hour', description: 'Delicious steamed chicken dumplings' },
             { id: 1002, name: 'Chicken Fried Rice', price: 145, category: 'Happy Hour', description: 'Aromatic fried rice with tender chicken pieces' },
