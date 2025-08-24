@@ -1,15 +1,26 @@
-// Food Zone PWA Service Worker - Enhanced for Staff Dashboard
-const CACHE_NAME = 'food-zone-v1.0.4';
+// Food Zone PWA Service Worker - Enhanced for Instant Table Loading
+const CACHE_NAME = 'food-zone-v2.0.0';
+const API_CACHE = 'food-zone-api-v2';
+const TABLE_CACHE = 'food-zone-table-v2';
+
+// Critical resources for instant table loading
 const urlsToCache = [
   '/',
+  '/menu',
   '/static/js/bundle.js',
   '/static/css/main.css',
   '/manifest.json',
   '/images/logo.jpg',
-  '/menu',
   '/delivery-cart',
   '/reception',
   '/staff'
+];
+
+// API endpoints to aggressively cache for instant table experience
+const CRITICAL_API_ENDPOINTS = [
+  '/api/menu',
+  '/api/tables/status',
+  '/api/tables'
 ];
 
 // Cache strategies
@@ -22,14 +33,46 @@ const CACHE_STRATEGIES = {
   STALE_WHILE_REVALIDATE: 'stale-while-revalidate'
 };
 
-// Install Service Worker
+// Install Service Worker with aggressive table caching
 self.addEventListener('install', (event) => {
-  console.log('🔧 Service Worker installing...');
+  console.log('🔧 Service Worker installing with table optimizations...');
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => {
-        return cache.addAll(urlsToCache);
+    Promise.all([
+      // Cache static resources
+      caches.open(CACHE_NAME).then(cache => cache.addAll(urlsToCache)),
+      // Pre-cache critical API endpoints for instant table loading
+      caches.open(API_CACHE).then(cache => {
+        return Promise.all(
+          CRITICAL_API_ENDPOINTS.map(endpoint => {
+            return fetch(`https://food-zone-backend-l00k.onrender.com${endpoint}`)
+              .then(response => {
+                if (response.ok) {
+                  cache.put(endpoint, response.clone());
+                  console.log(`✅ Pre-cached ${endpoint}`);
+                }
+                return response;
+              })
+              .catch(error => {
+                console.log(`⚠️ Failed to pre-cache ${endpoint}:`, error);
+              });
+          })
+        );
+      }),
+      // Pre-cache table encryption utilities
+      caches.open(TABLE_CACHE).then(cache => {
+        const tableData = {
+          fallbackMenu: [
+            { id: 1, name: 'Chicken Momo', price: 180, category: 'Appetizers' },
+            { id: 2, name: 'Chicken Thali', price: 350, category: 'Main Course' },
+            { id: 3, name: 'Burger Combo', price: 280, category: 'Fast Food' },
+            { id: 4, name: 'Cheese Pizza', price: 450, category: 'Pizza' },
+            { id: 5, name: 'Fried Rice', price: 220, category: 'Main Course' }
+          ],
+          timestamp: Date.now()
+        };
+        return cache.put('/fallback-menu', new Response(JSON.stringify(tableData)));
       })
+    ])
   );
   self.skipWaiting(); // Activate immediately
 });
@@ -78,16 +121,69 @@ function startKeepAlive() {
   console.log('⏰ Keep-alive mechanism started for kitchen staff');
 }
 
+// Enhanced fetch handler for instant table loading
 self.addEventListener('fetch', (event) => {
+  const url = new URL(event.request.url);
+  
+  // Handle API requests with cache-first strategy for instant loading
+  if (url.pathname.startsWith('/api/')) {
+    event.respondWith(
+      caches.open(API_CACHE).then(cache => {
+        return cache.match(event.request).then(cachedResponse => {
+          if (cachedResponse) {
+            // Return cached response immediately for instant loading
+            const response = cachedResponse.clone();
+            
+            // Update cache in background without blocking
+            fetch(event.request).then(networkResponse => {
+              if (networkResponse && networkResponse.ok) {
+                cache.put(event.request, networkResponse.clone());
+              }
+            }).catch(() => {
+              // Network failed, cached response is still valid
+            });
+            
+            return response;
+          }
+          
+          // No cache, fetch from network and cache
+          return fetch(event.request).then(networkResponse => {
+            if (networkResponse && networkResponse.ok) {
+              cache.put(event.request, networkResponse.clone());
+            }
+            return networkResponse;
+          }).catch(() => {
+            // Return fallback menu for critical endpoints
+            if (url.pathname === '/api/menu') {
+              return caches.open(TABLE_CACHE).then(tableCache => {
+                return tableCache.match('/fallback-menu');
+              });
+            }
+            throw new Error('Network unavailable');
+          });
+        });
+      })
+    );
+    return;
+  }
+  
+  // Handle static resources with cache-first for instant loading
   event.respondWith(
-    caches.match(event.request)
-      .then((response) => {
-        if (response) {
-          return response;
-        }
-        return fetch(event.request);
+    caches.match(event.request).then(response => {
+      if (response) {
+        return response;
       }
-    )
+      return fetch(event.request).then(networkResponse => {
+        // Cache successful responses for future instant loading
+        if (networkResponse && networkResponse.ok && networkResponse.type === 'basic') {
+          const responseToCache = networkResponse.clone();
+          caches.open(CACHE_NAME).then(cache => {
+            cache.put(event.request, responseToCache);
+          });
+        }
+        return networkResponse;
+      });
+    })
   );
 });
 

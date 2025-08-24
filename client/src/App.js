@@ -1,4 +1,4 @@
-import React, { Suspense } from 'react';
+import React, { Suspense, useEffect } from 'react';
 import './App.css';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import Header from './components/Header';
@@ -6,18 +6,39 @@ import TableBanner from './components/TableBanner';
 import FloatingCart from './components/FloatingCart';
 import { CartProvider } from './context/CartContext';
 import { DeliveryCartProvider } from './context/DeliveryCartContext';
+import { initializeBundleOptimizations } from './utils/bundleOptimizer';
 
-// Lazy load all page components for better performance
+// Critical components for instant table loading (higher priority)
+const TableOrder = React.lazy(() => 
+  import(/* webpackChunkName: "table-critical" */ './pages/TableOrder')
+);
+const Menu = React.lazy(() => 
+  import(/* webpackChunkName: "menu-critical" */ './pages/Menu')
+);
+
+// Standard components
 const Homepage = React.lazy(() => import('./pages/Homepage'));
-const Menu = React.lazy(() => import('./pages/Menu'));
 const Tables = React.lazy(() => import('./pages/Tables'));
-const TableOrder = React.lazy(() => import('./pages/TableOrder'));
-const DeliveryCart = React.lazy(() => import('./pages/DeliveryCart'));
-const Admin = React.lazy(() => import('./pages/Admin'));
-const AdminMobile = React.lazy(() => import('./pages/AdminMobile'));
-const AdminPremium = React.lazy(() => import('./pages/AdminPremium'));
-const StaffDashboard = React.lazy(() => import('./pages/StaffDashboard'));
-const Reception = React.lazy(() => import('./pages/Reception'));
+
+// Non-critical components (lower priority)
+const DeliveryCart = React.lazy(() => 
+  import(/* webpackChunkName: "delivery" */ './pages/DeliveryCart')
+);
+const Admin = React.lazy(() => 
+  import(/* webpackChunkName: "admin" */ './pages/Admin')
+);
+const AdminMobile = React.lazy(() => 
+  import(/* webpackChunkName: "admin" */ './pages/AdminMobile')
+);
+const AdminPremium = React.lazy(() => 
+  import(/* webpackChunkName: "admin" */ './pages/AdminPremium')
+);
+const StaffDashboard = React.lazy(() => 
+  import(/* webpackChunkName: "staff" */ './pages/StaffDashboard')
+);
+const Reception = React.lazy(() => 
+  import(/* webpackChunkName: "staff" */ './pages/Reception')
+);
 
 // Ultra-minimal loading component for instant render
 const LoadingSpinner = React.memo(() => (
@@ -77,6 +98,11 @@ const AppContent = React.memo(() => {
 });
 
 function App() {
+  // Initialize bundle optimizations for instant table loading
+  useEffect(() => {
+    initializeBundleOptimizations();
+  }, []);
+
   return (
     <Router>
       <CartProvider>

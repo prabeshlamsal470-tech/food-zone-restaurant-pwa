@@ -9,6 +9,17 @@
       name="description"
       content="Food Zone Restaurant - Order delicious food online with easy table ordering and delivery"
     />
+    
+    <!-- Critical Resource Preloads for Instant Table Loading -->
+    <link rel="preconnect" href="https://food-zone-backend-l00k.onrender.com" crossorigin>
+    <link rel="dns-prefetch" href="https://food-zone-backend-l00k.onrender.com">
+    <link rel="preload" href="%PUBLIC_URL%/images/Food Zone Restaurant Logo.jpg" as="image">
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    
+    <!-- Prefetch critical table resources -->
+    <link rel="prefetch" href="/api/menu">
+    <link rel="prefetch" href="/api/tables/status">
+    
     <link rel="apple-touch-icon" href="%PUBLIC_URL%/images/Food Zone Restaurant Logo.jpg" />
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
