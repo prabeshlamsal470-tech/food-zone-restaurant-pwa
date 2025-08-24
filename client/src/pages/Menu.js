@@ -52,6 +52,9 @@ const Menu = () => {
   };
 
   const fetchMenuItems = useCallback(async () => {
+    // NEVER wait for API - always show content immediately
+    console.log('fetchMenuItems called - showing instant content');
+    
     try {
       // Check if data is cached in localStorage for instant loading
       const cacheKey = 'menuItems_cache';
@@ -61,12 +64,16 @@ const Menu = () => {
       
       // Use cache if it's less than 2 minutes old for instant loading
       if (cachedData && cacheTime && (now - parseInt(cacheTime)) < 120000) {
-        setMenuItems(JSON.parse(cachedData));
-        setLoading(false);
-        return;
+        console.log('Using cached menu data');
+        const cached = JSON.parse(cachedData);
+        if (cached.length > 8) {
+          setMenuItems(cached);
+          setLoading(false);
+          return;
+        }
       }
       
-      // Show instant mock data for super fast loading
+      // ALWAYS show instant mock data first - no API waiting
       let instantMenu = [
         { id: 1, name: 'Chicken Momo', price: 180, category: 'Appetizers', description: 'Steamed chicken dumplings' },
         { id: 2, name: 'Chicken Thali', price: 350, category: 'Main Course', description: 'Complete chicken meal set' },
@@ -83,37 +90,42 @@ const Menu = () => {
         instantMenu = [...instantMenu, ...happyHourItems];
       }
       
-      // Set instant menu immediately for super fast loading
+      // Set instant menu immediately - NEVER wait for API
+      console.log('Setting instant menu with', instantMenu.length, 'items');
       setMenuItems(instantMenu);
       setLoading(false);
       
-      // Then fetch real data in background
-      const response = await fetchApi.get('/api/menu');
+      // Try to fetch real data in background (non-blocking)
+      setTimeout(async () => {
+        try {
+          console.log('Attempting background API fetch...');
+          const response = await fetchApi.get('/api/menu');
+          
+          // fetchApi.get returns the parsed JSON directly, not wrapped in .data
+          let menuData = Array.isArray(response) ? response : (response.data || response || []);
+          
+          // Add happy hour items if it's happy hour time
+          if (isHappyHour) {
+            menuData = [...menuData, ...happyHourItems];
+          }
+          
+          if (menuData.length > 8) {
+            console.log('Background API success - updating menu with', menuData.length, 'items');
+            setMenuItems(menuData);
+            
+            // Cache the data in localStorage for faster subsequent loads
+            localStorage.setItem(cacheKey, JSON.stringify(menuData));
+            localStorage.setItem(cacheKey + '_time', now.toString());
+          }
+        } catch (error) {
+          console.error('Background API failed - keeping mock data:', error.message);
+          // Keep existing mock data, don't replace with empty array
+        }
+      }, 100);
       
-      // fetchApi.get returns the parsed JSON directly, not wrapped in .data
-      let menuData = Array.isArray(response) ? response : (response.data || response || []);
-      
-      // Add happy hour items if it's happy hour time
-      if (isHappyHour) {
-        menuData = [...menuData, ...happyHourItems];
-      }
-      
-      setMenuItems(menuData);
-      
-      // Cache the data in localStorage for faster subsequent loads
-      localStorage.setItem(cacheKey, JSON.stringify(menuData));
-      localStorage.setItem(cacheKey + '_time', now.toString());
     } catch (error) {
-      console.error('Error fetching menu:', error);
-      console.error('Error details:', error.message, error.stack);
-      // Use happy hour items as fallback if it's happy hour time
-      if (isHappyHour) {
-        setMenuItems(happyHourItems);
-      } else {
-        setMenuItems([]);
-      }
-    } finally {
-      setLoading(false);
+      console.error('Error in fetchMenuItems:', error);
+      // Keep existing mock data that was already set
     }
   }, []);
 
