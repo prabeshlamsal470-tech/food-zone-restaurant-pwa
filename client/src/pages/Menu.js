@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback, lazy, Suspense } from 'react';
 import { fetchApi } from '../services/apiService';
-import { Link } from 'react-router-dom';
+import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useDeliveryCart } from '../context/DeliveryCartContext';
 import useDebounce from '../hooks/useDebounce';
@@ -23,7 +23,11 @@ const Menu = () => {
   // Debounce search query to improve performance
   const debouncedSearchQuery = useDebounce(searchQuery, 300);
   
-  const { currentTable } = useCart();
+  // Get URL parameters for table context
+  const [searchParams] = useSearchParams();
+  const tableParam = searchParams.get('table');
+  
+  const { currentTable, setTableContext } = useCart();
   
   // Use appropriate cart based on customer type
   const { deliveryCartItems, addToDeliveryCart, updateDeliveryQuantity } = useDeliveryCart();
@@ -42,13 +46,14 @@ const Menu = () => {
 
   const fetchMenuItems = useCallback(async () => {
     try {
-      // Check if data is cached in sessionStorage
-      const cachedData = sessionStorage.getItem('menuItems');
-      const cacheTimestamp = sessionStorage.getItem('menuCacheTime');
+      // Check if data is cached in localStorage for instant loading
+      const cacheKey = 'menuItems_cache';
+      const cachedData = localStorage.getItem(cacheKey);
+      const cacheTime = localStorage.getItem(cacheKey + '_time');
       const now = Date.now();
       
-      // Use cache if it's less than 5 minutes old
-      if (cachedData && cacheTimestamp && (now - parseInt(cacheTimestamp)) < 300000) {
+      // Use cache if it's less than 2 minutes old for instant loading
+      if (cachedData && cacheTime && (now - parseInt(cacheTime)) < 120000) {
         setMenuItems(JSON.parse(cachedData));
         setLoading(false);
         return;
@@ -88,9 +93,9 @@ const Menu = () => {
       
       setMenuItems(menuData);
       
-      // Cache the data
-      sessionStorage.setItem('menuItems', JSON.stringify(menuData));
-      sessionStorage.setItem('menuCacheTime', now.toString());
+      // Cache the data in localStorage for faster subsequent loads
+      localStorage.setItem(cacheKey, JSON.stringify(menuData));
+      localStorage.setItem(cacheKey + '_time', now.toString());
     } catch (error) {
       console.error('Error fetching menu:', error);
       console.error('Error details:', error.message, error.stack);
@@ -104,6 +109,27 @@ const Menu = () => {
       setLoading(false);
     }
   }, []);
+
+  // Set table context from URL parameter for instant table recognition
+  useEffect(() => {
+    if (tableParam && !currentTable) {
+      // Handle both numeric and encrypted table parameters
+      if (!isNaN(tableParam)) {
+        // Numeric table (1-25)
+        const tableNumber = parseInt(tableParam);
+        if (tableNumber >= 1 && tableNumber <= 25) {
+          setTableContext(tableNumber);
+          localStorage.setItem('currentTable', tableNumber.toString());
+          sessionStorage.setItem('currentTable', tableNumber.toString());
+        }
+      } else {
+        // Encrypted table code
+        setTableContext(tableParam);
+        localStorage.setItem('currentTable', tableParam);
+        sessionStorage.setItem('currentTable', tableParam);
+      }
+    }
+  }, [tableParam, currentTable, setTableContext]);
 
   useEffect(() => {
     fetchMenuItems();
