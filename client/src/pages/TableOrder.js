@@ -188,16 +188,16 @@ const TableOrder = () => {
     }
 
     // Submit order with enhanced error handling and fallback
-    try {
-      const orderData = {
-        tableId: actualTableNumber,
-        customerName: customerInfo.name.trim(),
-        phone: customerInfo.phone.trim(),
-        orderType: 'dine-in',
-        totalAmount: cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0),
-        items: cartItems
-      };
+    const orderData = {
+      tableId: actualTableNumber,
+      customerName: customerInfo.name.trim(),
+      phone: customerInfo.phone.trim(),
+      orderType: 'dine-in',
+      totalAmount: cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0),
+      items: cartItems
+    };
 
+    try {
       // Try to submit order with timeout
       const timeoutPromise = new Promise((_, reject) => 
         setTimeout(() => reject(new Error('Request timeout')), 15000)
