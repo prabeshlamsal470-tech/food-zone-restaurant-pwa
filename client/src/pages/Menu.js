@@ -52,31 +52,6 @@ const Menu = () => {
     setIsHappyHour(currentHour >= 11 && currentHour < 14);
   };
 
-  // Fallback menu items when API fails
-  const getFallbackMenuItems = () => {
-    return [
-      { id: 1, name: 'Chicken Momo', price: 180, category: 'Appetizers', description: 'Steamed chicken dumplings' },
-      { id: 2, name: 'Veg Momo', price: 150, category: 'Appetizers', description: 'Steamed vegetable dumplings' },
-      { id: 3, name: 'Chicken Thali', price: 350, category: 'Main Course', description: 'Complete chicken meal set' },
-      { id: 4, name: 'Fried Rice', price: 220, category: 'Main Course', description: 'Chicken fried rice' },
-      { id: 5, name: 'Burger Combo', price: 280, category: 'Fast Food', description: 'Burger with fries and drink' },
-      { id: 6, name: 'Veg Burger', price: 200, category: 'Fast Food', description: 'Vegetarian burger with fries' },
-      { id: 7, name: 'Cheese Pizza', price: 450, category: 'Pizza', description: 'Classic cheese pizza' },
-      { id: 8, name: 'Chicken Chowmein', price: 180, category: 'Noodles', description: 'Stir-fried noodles with chicken' },
-      { id: 9, name: 'Veg Chowmein', price: 110, category: 'Noodles', description: 'Vegetarian stir-fried noodles' },
-      { id: 10, name: 'Chicken Biryani', price: 320, category: 'Rice & Biryani', description: 'Aromatic chicken biryani' },
-      { id: 11, name: 'Veg Biryani', price: 280, category: 'Rice & Biryani', description: 'Vegetarian biryani' },
-      { id: 12, name: 'French Fries', price: 160, category: 'Fries', description: 'Crispy golden fries' },
-      { id: 13, name: 'Chicken Sandwich', price: 180, category: 'Sandwiches & Burgers', description: 'Grilled chicken sandwich' },
-      { id: 14, name: 'Veg Sandwich', price: 150, category: 'Sandwiches & Burgers', description: 'Fresh vegetable sandwich' },
-      { id: 15, name: 'Milk Tea', price: 30, category: 'Hot Beverages', description: 'Traditional milk tea' },
-      { id: 16, name: 'Black Coffee', price: 80, category: 'Cold Beverages', description: 'Fresh black coffee' },
-      { id: 17, name: 'Chicken Curry', price: 180, category: 'Curries', description: 'Spicy chicken curry' },
-      { id: 18, name: 'Dal Rice', price: 120, category: 'Curries', description: 'Lentil curry with rice' },
-      { id: 19, name: 'Chicken Pakoda', price: 200, category: 'Snacks', description: 'Crispy chicken fritters' },
-      { id: 20, name: 'Veg Pakoda', price: 150, category: 'Snacks', description: 'Mixed vegetable fritters' }
-    ];
-  };
 
   const fetchMenuItems = useCallback(async () => {
     console.log('fetchMenuItems called - loading full menu');
@@ -97,7 +72,7 @@ const Menu = () => {
           
           // Still fetch fresh data in background to update cache
           try {
-            const response = await fetchApi.get('/menu');
+            const response = await fetchApi.get('/api/menu');
             if (response && Array.isArray(response) && response.length > 0) {
               setMenuItems(response);
               sessionStorage.setItem('menuCache', JSON.stringify(response));
@@ -111,7 +86,7 @@ const Menu = () => {
       }
       
       // Fetch fresh data from API
-      const response = await fetchApi.get('/menu');
+      const response = await fetchApi.get('/api/menu');
       
       // Handle different response formats
       let menuData = response;
@@ -127,13 +102,13 @@ const Menu = () => {
         sessionStorage.setItem('menuCacheTimestamp', Date.now().toString());
       } else {
         console.error('API response invalid or empty:', response);
-        // Use fallback menu items when API fails
-        setMenuItems(getFallbackMenuItems());
+        console.error('Response structure:', JSON.stringify(response, null, 2));
+        setMenuItems([]);
       }
     } catch (error) {
       console.error('Error fetching menu:', error);
-      // Use fallback menu items when API fails
-      setMenuItems(getFallbackMenuItems());
+      console.error('Error details:', error.message);
+      setMenuItems([]);
     } finally {
       setLoading(false);
     }
