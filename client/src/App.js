@@ -8,17 +8,15 @@ import { CartProvider } from './context/CartContext';
 import { DeliveryCartProvider } from './context/DeliveryCartContext';
 import { initializeBundleOptimizations } from './utils/bundleOptimizer';
 
-// Import Menu directly to prevent chunk loading errors
+// Import critical components directly to prevent chunk loading errors
 import Menu from './pages/Menu';
+import Homepage from './pages/Homepage';
+import Tables from './pages/Tables';
 
 // Critical components for instant table loading (higher priority)
 const TableOrder = React.lazy(() => 
   import(/* webpackChunkName: "table-critical" */ './pages/TableOrder')
 );
-
-// Standard components
-const Homepage = React.lazy(() => import('./pages/Homepage'));
-const Tables = React.lazy(() => import('./pages/Tables'));
 
 // Non-critical components (lower priority)
 const DeliveryCart = React.lazy(() => 

@@ -90,17 +90,22 @@ class ChunkErrorHandler {
   }
 
   fallbackToDirectImport() {
-    // Fallback: redirect to a working page or show error message
+    // Fallback: force page reload to clear chunk cache
     const currentPath = window.location.pathname;
     
-    if (currentPath.includes('/menu')) {
-      // For menu page failures, show fallback content
-      this.showFallbackMenu();
-    } else {
-      // For other failures, redirect to homepage
-      console.warn('🏠 Redirecting to homepage due to chunk loading failure');
-      window.location.href = '/';
+    console.warn(`🔄 Chunk loading failed on ${currentPath}. Forcing page reload...`);
+    
+    // Clear all caches before reload
+    if ('caches' in window) {
+      caches.keys().then(names => {
+        names.forEach(name => {
+          caches.delete(name);
+        });
+      });
     }
+    
+    // Force hard reload
+    window.location.reload(true);
   }
 
   showFallbackMenu() {
