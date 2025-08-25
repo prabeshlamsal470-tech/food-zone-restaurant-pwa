@@ -368,7 +368,8 @@ const TableOrder = () => {
                       {quantity === 0 ? (
                         <button
                           onClick={() => addToCart(item, 1)}
-                          className="bg-primary text-white px-3 py-1 rounded hover:bg-orange-600 transition-colors text-sm"
+                          className="bg-primary text-white px-4 py-2 rounded hover:bg-orange-600 transition-colors text-sm min-h-[40px] touch-manipulation"
+                          style={{ touchAction: 'manipulation' }}
                         >
                           Add
                         </button>
@@ -376,14 +377,16 @@ const TableOrder = () => {
                         <div className="flex items-center gap-2">
                           <button
                             onClick={() => updateQuantity(item.id, quantity - 1)}
-                            className="bg-gray-200 text-gray-700 w-7 h-7 rounded-full hover:bg-gray-300 text-sm"
+                            className="bg-gray-200 text-gray-700 w-10 h-10 md:w-8 md:h-8 rounded-full hover:bg-gray-300 text-sm flex items-center justify-center touch-manipulation"
+                            style={{ touchAction: 'manipulation' }}
                           >
                             -
                           </button>
                           <span className="text-sm font-medium w-8 text-center">{quantity}</span>
                           <button
                             onClick={() => updateQuantity(item.id, quantity + 1)}
-                            className="bg-primary text-white w-7 h-7 rounded-full hover:bg-orange-600 text-sm"
+                            className="bg-primary text-white w-10 h-10 md:w-8 md:h-8 rounded-full hover:bg-orange-600 text-sm flex items-center justify-center touch-manipulation"
+                            style={{ touchAction: 'manipulation' }}
                           >
                             +
                           </button>
@@ -445,14 +448,16 @@ const TableOrder = () => {
                 <div className="flex items-center gap-1">
                   <button
                     onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                    className="bg-gray-200 text-gray-700 w-7 h-7 rounded-full hover:bg-gray-300 transition-colors text-sm flex items-center justify-center"
+                    className="bg-gray-200 text-gray-700 w-10 h-10 md:w-8 md:h-8 rounded-full hover:bg-gray-300 transition-colors text-sm flex items-center justify-center touch-manipulation"
+                    style={{ touchAction: 'manipulation' }}
                   >
                     -
                   </button>
                   <span className="w-8 text-center font-medium">{item.quantity}</span>
                   <button
                     onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                    className="bg-primary text-white w-7 h-7 rounded-full hover:bg-orange-600 transition-colors text-sm flex items-center justify-center"
+                    className="bg-primary text-white w-10 h-10 md:w-8 md:h-8 rounded-full hover:bg-orange-600 transition-colors text-sm flex items-center justify-center touch-manipulation"
+                    style={{ touchAction: 'manipulation' }}
                   >
                     +
                   </button>
@@ -460,7 +465,8 @@ const TableOrder = () => {
                 
                 <button
                   onClick={() => removeFromCart(item.id)}
-                  className="text-red-500 hover:text-red-700 ml-2 p-1"
+                  className="text-red-500 hover:text-red-700 ml-2 p-2 min-w-[40px] min-h-[40px] flex items-center justify-center touch-manipulation"
+                  style={{ touchAction: 'manipulation' }}
                   title="Remove item"
                 >
                   🗑️
@@ -477,7 +483,8 @@ const TableOrder = () => {
           {!showCheckout ? (
             <button
               onClick={() => setShowCheckout(true)}
-              className="w-full bg-primary text-white py-3 rounded-lg mt-4 hover:bg-orange-600 transition-colors"
+              className="w-full bg-primary text-white py-3 rounded-lg mt-4 hover:bg-orange-600 transition-colors min-h-[48px] touch-manipulation"
+              style={{ touchAction: 'manipulation' }}
             >
               Proceed to Checkout
             </button>
@@ -507,7 +514,8 @@ const TableOrder = () => {
               <button
                 onClick={handleSubmitOrder}
                 disabled={isSubmitting}
-                className="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px] touch-manipulation"
+                style={{ touchAction: 'manipulation' }}
               >
                 {isSubmitting ? 'Submitting...' : 'Submit Order'}
               </button>

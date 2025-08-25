@@ -8,7 +8,7 @@ const FloatingCart = () => {
   const { currentTable, cartItems, getTotalPrice } = useCart();
   const { deliveryCartItems, getDeliveryTotalPrice } = useDeliveryCart();
   
-  // Don't show on admin page or delivery cart page
+  // Don't show on admin page, delivery cart page, or table pages (encrypted table pages have their own cart UI)
   if (location.pathname === '/admin' || 
       location.pathname === '/delivery-cart') {
     return null;
@@ -17,6 +17,11 @@ const FloatingCart = () => {
   // Determine if user is on a table page - only encrypted codes allowed
   const isEncryptedTablePage = location.pathname.match(/^\/[A-Z0-9]{8,}$/);
   const isTablePage = isEncryptedTablePage;
+  
+  // Hide floating cart on table pages to avoid confusion
+  if (isTablePage) {
+    return null;
+  }
   const isTableCustomer = !!currentTable;
   
   // Calculate cart totals
@@ -31,10 +36,11 @@ const FloatingCart = () => {
   let cartColor = '';
   
   if (isTablePage && tableCartCount > 0) {
-    // Show table cart on table pages
+    // Show table cart on table pages - use encrypted URL
     cartItemCount = tableCartCount;
     totalPrice = getTotalPrice();
-    cartLink = location.pathname; // Stay on current table page
+    const encryptedTableUrl = sessionStorage.getItem('currentTableUrl') || localStorage.getItem('currentTableUrl');
+    cartLink = encryptedTableUrl || location.pathname; // Use encrypted URL or stay on current page
     cartType = `Table ${currentTable || location.pathname.slice(1)}`;
     cartColor = 'bg-primary hover:bg-orange-600';
   } else if (!isTablePage && deliveryCartCount > 0) {
@@ -45,10 +51,9 @@ const FloatingCart = () => {
     cartType = 'Delivery';
     cartColor = 'bg-green-600 hover:bg-green-700';
   } else if (isTableCustomer && tableCartCount > 0) {
-    // Show table cart for table customers even on other pages
+    // Show table cart for table customers even on other pages - use encrypted URL
     cartItemCount = tableCartCount;
     totalPrice = getTotalPrice();
-    // Use the stored encrypted table URL instead of numeric
     const encryptedTableUrl = sessionStorage.getItem('currentTableUrl') || localStorage.getItem('currentTableUrl');
     cartLink = encryptedTableUrl || `/${currentTable}`;
     cartType = `Table ${currentTable}`;

@@ -442,8 +442,20 @@ const Admin = () => {
   };
 
   const getTotalOrderValue = (items, fallbackTotal) => {
-    if (!items || items.length === 0) return fallbackTotal || 0;
-    return items.reduce((total, item) => total + (item.price * item.quantity), 0);
+    // Try fallback total first if items are not available
+    if (!items || items.length === 0) {
+      return fallbackTotal || 0;
+    }
+    
+    // Calculate total from items
+    const calculatedTotal = items.reduce((total, item) => {
+      const itemPrice = parseFloat(item.price) || 0;
+      const itemQuantity = parseInt(item.quantity) || 0;
+      return total + (itemPrice * itemQuantity);
+    }, 0);
+    
+    // Return calculated total or fallback if calculation failed
+    return calculatedTotal > 0 ? calculatedTotal : (fallbackTotal || 0);
   };
 
 
