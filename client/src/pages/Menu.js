@@ -303,20 +303,16 @@ const Menu = () => {
 
       {/* Dine-In Menu Header for Table Customers */}
       {isTableCustomer && (
-        <div className="bg-gradient-to-br from-amber-50 to-orange-50 border-2 border-amber-300 rounded-2xl p-6 mb-8 text-center shadow-lg">
-          <div className="text-amber-800">
-            <div className="flex items-center justify-center mb-4">
-              <span className="text-5xl mr-3">🍽️</span>
+        <div className="border border-gray-300 rounded-lg p-4 mb-6 text-center">
+          <div className="text-gray-800">
+            <div className="flex items-center justify-center mb-3">
+              <span className="text-3xl mr-2">🍽️</span>
               <div>
-                <h2 className="text-3xl font-bold text-amber-900">Dine-In Menu</h2>
-                <p className="text-lg text-amber-700">Table {currentTable}</p>
+                <h2 className="text-xl font-bold">Dine-In Menu</h2>
+                <p className="text-sm text-gray-600">Table {currentTable}</p>
               </div>
             </div>
-            <div className="bg-amber-100 rounded-xl p-4 mb-4">
-              <p className="text-lg font-semibold text-amber-800">🪑 Welcome to your table dining experience!</p>
-              <p className="text-amber-700">Browse our full menu below and add items to your table order.</p>
-            </div>
-            <p className="text-lg mb-6 text-amber-600">Ready to order? Please select your favorite food from our menu.</p>
+            <p className="text-sm mb-4 text-gray-600">Ready to order? Please select your favorite food from our menu.</p>
             <button
               onClick={() => {
                 // Get the encrypted table URL from sessionStorage or localStorage first
@@ -336,10 +332,9 @@ const Menu = () => {
                   window.location.href = '/';
                 }
               }}
-              className="bg-gradient-to-r from-orange-500 to-red-500 text-white px-8 py-4 rounded-xl hover:from-orange-600 hover:to-red-600 transition-all duration-300 font-bold text-lg shadow-lg hover:shadow-xl transform hover:scale-105 inline-flex items-center space-x-3"
+              className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 transition-colors font-medium"
             >
-              <span className="text-2xl">🍽️</span>
-              <span>Go Back to Table {currentTable}</span>
+              Go Back to Table {currentTable}
             </button>
           </div>
         </div>
@@ -353,14 +348,10 @@ const Menu = () => {
             placeholder="Search menu items, categories..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className={`w-full px-4 py-3 pl-10 border rounded-lg focus:outline-none focus:ring-2 focus:border-transparent ${
-              isTableCustomer 
-                ? 'border-amber-300 focus:ring-amber-500 bg-amber-50' 
-                : 'border-gray-300 focus:ring-primary'
-            }`}
+            className="w-full px-4 py-2 pl-10 border border-gray-300 rounded focus:outline-none focus:border-blue-500"
           />
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <svg className={`h-5 w-5 ${isTableCustomer ? 'text-amber-500' : 'text-gray-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
           </div>
@@ -368,30 +359,16 @@ const Menu = () => {
       </div>
       
       {/* Category Filter */}
-      <div className="mb-8">
-        {/* Dine-In Menu Label for Table Customers */}
-        {isTableCustomer && (
-          <div className="text-center mb-4">
-            <div className="inline-flex items-center bg-amber-100 text-amber-800 px-6 py-2 rounded-full border border-amber-300">
-              <span className="text-2xl mr-2">🍽️</span>
-              <span className="font-bold text-lg">Dine-In Menu Categories</span>
-            </div>
-          </div>
-        )}
-        
+      <div className="mb-6">
         <div className="flex flex-wrap justify-center gap-2">
           {categories.map(category => (
             <button
               key={category}
               onClick={() => setSelectedCategory(category)}
-              className={`px-4 py-2 rounded-full transition-colors ${
+              className={`px-3 py-1 rounded text-sm transition-colors ${
                 selectedCategory === category
-                  ? isTableCustomer 
-                    ? 'bg-amber-600 text-white shadow-lg'
-                    : 'bg-primary text-white'
-                  : isTableCustomer
-                    ? 'bg-amber-100 text-amber-800 hover:bg-amber-200 border border-amber-300'
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
               {category}
@@ -403,11 +380,11 @@ const Menu = () => {
       {/* Search Results Info */}
       {debouncedSearchQuery && (
         <div className="text-center mb-4">
-          <p className={`${isTableCustomer ? 'text-amber-700' : 'text-gray-600'}`}>
+          <p className="text-gray-600">
             Found {filteredItems.length} items for "{debouncedSearchQuery}"
             <button
               onClick={() => setSearchQuery('')}
-              className={`ml-2 underline text-sm ${isTableCustomer ? 'text-amber-800 hover:text-amber-900' : 'text-primary hover:text-orange-600'}`}
+              className="ml-2 underline text-sm text-blue-600 hover:text-blue-800"
             >
               Clear search
             </button>
@@ -429,7 +406,7 @@ const Menu = () => {
           {debouncedSearchQuery && (
             <button
               onClick={() => setSearchQuery('')}
-              className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition-colors"
+              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors"
             >
               Clear search
             </button>
@@ -503,19 +480,19 @@ const Menu = () => {
           
           {/* Load More Button */}
           {hasMoreItems && (
-            <div ref={loadMoreRef} className="text-center mt-8">
+            <div ref={loadMoreRef} className="text-center mt-6">
               <button
                 onClick={loadMoreItems}
                 disabled={isLoadingMore}
-                className="bg-gradient-to-r from-orange-500 to-red-500 text-white px-8 py-4 rounded-xl hover:from-orange-600 hover:to-red-600 transition-all duration-300 font-bold text-lg shadow-lg hover:shadow-xl transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isLoadingMore ? (
                   <div className="flex items-center gap-2">
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                    Loading more items...
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    Loading...
                   </div>
                 ) : (
-                  `Load More Items (${filteredItems.length - visibleItems} remaining)`
+                  `Load More (${filteredItems.length - visibleItems} remaining)`
                 )}
               </button>
             </div>
@@ -525,12 +502,12 @@ const Menu = () => {
 
       {/* Delivery Cart Notice */}
       {!isTableCustomer && deliveryCartItems.length > 0 && (
-        <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
-          <h3 className="font-semibold mb-2">🚚 You have {deliveryCartItems.length} items in your delivery cart</h3>
-          <p className="text-sm mb-3">Ready to place your delivery order?</p>
+        <div className="border border-gray-300 rounded p-4 mb-6">
+          <h3 className="font-medium mb-2">🚚 You have {deliveryCartItems.length} items in your delivery cart</h3>
+          <p className="text-sm mb-3 text-gray-600">Ready to place your delivery order?</p>
           <Link 
             to="/delivery-cart"
-            className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition-colors"
+            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors"
           >
             Go to Delivery Cart
           </Link>
