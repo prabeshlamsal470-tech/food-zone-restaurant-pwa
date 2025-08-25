@@ -10,8 +10,15 @@ const TableOrder = () => {
   const { tableId } = useParams();
   const navigate = useNavigate();
   const { cartItems, addToCart, removeFromCart, updateQuantity, setTableContext, clearCart, getTotalPrice } = useCart();
-  // Initialize with basic menu items
-  const [menuItems, setMenuItems] = useState([]);
+  // Initialize with basic menu items - start with fallback items for immediate search
+  const [menuItems, setMenuItems] = useState([
+    { id: 1, name: 'Chicken Momo', price: 180, category: 'Appetizers', description: 'Steamed chicken dumplings' },
+    { id: 2, name: 'Chicken Thali', price: 350, category: 'Main Course', description: 'Complete chicken meal set' },
+    { id: 3, name: 'Chicken Curry', price: 250, category: 'Main Course', description: 'Spicy chicken curry' },
+    { id: 4, name: 'Chicken Chowmein', price: 180, category: 'Noodles', description: 'Stir-fried noodles with chicken' },
+    { id: 5, name: 'Tea', price: 25, category: 'Beverages', description: 'Hot tea' },
+    { id: 6, name: 'Coffee', price: 35, category: 'Beverages', description: 'Hot coffee' }
+  ]);
   const [showCheckout, setShowCheckout] = useState(false);
   const [customerInfo, setCustomerInfo] = useState({ name: '', phone: '' });
   const [orderSubmitted, setOrderSubmitted] = useState(false);
@@ -64,10 +71,7 @@ const TableOrder = () => {
     try {
       // setLoading(true);
       
-      // Always set fallback menu first for instant search functionality
-      setMenuItems([]);
-      
-      // Try to fetch real data in background
+      // Try to fetch real data from API
       try {
         const response = await apiService.getMenu();
         
@@ -80,12 +84,28 @@ const TableOrder = () => {
           menuData = response.menu;
         }
         
-        // Always use fallback menu for search - ensures consistent search results
-        console.log('API response received:', menuData.length, 'items');
-        // Keep using fallback menu for reliable search functionality
+        if (menuData && menuData.length > 0) {
+          console.log('API response received:', menuData.length, 'items');
+          setMenuItems(menuData);
+        } else {
+          console.log('No menu data from API, using fallback');
+          setMenuItems([
+            { id: 1, name: 'Chicken Momo', price: 180, category: 'Appetizers', description: 'Steamed chicken dumplings' },
+            { id: 2, name: 'Chicken Thali', price: 350, category: 'Main Course', description: 'Complete chicken meal set' },
+            { id: 3, name: 'Chicken Curry', price: 250, category: 'Main Course', description: 'Spicy chicken curry' },
+            { id: 4, name: 'Chicken Chowmein', price: 180, category: 'Noodles', description: 'Stir-fried noodles with chicken' },
+            { id: 5, name: 'Tea', price: 25, category: 'Beverages', description: 'Hot tea' }
+          ]);
+        }
       } catch (apiError) {
         console.log('API fetch failed, using fallback menu:', apiError);
-        // Keep fallback menu that was already set
+        setMenuItems([
+          { id: 1, name: 'Chicken Momo', price: 180, category: 'Appetizers', description: 'Steamed chicken dumplings' },
+          { id: 2, name: 'Chicken Thali', price: 350, category: 'Main Course', description: 'Complete chicken meal set' },
+          { id: 3, name: 'Chicken Curry', price: 250, category: 'Main Course', description: 'Spicy chicken curry' },
+          { id: 4, name: 'Chicken Chowmein', price: 180, category: 'Noodles', description: 'Stir-fried noodles with chicken' },
+          { id: 5, name: 'Tea', price: 25, category: 'Beverages', description: 'Hot tea' }
+        ]);
       }
     } catch (error) {
       console.error('Error in fetchMenuItems:', error);
