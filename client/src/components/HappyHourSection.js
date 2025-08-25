@@ -38,7 +38,28 @@ const HappyHourSection = memo(({
                 
                 {quantity === 0 ? (
                   <button
-                    onClick={() => handleAddToCart(item)}
+                    onClick={() => {
+                      handleAddToCart(item);
+                      // If table customer, redirect to encrypted table after adding
+                      if (isTableCustomer && currentTable) {
+                        setTimeout(() => {
+                          const encryptedTableUrl = sessionStorage.getItem('currentTableUrl') || localStorage.getItem('currentTableUrl');
+                          if (encryptedTableUrl) {
+                            window.location.href = encryptedTableUrl;
+                          } else {
+                            // Generate encrypted URL
+                            import('../utils/tableEncryption').then(({ encryptTableNumber }) => {
+                              try {
+                                const encryptedCode = encryptTableNumber(currentTable);
+                                window.location.href = `/${encryptedCode}`;
+                              } catch (error) {
+                                console.warn('Failed to encrypt table number:', error);
+                              }
+                            });
+                          }
+                        }, 500); // Small delay to show the add animation
+                      }
+                    }}
                     className={`w-full px-4 py-2 rounded-lg font-bold text-sm transition-all duration-300 transform hover:scale-105 shadow-md hover:shadow-lg ${
                       isTableCustomer 
                         ? 'bg-gradient-to-r from-orange-500 to-red-500 text-white hover:from-orange-600 hover:to-red-600' 

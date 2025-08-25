@@ -18,12 +18,12 @@ const FloatingCart = () => {
   // Determine if user is on a table page - only encrypted codes allowed
   const isEncryptedTablePage = location.pathname.match(/^\/[A-Z0-9]{8,}$/);
   const isTablePage = isEncryptedTablePage;
+  const isTableCustomer = !!currentTable;
   
-  // Hide floating cart on table pages to avoid confusion
+  // Don't show floating cart on table pages since they have their own cart UI
   if (isTablePage) {
     return null;
   }
-  const isTableCustomer = !!currentTable;
   
   // Calculate cart totals
   const tableCartCount = cartItems.reduce((total, item) => total + item.quantity, 0);
@@ -36,38 +36,41 @@ const FloatingCart = () => {
   let cartType = '';
   let cartColor = '';
   
-  if (isTablePage && tableCartCount > 0) {
-    // Show table cart on table pages - use encrypted URL
+  if (isTableCustomer && tableCartCount > 0) {
+    // Show table cart for table customers - use encrypted URL
     cartItemCount = tableCartCount;
     totalPrice = getTotalPrice();
     const encryptedTableUrl = sessionStorage.getItem('currentTableUrl') || localStorage.getItem('currentTableUrl');
-    cartLink = encryptedTableUrl || location.pathname; // Use encrypted URL or stay on current page
-    cartType = `Table ${currentTable || location.pathname.slice(1)}`;
+    
+    if (encryptedTableUrl) {
+      // Use stored encrypted URL
+      cartLink = encryptedTableUrl;
+    } else if (currentTable && !isNaN(currentTable) && currentTable >= 1 && currentTable <= 25) {
+      // Generate new encrypted URL for valid table number
+      try {
+        const encryptedCode = encryptTableNumber(parseInt(currentTable));
+        const newEncryptedUrl = `/${encryptedCode}`;
+        // Store the new encrypted URL for future use
+        sessionStorage.setItem('currentTableUrl', newEncryptedUrl);
+        cartLink = newEncryptedUrl;
+      } catch (error) {
+        console.warn('Failed to encrypt table number:', error);
+        cartLink = '/'; // Fallback to home instead of menu
+      }
+    } else {
+      // Fallback to home page
+      cartLink = '/';
+    }
+    
+    cartType = `Table ${currentTable}`;
     cartColor = 'bg-primary hover:bg-orange-600';
-  } else if (!isTablePage && deliveryCartCount > 0) {
+  } else if (!isTableCustomer && deliveryCartCount > 0) {
     // Show delivery cart on homepage, menu, and other non-table pages
     cartItemCount = deliveryCartCount;
     totalPrice = getDeliveryTotalPrice();
     cartLink = '/delivery-cart';
     cartType = 'Delivery';
     cartColor = 'bg-green-600 hover:bg-green-700';
-  } else if (isTableCustomer && tableCartCount > 0) {
-    // Show table cart for table customers even on other pages - use encrypted URL
-    cartItemCount = tableCartCount;
-    totalPrice = getTotalPrice();
-    const encryptedTableUrl = sessionStorage.getItem('currentTableUrl') || localStorage.getItem('currentTableUrl');
-    // Generate encrypted URL if not stored and currentTable is available
-    let fallbackUrl = '/menu'; // Safe fallback to menu page
-    if (currentTable && !isNaN(currentTable) && currentTable >= 1 && currentTable <= 25) {
-      try {
-        fallbackUrl = `/${encryptTableNumber(parseInt(currentTable))}`;
-      } catch (error) {
-        console.warn('Failed to encrypt table number:', error);
-      }
-    }
-    cartLink = encryptedTableUrl || fallbackUrl;
-    cartType = `Table ${currentTable}`;
-    cartColor = 'bg-primary hover:bg-orange-600';
   }
   
   // Don't show if no items in cart
@@ -79,11 +82,12 @@ const FloatingCart = () => {
     <div className="fixed bottom-4 right-4 z-50">
       <Link
         to={cartLink}
-        className={`${cartColor} text-white rounded-full shadow-lg transition-all duration-300 hover:scale-105 active:scale-95 flex items-center justify-center group`}
+        className={`${cartColor} text-white rounded-full shadow-lg transition-all duration-300 hover:scale-105 active:scale-95 flex items-center justify-center group touch-manipulation`}
         style={{
           minWidth: '60px',
           minHeight: '60px',
-          padding: '12px'
+          padding: '12px',
+          touchAction: 'manipulation'
         }}
       >
         {/* Mobile View - Compact */}

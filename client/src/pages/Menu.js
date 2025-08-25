@@ -374,35 +374,33 @@ const Menu = () => {
             <p className="text-lg mb-6 text-amber-600">Ready to order? Please select your favorite food from our menu.</p>
             <button
               onClick={() => {
-                console.log('Go Back to Table button clicked');
-                console.log('Current table:', currentTable);
-                console.log('Table param:', tableParam);
-                
-                // Get the encrypted table URL from sessionStorage or localStorage
+                // Get the encrypted table URL from sessionStorage or localStorage first
                 const encryptedTableUrl = sessionStorage.getItem('currentTableUrl') || localStorage.getItem('currentTableUrl');
-                console.log('Stored encrypted URL:', encryptedTableUrl);
                 
                 if (encryptedTableUrl) {
-                  console.log('Using stored encrypted URL:', encryptedTableUrl);
+                  // Use stored encrypted URL
                   window.location.href = encryptedTableUrl;
-                } else if (tableParam) {
-                  // Use the table parameter from URL if available
-                  console.log('Using table param for navigation:', tableParam);
+                } else if (tableParam && tableParam !== currentTable.toString()) {
+                  // Use the encrypted table parameter from URL if it's not a numeric value
                   window.location.href = `/${tableParam}`;
-                } else {
-                  // Import encryption utility and generate encrypted URL
-                  console.log('Generating new encrypted URL for table:', currentTable);
+                } else if (currentTable && !isNaN(currentTable) && currentTable >= 1 && currentTable <= 25) {
+                  // Generate new encrypted URL for valid table number
                   import('../utils/tableEncryption').then(({ encryptTableNumber }) => {
                     try {
-                      const encryptedCode = encryptTableNumber(currentTable);
-                      console.log('Generated encrypted code:', encryptedCode);
-                      window.location.href = `/${encryptedCode}`;
+                      const encryptedCode = encryptTableNumber(parseInt(currentTable));
+                      const newEncryptedUrl = `/${encryptedCode}`;
+                      // Store the new encrypted URL for future use
+                      sessionStorage.setItem('currentTableUrl', newEncryptedUrl);
+                      window.location.href = newEncryptedUrl;
                     } catch (error) {
                       console.error('Failed to encrypt table number:', error);
                       // Redirect to home instead of numeric table
                       window.location.href = '/';
                     }
                   });
+                } else {
+                  // Fallback to home page
+                  window.location.href = '/';
                 }
               }}
               className="bg-gradient-to-r from-orange-500 to-red-500 text-white px-8 py-4 rounded-xl hover:from-orange-600 hover:to-red-600 transition-all duration-300 font-bold text-lg shadow-lg hover:shadow-xl transform hover:scale-105 inline-flex items-center space-x-3"

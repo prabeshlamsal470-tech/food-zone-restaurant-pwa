@@ -141,7 +141,7 @@ const Homepage = () => {
               <div className="grid md:grid-cols-2 gap-8 items-center">
                 <div>
                   <h3 className="text-3xl font-bold mb-4 text-yellow-200">
-                    ⏰ 11 - 2
+                    ⏰ 11:00 AM to 2:00 PM
                   </h3>
                   <div className="text-2xl font-bold mb-4">
                     <span className="bg-red-600 px-4 py-2 rounded-full animate-pulse">

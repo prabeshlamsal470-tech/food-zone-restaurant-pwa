@@ -269,14 +269,35 @@ const TableOrder = () => {
   };
 
 
-  // Memoized filter for better performance
+  // Memoized filter for better performance - only search regular menu items
   const filteredMenuItems = useMemo(() => {
-    if (!debouncedSearchQuery) return menuItems; // Show all items when not searching
+    if (!debouncedSearchQuery || debouncedSearchQuery.trim() === '') {
+      return []; // Show no items when not searching - only show results when user types
+    }
     
-    const query = debouncedSearchQuery.toLowerCase();
-    return menuItems.filter(item => 
+    // Filter to only include regular menu items (exclude duplicates and invalid items)
+    const validMenuItems = menuItems.filter(item => 
+      item && 
+      item.id && 
+      item.name && 
+      item.price && 
+      typeof item.price === 'number' &&
+      item.category &&
+      !item.name.toLowerCase().includes('duplicate') &&
+      !item.name.toLowerCase().includes('test') &&
+      item.price > 0 &&
+      item.price < 10000 // Reasonable price range
+    );
+    
+    // Remove duplicates based on name and price
+    const uniqueItems = validMenuItems.filter((item, index, arr) => 
+      arr.findIndex(i => i.name === item.name && i.price === item.price) === index
+    );
+    
+    const query = debouncedSearchQuery.toLowerCase().trim();
+    return uniqueItems.filter(item => 
       item.name.toLowerCase().includes(query) ||
-      item.category.toLowerCase().includes(query) ||
+      (item.category && item.category.toLowerCase().includes(query)) ||
       (item.description && item.description.toLowerCase().includes(query))
     );
   }, [menuItems, debouncedSearchQuery]);
@@ -368,7 +389,7 @@ const TableOrder = () => {
         {filteredMenuItems.length > 0 && (
           <div className="mb-4">
             <p className="text-sm text-gray-600 mb-3">
-              {debouncedSearchQuery ? `Found ${filteredMenuItems.length} items:` : `All menu items (${filteredMenuItems.length}):`}
+              Found {filteredMenuItems.length} items for "{debouncedSearchQuery}":
             </p>
             <div className="space-y-2 max-h-60 overflow-y-auto">
               {filteredMenuItems.map(item => {
@@ -417,7 +438,7 @@ const TableOrder = () => {
         )}
 
         {/* No Results Message */}
-        {debouncedSearchQuery && filteredMenuItems.length === 0 && (
+        {debouncedSearchQuery && debouncedSearchQuery.trim() !== '' && filteredMenuItems.length === 0 && (
           <div className="text-center py-4">
             <p className="text-gray-500">No items found for "{debouncedSearchQuery}"</p>
             <button
@@ -426,6 +447,15 @@ const TableOrder = () => {
             >
               Clear search
             </button>
+          </div>
+        )}
+
+        {/* Search Instructions */}
+        {!debouncedSearchQuery && (
+          <div className="text-center py-8">
+            <div className="text-4xl mb-3">🔍</div>
+            <p className="text-gray-500 text-lg mb-2">Search for menu items</p>
+            <p className="text-gray-400 text-sm">Type in the search box above to find items by name, category, or description</p>
           </div>
         )}
 
