@@ -680,7 +680,7 @@ const Homepage = () => {
                   🍽️ View Full Menu
                 </Link>
                 <a 
-                  href="https://maps.google.com/?q=KMC+Chowk,+Duwakot,+Bhaktapur" 
+                  href="https://maps.app.goo.gl/8ZE1Rn38Qn8Vnr1S7" 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-8 py-4 rounded-2xl font-bold text-lg hover:from-blue-600 hover:to-purple-700 transition-all duration-300 transform hover:scale-105 shadow-2xl border border-white border-opacity-20"
