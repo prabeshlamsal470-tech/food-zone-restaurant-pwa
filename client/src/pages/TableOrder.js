@@ -4,16 +4,14 @@ import io from 'socket.io-client';
 import { getSocketUrl, apiService } from '../services/apiService';
 import { useCart } from '../context/CartContext';
 import { decryptTableCode } from '../utils/tableEncryption';
-import { tablePreloader } from '../utils/tablePreloader';
-import { seamlessNavigation } from '../utils/seamlessNavigation';
 import LoadingSpinner from '../components/LoadingSpinner';
 
 const TableOrder = () => {
   const { tableId } = useParams();
   const navigate = useNavigate();
   const { cartItems, addToCart, removeFromCart, updateQuantity, setTableContext, clearCart, getTotalPrice } = useCart();
-  // Initialize with instant preloaded data for seamless experience
-  const [menuItems, setMenuItems] = useState(() => tablePreloader.getFallbackMenu().slice(0, 10));
+  // Initialize with basic menu items
+  const [menuItems, setMenuItems] = useState([]);
   const [showCheckout, setShowCheckout] = useState(false);
   const [customerInfo, setCustomerInfo] = useState({ name: '', phone: '' });
   const [orderSubmitted, setOrderSubmitted] = useState(false);
@@ -37,26 +35,11 @@ const TableOrder = () => {
       const decryptedTable = decryptTableCode(tableId);
       if (decryptedTable) {
         setActualTableNumber(decryptedTable);
-        // Set table context INSTANTLY for seamless experience
+        // Set table context
         setTableContext(decryptedTable);
         // Store the encrypted table URL for proper navigation
         sessionStorage.setItem('currentTableUrl', window.location.pathname);
         localStorage.setItem('currentTableUrl', window.location.pathname);
-        
-        // Preload table data instantly in background
-        tablePreloader.preloadTableData(decryptedTable).then(data => {
-          if (data.menu && data.menu.length > 10) {
-            setMenuItems(data.menu);
-          }
-        }).catch(error => {
-          console.log('Background preload failed, keeping fallback data');
-        });
-        
-        // Prefetch likely next tables for instant navigation
-        seamlessNavigation.prefetchLikelyTables(decryptedTable);
-        
-        // Preload menu page for instant table-to-menu navigation
-        seamlessNavigation.preloadMenuPage();
         
         // Initialize with happy hour items if it's happy hour time
         const now = new Date();
@@ -82,54 +65,9 @@ const TableOrder = () => {
 
   const fetchMenuItems = async () => {
     try {
-      // Check cache first for instant loading
-      const cacheKey = 'menuItems_cache';
-      const cachedData = localStorage.getItem(cacheKey);
-      const cacheTime = localStorage.getItem(cacheKey + '_time');
-      const now = Date.now();
-      
-      // Use cache if less than 2 minutes old for faster loading
-      if (cachedData && cacheTime && (now - parseInt(cacheTime)) < 120000) {
-        console.log('Using cached menu data');
-        setMenuItems(JSON.parse(cachedData));
-        setLoading(false);
-        return;
-      }
-      
-      // Show mock data immediately for instant loading
-      const currentHour = new Date().getHours();
-      const isHappyHour = currentHour >= 11 && currentHour < 14;
-      
-      let instantMenu = [
-        { id: 1, name: 'Chicken Momo', price: 180, category: 'Appetizers', description: 'Steamed chicken dumplings' },
-        { id: 2, name: 'Chicken Thali', price: 350, category: 'Main Course', description: 'Complete chicken meal set' },
-        { id: 3, name: 'Burger Combo', price: 280, category: 'Fast Food', description: 'Burger with fries and drink' },
-        { id: 4, name: 'Cheese Pizza', price: 450, category: 'Pizza', description: 'Classic cheese pizza' },
-        { id: 5, name: 'Fried Rice', price: 220, category: 'Main Course', description: 'Chicken fried rice' }
-      ];
-      
-      // Add happy hour items if it's happy hour time
-      if (isHappyHour) {
-        const happyHourItems = [
-          { id: 1001, name: 'Chicken Momo', price: 125, category: 'Happy Hour', description: 'Delicious steamed chicken dumplings' },
-          { id: 1002, name: 'Chicken Fried Rice', price: 145, category: 'Happy Hour', description: 'Aromatic fried rice with tender chicken pieces' },
-          { id: 1003, name: 'Veg Fried Rice', price: 110, category: 'Happy Hour', description: 'Flavorful vegetarian fried rice with fresh vegetables' },
-          { id: 1004, name: 'Burger', price: 150, category: 'Happy Hour', description: 'Juicy beef burger with fresh toppings' },
-          { id: 1005, name: 'Chicken Chowmein', price: 110, category: 'Happy Hour', description: 'Stir-fried noodles with chicken and vegetables' },
-          { id: 1006, name: 'Veg Chowmein', price: 80, category: 'Happy Hour', description: 'Vegetarian stir-fried noodles with fresh vegetables' }
-        ];
-        instantMenu = [...instantMenu, ...happyHourItems];
-      }
-      
-      // Set instant menu immediately
-      setMenuItems(instantMenu);
-      setLoading(false);
-      
-      // Then try to fetch real data in background
+      setLoading(true);
       const response = await apiService.getMenu();
-      console.log('Menu API Response:', response);
       
-      // Handle different response structures
       let menuData = [];
       if (Array.isArray(response)) {
         menuData = response;
@@ -137,64 +75,19 @@ const TableOrder = () => {
         menuData = response.data;
       } else if (response && response.menu && Array.isArray(response.menu)) {
         menuData = response.menu;
-      } else {
-        console.warn('Unexpected menu response structure:', response);
-        menuData = [];
       }
-      
-      // Add happy hour items if it's happy hour time (11 AM - 2 PM)
-      if (isHappyHour) {
-        const happyHourItems = [
-          { id: 1001, name: 'Chicken Momo', price: 125, category: 'Happy Hour', description: 'Delicious steamed chicken dumplings' },
-          { id: 1002, name: 'Chicken Fried Rice', price: 145, category: 'Happy Hour', description: 'Aromatic fried rice with tender chicken pieces' },
-          { id: 1003, name: 'Veg Fried Rice', price: 110, category: 'Happy Hour', description: 'Flavorful vegetarian fried rice with fresh vegetables' },
-          { id: 1004, name: 'Burger', price: 150, category: 'Happy Hour', description: 'Juicy beef burger with fresh toppings' },
-          { id: 1005, name: 'Chicken Chowmein', price: 110, category: 'Happy Hour', description: 'Stir-fried noodles with chicken and vegetables' },
-          { id: 1006, name: 'Veg Chowmein', price: 80, category: 'Happy Hour', description: 'Vegetarian stir-fried noodles with fresh vegetables' }
-        ];
-        menuData = [...menuData, ...happyHourItems];
-      }
-      
-      // Cache the data for faster subsequent loads
-      localStorage.setItem(cacheKey, JSON.stringify(menuData));
-      localStorage.setItem(cacheKey + '_time', now.toString());
       
       setMenuItems(menuData);
     } catch (error) {
       console.error('Error fetching menu:', error);
-      // Try to use cached data as fallback
-      const cachedData = localStorage.getItem('menuItems_cache');
-      if (cachedData) {
-        console.log('Using cached menu data as fallback');
-        setMenuItems(JSON.parse(cachedData));
-      } else {
-        // Use mock data with happy hour items if no cache available
-        console.log('Using mock menu data as fallback');
-        
-        let mockMenu = [
-          { id: 1, name: 'Chicken Momo', price: 180, category: 'Appetizers', description: 'Steamed chicken dumplings' },
-          { id: 2, name: 'Chicken Thali', price: 350, category: 'Main Course', description: 'Complete chicken meal set' },
-          { id: 3, name: 'Burger Combo', price: 280, category: 'Fast Food', description: 'Burger with fries and drink' },
-          { id: 4, name: 'Cheese Pizza', price: 450, category: 'Pizza', description: 'Classic cheese pizza' },
-          { id: 5, name: 'Fried Rice', price: 220, category: 'Main Course', description: 'Chicken fried rice' }
-        ];
-        
-        // Add happy hour items if it's happy hour time
-        const currentHour = new Date().getHours();
-        if (currentHour >= 11 && currentHour < 14) {
-          const happyHourItems = [
-            { id: 1001, name: 'Chicken Momo', price: 125, category: 'Happy Hour', description: 'Delicious steamed chicken dumplings' },
-            { id: 1002, name: 'Chicken Fried Rice', price: 145, category: 'Happy Hour', description: 'Aromatic fried rice with tender chicken pieces' },
-            { id: 1003, name: 'Veg Fried Rice', price: 110, category: 'Happy Hour', description: 'Flavorful vegetarian fried rice with fresh vegetables' },
-            { id: 1004, name: 'Burger', price: 150, category: 'Happy Hour', description: 'Juicy beef burger with fresh toppings' },
-            { id: 1005, name: 'Chicken Chowmein', price: 110, category: 'Happy Hour', description: 'Stir-fried noodles with chicken and vegetables' },
-            { id: 1006, name: 'Veg Chowmein', price: 80, category: 'Happy Hour', description: 'Vegetarian stir-fried noodles with fresh vegetables' }
-          ];
-          mockMenu = [...mockMenu, ...happyHourItems];
-        }
-        
-        setMenuItems(mockMenu);
-      }
+      // Basic fallback menu
+      setMenuItems([
+        { id: 1, name: 'Chicken Momo', price: 180, category: 'Appetizers', description: 'Steamed chicken dumplings' },
+        { id: 2, name: 'Chicken Thali', price: 350, category: 'Main Course', description: 'Complete chicken meal set' },
+        { id: 3, name: 'Burger Combo', price: 280, category: 'Fast Food', description: 'Burger with fries and drink' },
+        { id: 4, name: 'Cheese Pizza', price: 450, category: 'Pizza', description: 'Classic cheese pizza' },
+        { id: 5, name: 'Fried Rice', price: 220, category: 'Main Course', description: 'Chicken fried rice' }
+      ]);
     } finally {
       setLoading(false);
     }
@@ -202,22 +95,7 @@ const TableOrder = () => {
 
   useEffect(() => {
     if (actualTableNumber && actualTableNumber >= 1 && actualTableNumber <= 25) {
-      // Only fetch if not already cached
-      const cacheKey = 'menuItems_cache';
-      const cachedData = localStorage.getItem(cacheKey);
-      const cacheTime = localStorage.getItem(cacheKey + '_time');
-      const now = Date.now();
-      
-      if (cachedData && cacheTime && (now - parseInt(cacheTime)) < 120000) {
-        // Use cache immediately without API call
-        setMenuItems(JSON.parse(cachedData));
-      } else {
-        // Only fetch if no valid cache
-        fetchMenuItems();
-      }
-    } else if (!actualTableNumber && tableId && !isNaN(tableId)) {
-      // Handle numeric table IDs with immediate feedback
-      setLoading(false);
+      fetchMenuItems();
     }
   }, [actualTableNumber]);
   
@@ -280,8 +158,7 @@ const TableOrder = () => {
   }, [actualTableNumber, clearCart, navigate]);
 
   const handleViewMenu = useCallback(() => {
-    // Instant seamless navigation to menu
-    seamlessNavigation.navigateToMenuInstantly(navigate, actualTableNumber);
+    navigate(`/menu?table=${actualTableNumber}`);
   }, [navigate, actualTableNumber]);
 
   const handleSubmitOrder = async () => {
