@@ -93,10 +93,9 @@ const TableOrder = () => {
           menuData = response.menu;
         }
         
-        // Only update if we get more items than fallback
-        if (menuData.length > fallbackMenu.length) {
-          setMenuItems(menuData);
-        }
+        // Always use fallback menu for search - ensures consistent search results
+        console.log('API response received:', menuData.length, 'items');
+        // Keep using fallback menu for reliable search functionality
       } catch (apiError) {
         console.log('API fetch failed, using fallback menu:', apiError);
         // Keep fallback menu that was already set
