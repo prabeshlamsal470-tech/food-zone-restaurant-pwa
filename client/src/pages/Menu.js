@@ -53,93 +53,54 @@ const Menu = () => {
   };
 
   const fetchMenuItems = useCallback(async () => {
-    // NEVER wait for API - always show content immediately
-    console.log('fetchMenuItems called - showing instant content');
+    console.log('fetchMenuItems called - loading full menu');
+    setLoading(true);
     
     try {
-      // Check if data is cached in localStorage for instant loading
-      const cacheKey = 'menuItems_cache';
-      const cachedData = localStorage.getItem(cacheKey);
-      const cacheTime = localStorage.getItem(cacheKey + '_time');
-      const now = Date.now();
+      // Check if data is cached in sessionStorage for faster loading
+      const cachedMenu = sessionStorage.getItem('menuCache');
+      const cacheTimestamp = sessionStorage.getItem('menuCacheTimestamp');
       
-      // Use cache if it's less than 2 minutes old for instant loading
-      if (cachedData && cacheTime && (now - parseInt(cacheTime)) < 120000) {
-        console.log('Using cached menu data');
-        const cached = JSON.parse(cachedData);
-        if (cached.length > 8) {
-          setMenuItems(cached);
+      if (cachedMenu && cacheTimestamp) {
+        const cacheAge = Date.now() - parseInt(cacheTimestamp);
+        if (cacheAge < 300000) { // 5 minutes
+          console.log('Using cached menu data');
+          const parsedMenu = JSON.parse(cachedMenu);
+          setMenuItems(parsedMenu);
           setLoading(false);
+          
+          // Still fetch fresh data in background to update cache
+          try {
+            const response = await fetchApi.get('/menu');
+            if (response && Array.isArray(response) && response.length > 0) {
+              setMenuItems(response);
+              sessionStorage.setItem('menuCache', JSON.stringify(response));
+              sessionStorage.setItem('menuCacheTimestamp', Date.now().toString());
+            }
+          } catch (bgError) {
+            console.log('Background fetch failed, using cached data');
+          }
           return;
         }
       }
       
-      // ALWAYS show instant mock data first - no API waiting
-      let instantMenu = [
-        { id: 1, name: 'Chicken Momo', price: 180, category: 'Appetizers', description: 'Steamed chicken dumplings' },
-        { id: 2, name: 'Chicken Thali', price: 350, category: 'Main Course', description: 'Complete chicken meal set' },
-        { id: 3, name: 'Burger Combo', price: 280, category: 'Fast Food', description: 'Burger with fries and drink' },
-        { id: 4, name: 'Cheese Pizza', price: 450, category: 'Pizza', description: 'Classic cheese pizza' },
-        { id: 5, name: 'Fried Rice', price: 220, category: 'Main Course', description: 'Chicken fried rice' },
-        { id: 6, name: 'Veg Momo', price: 150, category: 'Appetizers', description: 'Steamed vegetable dumplings' },
-        { id: 7, name: 'Chicken Chowmein', price: 180, category: 'Noodles', description: 'Stir-fried noodles with chicken' },
-        { id: 8, name: 'Veg Burger', price: 200, category: 'Fast Food', description: 'Vegetarian burger with fries' }
-      ];
+      // Fetch fresh data from API
+      const response = await fetchApi.get('/menu');
       
-      setMenuItems(instantMenu);
-      setLoading(true);
-      
-      // Then load full menu in background
-      setTimeout(async () => {
-        try {
-          // Use cached data if available and fresh (within 5 minutes)
-          const cachedMenu = sessionStorage.getItem('menuCache');
-          const cacheTimestamp = sessionStorage.getItem('menuCacheTimestamp');
-          
-          if (cachedMenu && cacheTimestamp) {
-            const cacheAge = Date.now() - parseInt(cacheTimestamp);
-            if (cacheAge < 300000) { // 5 minutes
-              const parsedMenu = JSON.parse(cachedMenu);
-              setMenuItems(parsedMenu);
-              setLoading(false);
-              
-              // Still fetch fresh data in background
-              try {
-                const response = await fetchApi.get('/menu');
-                if (response && Array.isArray(response) && response.length > 0) {
-                  setMenuItems(response);
-                  sessionStorage.setItem('menuCache', JSON.stringify(response));
-                  sessionStorage.setItem('menuCacheTimestamp', Date.now().toString());
-                }
-              } catch (bgError) {
-                console.log('Background fetch failed, using cached data');
-              }
-              return;
-            }
-          }
-          
-          // Fetch fresh data
-          const response = await fetchApi.get('/menu');
-          
-          if (response && Array.isArray(response) && response.length > 0) {
-            setMenuItems(response);
-            // Cache the response
-            sessionStorage.setItem('menuCache', JSON.stringify(response));
-            sessionStorage.setItem('menuCacheTimestamp', Date.now().toString());
-          } else {
-            // Keep instant items if API fails
-            console.log('API response invalid, keeping instant items');
-          }
-        } catch (error) {
-          console.error('Error fetching full menu:', error);
-          // Keep instant items on error
-        } finally {
-          setLoading(false);
-        }
-      }, 100); // Small delay to show categories first
-      
+      if (response && Array.isArray(response) && response.length > 0) {
+        console.log(`Loaded ${response.length} menu items from API`);
+        setMenuItems(response);
+        // Cache the response
+        sessionStorage.setItem('menuCache', JSON.stringify(response));
+        sessionStorage.setItem('menuCacheTimestamp', Date.now().toString());
+      } else {
+        console.error('API response invalid or empty');
+        setMenuItems([]);
+      }
     } catch (error) {
-      console.error('Error in fetchMenuItems:', error);
+      console.error('Error fetching menu:', error);
+      setMenuItems([]);
+    } finally {
       setLoading(false);
     }
   }, []);
