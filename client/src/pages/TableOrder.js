@@ -313,6 +313,8 @@ const TableOrder = () => {
         tableId: actualTableNumber,
         customerName: customerInfo.name.trim(),
         phone: customerInfo.phone.trim(),
+        orderType: 'dine-in',
+        totalAmount: cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0),
         items: cartItems.map(item => ({
           id: item.id,
           name: item.name,
@@ -331,15 +333,8 @@ const TableOrder = () => {
       localStorage.setItem(`order_submitted_${actualTableNumber}`, Date.now().toString());
     } catch (error) {
       console.error('Error submitting order:', error);
-      
-      // Always treat order as successful when backend is down - mock mode handles it
-      console.log('📝 Order processed in offline mode');
-      setOrderSubmitted(true);
-      clearCart();
+      setErrorMessage('Failed to submit order. Please try again.');
       setShowConfirmModal(false);
-      
-      // Store order submitted state for 30 minutes
-      localStorage.setItem(`order_submitted_${actualTableNumber}`, Date.now().toString());
     } finally {
       setIsSubmitting(false);
     }

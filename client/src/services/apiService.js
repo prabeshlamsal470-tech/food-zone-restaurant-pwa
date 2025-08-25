@@ -22,9 +22,9 @@ let mockOrders = [
   { id: 5, table_id: 'Delivery', customer_name: 'David Brown', customer_phone: '9843333333', items: [{ name: 'Cheese Pizza', quantity: 1, price: 450 }], total_amount: 450, status: 'pending', order_type: 'delivery', created_at: new Date().toISOString(), delivery_address: 'Kathmandu, Nepal', order_number: 'ORD005' }
 ];
 
-// Check if we're in mock mode - enabled when backend is down
+// Disable mock mode - always try real backend
 const isMockMode = () => {
-  return backendHealthChecker.shouldUseMockMode();
+  return false;
 };
 
 // Create axios instance with base configuration
@@ -98,57 +98,20 @@ const showOrderSuccessNotification = (order) => {
 export const apiService = {
   // Menu services
   getMenu: () => {
-    if (isMockMode()) {
-      return Promise.resolve({ data: mockMenuItems });
-    }
     return apiClient.get(API_CONFIG.ENDPOINTS.MENU);
   },
   
   // Order services
-  createOrder: async (orderData) => {
-    // Check backend health first
-    await backendHealthChecker.checkBackendHealth();
-    
-    if (isMockMode()) {
-      console.log('📝 Mock order created:', orderData);
-      // Add to mock orders for admin visibility
-      const newOrder = {
-        id: Date.now(),
-        table_id: orderData.tableId,
-        customer_name: orderData.customerName,
-        customer_phone: orderData.phone,
-        items: orderData.items,
-        total_amount: orderData.items.reduce((sum, item) => sum + (item.price * item.quantity), 0),
-        status: 'pending',
-        order_type: 'dine-in',
-        created_at: new Date().toISOString(),
-        order_number: `ORD${Date.now().toString().slice(-6)}`
-      };
-      mockOrders.unshift(newOrder);
-      
-      // Show success notification
-      showOrderSuccessNotification(newOrder);
-      
-      return Promise.resolve({ data: newOrder });
-    }
+  createOrder: (orderData) => {
     return apiClient.post(API_CONFIG.ENDPOINTS.ORDERS, orderData);
   },
   getOrders: (params = {}) => {
-    if (isMockMode()) {
-      return Promise.resolve({ data: mockOrders });
-    }
     return apiClient.get(API_CONFIG.ENDPOINTS.ORDERS, { params });
   },
   getOrderHistory: () => {
-    if (isMockMode()) {
-      return Promise.resolve({ data: mockOrders });
-    }
     return apiClient.get(API_CONFIG.ENDPOINTS.ORDER_HISTORY);
   },
   updateOrderStatus: (orderId, status) => {
-    if (isMockMode()) {
-      return Promise.resolve({ data: { success: true } });
-    }
     return apiClient.put(API_CONFIG.ENDPOINTS.ORDER_STATUS(orderId), { status });
   },
   
