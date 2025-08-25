@@ -1,10 +1,13 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, lazy, Suspense } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import io from 'socket.io-client';
 import { getSocketUrl, apiService } from '../services/apiService';
 import { useCart } from '../context/CartContext';
 import { decryptTableCode } from '../utils/tableEncryption';
 // import LoadingSpinner from '../components/LoadingSpinner';
+
+// Lazy load menu item card component
+const MenuItemCard = lazy(() => import('../components/MenuItemCard'));
 
 const TableOrder = () => {
   const { tableId } = useParams();
@@ -29,6 +32,8 @@ const TableOrder = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [actualTableNumber, setActualTableNumber] = useState(null);
+  const [visibleItems, setVisibleItems] = useState(8); // Initial items to show for lazy loading
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
 
   // Table setup - support both numeric and encrypted table IDs for search functionality
   useEffect(() => {
@@ -323,6 +328,29 @@ const TableOrder = () => {
     );
   }, [menuItems, debouncedSearchQuery]);
 
+  // Items to display with lazy loading
+  const displayedSearchItems = useMemo(() => {
+    return filteredMenuItems.slice(0, visibleItems);
+  }, [filteredMenuItems, visibleItems]);
+  
+  const hasMoreSearchItems = filteredMenuItems.length > visibleItems;
+
+  // Load more items function
+  const loadMoreItems = useCallback(() => {
+    if (!isLoadingMore && hasMoreSearchItems) {
+      setIsLoadingMore(true);
+      setTimeout(() => {
+        setVisibleItems(prev => prev + 8);
+        setIsLoadingMore(false);
+      }, 300); // Small delay for smooth UX
+    }
+  }, [isLoadingMore, hasMoreSearchItems]);
+
+  // Reset visible items when search changes
+  useEffect(() => {
+    setVisibleItems(8);
+  }, [debouncedSearchQuery]);
+
   if (!tableId || actualTableNumber === null) {
     return (
       <div className="container mx-auto px-4 py-8 text-center">
@@ -407,14 +435,15 @@ const TableOrder = () => {
           </div>
         </div>
 
-        {/* Search Results */}
-        {filteredMenuItems.length > 0 && debouncedSearchQuery.trim() && (
+        {/* Search Results with Lazy Loading */}
+        {displayedSearchItems.length > 0 && debouncedSearchQuery.trim() && (
           <div className="mb-4">
             <p className="text-sm text-gray-600 mb-3">
-              Found {filteredMenuItems.length} items for "{debouncedSearchQuery}":
+              Found {filteredMenuItems.length} items for "{debouncedSearchQuery}" (showing {displayedSearchItems.length}):
             </p>
             <div className="space-y-2 max-h-60 overflow-y-auto">
-              {filteredMenuItems.map(item => {
+              <Suspense fallback={<div className="animate-pulse bg-gray-200 h-16 rounded-lg"></div>}>
+                {displayedSearchItems.map(item => {
                 const quantity = cartItems.find(cartItem => cartItem.id === item.id)?.quantity || 0;
                 return (
                   <div key={item.id} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
@@ -454,7 +483,20 @@ const TableOrder = () => {
                     </div>
                   </div>
                 );
-              })}
+                })}
+              </Suspense>
+              {/* Load More Button for Search Results */}
+              {hasMoreSearchItems && (
+                <div className="text-center py-2">
+                  <button
+                    onClick={loadMoreItems}
+                    disabled={isLoadingMore}
+                    className="px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50"
+                  >
+                    {isLoadingMore ? 'Loading...' : `Load More (${filteredMenuItems.length - displayedSearchItems.length} remaining)`}
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         )}
