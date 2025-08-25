@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import io from 'socket.io-client';
 import { getSocketUrl, apiService } from '../services/apiService';
@@ -17,6 +17,7 @@ const TableOrder = () => {
   const [orderSubmitted, setOrderSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   // const [showMenuSearch, setShowMenuSearch] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
@@ -62,6 +63,15 @@ const TableOrder = () => {
       }
     }
   }, [tableId, setTableContext]);
+
+  // Debounce search query to improve performance
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 150); // 150ms debounce
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   const fetchMenuItems = async () => {
     try {
@@ -259,13 +269,17 @@ const TableOrder = () => {
   };
 
 
-  // Filter menu items based on search query
-  const filteredMenuItems = menuItems.filter(item => {
-    if (!searchQuery) return false; // Only show items when searching
-    return item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-           item.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
-           (item.description && item.description.toLowerCase().includes(searchQuery.toLowerCase()));
-  });
+  // Memoized filter for better performance
+  const filteredMenuItems = useMemo(() => {
+    if (!debouncedSearchQuery) return menuItems; // Show all items when not searching
+    
+    const query = debouncedSearchQuery.toLowerCase();
+    return menuItems.filter(item => 
+      item.name.toLowerCase().includes(query) ||
+      item.category.toLowerCase().includes(query) ||
+      (item.description && item.description.toLowerCase().includes(query))
+    );
+  }, [menuItems, debouncedSearchQuery]);
 
   if (!tableId || actualTableNumber === null) {
     return (
@@ -351,9 +365,11 @@ const TableOrder = () => {
         </div>
 
         {/* Search Results */}
-        {searchQuery && filteredMenuItems.length > 0 && (
+        {filteredMenuItems.length > 0 && (
           <div className="mb-4">
-            <p className="text-sm text-gray-600 mb-3">Found {filteredMenuItems.length} items:</p>
+            <p className="text-sm text-gray-600 mb-3">
+              {debouncedSearchQuery ? `Found ${filteredMenuItems.length} items:` : `All menu items (${filteredMenuItems.length}):`}
+            </p>
             <div className="space-y-2 max-h-60 overflow-y-auto">
               {filteredMenuItems.map(item => {
                 const quantity = cartItems.find(cartItem => cartItem.id === item.id)?.quantity || 0;
@@ -401,9 +417,9 @@ const TableOrder = () => {
         )}
 
         {/* No Results Message */}
-        {searchQuery && filteredMenuItems.length === 0 && (
+        {debouncedSearchQuery && filteredMenuItems.length === 0 && (
           <div className="text-center py-4">
-            <p className="text-gray-500">No items found for "{searchQuery}"</p>
+            <p className="text-gray-500">No items found for "{debouncedSearchQuery}"</p>
             <button
               onClick={() => setSearchQuery('')}
               className="text-primary hover:text-orange-600 underline text-sm mt-1"

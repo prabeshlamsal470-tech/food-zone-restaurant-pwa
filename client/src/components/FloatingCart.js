@@ -2,6 +2,7 @@ import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useDeliveryCart } from '../context/DeliveryCartContext';
+import { encryptTableNumber } from '../utils/tableEncryption';
 
 const FloatingCart = () => {
   const location = useLocation();
@@ -55,7 +56,16 @@ const FloatingCart = () => {
     cartItemCount = tableCartCount;
     totalPrice = getTotalPrice();
     const encryptedTableUrl = sessionStorage.getItem('currentTableUrl') || localStorage.getItem('currentTableUrl');
-    cartLink = encryptedTableUrl || `/${currentTable}`;
+    // Generate encrypted URL if not stored and currentTable is available
+    let fallbackUrl = '/menu'; // Safe fallback to menu page
+    if (currentTable && !isNaN(currentTable) && currentTable >= 1 && currentTable <= 25) {
+      try {
+        fallbackUrl = `/${encryptTableNumber(parseInt(currentTable))}`;
+      } catch (error) {
+        console.warn('Failed to encrypt table number:', error);
+      }
+    }
+    cartLink = encryptedTableUrl || fallbackUrl;
     cartType = `Table ${currentTable}`;
     cartColor = 'bg-primary hover:bg-orange-600';
   }
