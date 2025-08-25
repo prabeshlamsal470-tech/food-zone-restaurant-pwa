@@ -40,25 +40,7 @@ const MenuItemCard = memo(({
           <button
             onClick={() => {
               onAddToCart(item);
-              // If table customer, redirect to encrypted table after adding
-              if (isTableCustomer && currentTable) {
-                setTimeout(() => {
-                  const encryptedTableUrl = sessionStorage.getItem('currentTableUrl') || localStorage.getItem('currentTableUrl');
-                  if (encryptedTableUrl) {
-                    window.location.href = encryptedTableUrl;
-                  } else {
-                    // Generate encrypted URL
-                    import('../utils/tableEncryption').then(({ encryptTableNumber }) => {
-                      try {
-                        const encryptedCode = encryptTableNumber(currentTable);
-                        window.location.href = `/${encryptedCode}`;
-                      } catch (error) {
-                        console.warn('Failed to encrypt table number:', error);
-                      }
-                    });
-                  }
-                }, 500); // Small delay to show the add animation
-              }
+              // Don't redirect - just add to cart and stay on menu page
             }}
             className={`w-full px-6 py-3 rounded-xl font-bold text-lg transition-all duration-300 transform hover:scale-105 shadow-md hover:shadow-lg ${
               isTableCustomer 

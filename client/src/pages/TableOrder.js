@@ -23,22 +23,24 @@ const TableOrder = () => {
   const [errorMessage, setErrorMessage] = useState('');
   const [actualTableNumber, setActualTableNumber] = useState(null);
 
-  // Instant table setup with seamless preloading - ENCRYPTED CODES ONLY
+  // Table setup - support both numeric and encrypted table IDs for search functionality
   useEffect(() => {
     if (tableId) {
-      // Block all numeric table IDs - only encrypted codes allowed
-      if (!isNaN(tableId)) {
-        setActualTableNumber(null);
-        return;
+      let tableNumber = null;
+      
+      // Try numeric table ID first (needed for search to work)
+      if (!isNaN(tableId) && parseInt(tableId) >= 1 && parseInt(tableId) <= 25) {
+        tableNumber = parseInt(tableId);
+      } else {
+        // Try to decrypt encrypted table codes
+        tableNumber = decryptTableCode(tableId);
       }
       
-      // Only try to decrypt encrypted table codes
-      const decryptedTable = decryptTableCode(tableId);
-      if (decryptedTable) {
-        setActualTableNumber(decryptedTable);
+      if (tableNumber) {
+        setActualTableNumber(tableNumber);
         // Set table context
-        setTableContext(decryptedTable);
-        // Store the encrypted table URL for proper navigation
+        setTableContext(tableNumber);
+        // Store the table URL for proper navigation
         sessionStorage.setItem('currentTableUrl', window.location.pathname);
         localStorage.setItem('currentTableUrl', window.location.pathname);
         

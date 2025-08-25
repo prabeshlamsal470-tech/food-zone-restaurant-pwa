@@ -168,11 +168,15 @@ const Menu = () => {
 
   useEffect(() => {
     if (tableParam && !currentTable) {
-      // Handle encrypted table parameters - decrypt to get table number
+      // Handle both numeric and encrypted table parameters
       if (!isNaN(tableParam)) {
-        // Block numeric table access - redirect to home
-        console.log('Numeric table access blocked in menu');
-        return;
+        // Allow numeric table access for menu functionality
+        const tableNum = parseInt(tableParam);
+        if (tableNum >= 1 && tableNum <= 25) {
+          setTableContext(tableNum);
+          localStorage.setItem('currentTable', tableNum.toString());
+          sessionStorage.setItem('currentTable', tableNum.toString());
+        }
       } else {
         // Decrypt encrypted table code to get actual table number
         import('../utils/tableEncryption').then(({ decryptTableCode }) => {
