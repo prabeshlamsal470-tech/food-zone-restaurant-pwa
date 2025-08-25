@@ -384,20 +384,8 @@ const Menu = () => {
                   // Use the encrypted table parameter from URL if it's not a numeric value
                   window.location.href = `/${tableParam}`;
                 } else if (currentTable && !isNaN(currentTable) && currentTable >= 1 && currentTable <= 25) {
-                  // Generate new encrypted URL for valid table number
-                  import('../utils/tableEncryption').then(({ encryptTableNumber }) => {
-                    try {
-                      const encryptedCode = encryptTableNumber(parseInt(currentTable));
-                      const newEncryptedUrl = `/${encryptedCode}`;
-                      // Store the new encrypted URL for future use
-                      sessionStorage.setItem('currentTableUrl', newEncryptedUrl);
-                      window.location.href = newEncryptedUrl;
-                    } catch (error) {
-                      console.error('Failed to encrypt table number:', error);
-                      // Redirect to home instead of numeric table
-                      window.location.href = '/';
-                    }
-                  });
+                  // For numeric table, redirect to the numeric URL (not encrypted)
+                  window.location.href = `/${currentTable}`;
                 } else {
                   // Fallback to home page
                   window.location.href = '/';
