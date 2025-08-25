@@ -1088,7 +1088,7 @@ const TablesManagement = ({ orders, setOrders }) => {
                     <div key={order.id} className="flex items-center justify-between p-2 bg-gray-50 rounded">
                       <div className="flex-1 min-w-0">
                         <div className="font-medium truncate">{order.customer_name || 'Unknown Customer'}</div>
-                        <div className="text-sm text-gray-600 truncate">• {order.phone || 'No phone'}</div>
+                        <div className="text-sm text-gray-600 truncate">• {order.phone || order.customer_phone || 'No phone'}</div>
                       </div>
                       <div className="text-right">
                         <div className="font-semibold">NPR {order.total_amount || (order.items?.reduce((sum, item) => sum + (item.price * item.quantity), 0) || 0)}</div>
