@@ -269,13 +269,13 @@ const TableOrder = () => {
   };
 
 
-  // Memoized filter for better performance - only search regular menu items
+  // Memoized filter for better performance - search ALL menu items including happy hour
   const filteredMenuItems = useMemo(() => {
     if (!debouncedSearchQuery || debouncedSearchQuery.trim() === '') {
       return []; // Show no items when not searching - only show results when user types
     }
     
-    // Filter to only include regular menu items (exclude duplicates and invalid items)
+    // Filter to include ALL valid menu items (regular + happy hour)
     const validMenuItems = menuItems.filter(item => 
       item && 
       item.id && 
