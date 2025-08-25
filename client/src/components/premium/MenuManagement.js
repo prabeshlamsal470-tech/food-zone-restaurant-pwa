@@ -6,73 +6,12 @@ const MenuManagement = () => {
   const [activeCategory, setActiveCategory] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Mock data - replace with API calls
+  // Load real data from API
   useEffect(() => {
-    const mockCategories = [
-      { id: 'all', name: 'All Items', count: 45 },
-      { id: 'appetizers', name: 'Appetizers', count: 8 },
-      { id: 'mains', name: 'Main Course', count: 15 },
-      { id: 'beverages', name: 'Beverages', count: 12 },
-      { id: 'desserts', name: 'Desserts', count: 10 }
-    ];
-
-    const mockMenuItems = [
-      {
-        id: 1,
-        name: 'Buff Chowmein (Full)',
-        category: 'mains',
-        price: 150,
-        description: 'Delicious buffalo chowmein with vegetables',
-        image: '/images/chowmein.jpg',
-        available: true,
-        preparationTime: 15,
-        ingredients: ['Buffalo meat', 'Noodles', 'Vegetables', 'Spices'],
-        allergens: ['Gluten'],
-        popularity: 95
-      },
-      {
-        id: 2,
-        name: 'Chicken Chowmein (Half)',
-        category: 'mains',
-        price: 90,
-        description: 'Half portion chicken chowmein',
-        image: '/images/chicken-chowmein.jpg',
-        available: true,
-        preparationTime: 12,
-        ingredients: ['Chicken', 'Noodles', 'Vegetables'],
-        allergens: ['Gluten'],
-        popularity: 88
-      },
-      {
-        id: 3,
-        name: 'Momo (Chicken)',
-        category: 'appetizers',
-        price: 120,
-        description: 'Traditional Nepali dumplings with chicken filling',
-        image: '/images/momo.jpg',
-        available: true,
-        preparationTime: 20,
-        ingredients: ['Chicken', 'Flour', 'Spices', 'Vegetables'],
-        allergens: ['Gluten'],
-        popularity: 92
-      },
-      {
-        id: 4,
-        name: 'Coca Cola',
-        category: 'beverages',
-        price: 50,
-        description: 'Refreshing cola drink',
-        image: '/images/coke.jpg',
-        available: true,
-        preparationTime: 1,
-        ingredients: ['Carbonated water', 'Sugar', 'Caffeine'],
-        allergens: [],
-        popularity: 75
-      }
-    ];
-
-    setCategories(mockCategories);
-    setMenuItems(mockMenuItems);
+    // TODO: Replace with actual API calls to fetch categories and menu items
+    // For now, initialize with empty arrays - data should come from backend
+    setCategories([]);
+    setMenuItems([]);
   }, []);
 
   const filteredItems = menuItems.filter(item => {

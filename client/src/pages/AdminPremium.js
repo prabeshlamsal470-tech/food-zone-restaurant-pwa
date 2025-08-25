@@ -1934,12 +1934,7 @@ Generated from Food Zone Admin Dashboard
 
 // Staff Management Component
 const StaffManagement = () => {
-  const [staff, setStaff] = useState([
-    { id: 1, name: 'John Doe', role: 'Manager', email: 'john@foodzone.com', phone: '+977-9841234567', status: 'active', joinDate: '2023-01-15', shift: 'morning' },
-    { id: 2, name: 'Jane Smith', role: 'Chef', email: 'jane@foodzone.com', phone: '+977-9841234568', status: 'active', joinDate: '2023-02-20', shift: 'evening' },
-    { id: 3, name: 'Mike Johnson', role: 'Waiter', email: 'mike@foodzone.com', phone: '+977-9841234569', status: 'active', joinDate: '2023-03-10', shift: 'morning' },
-    { id: 4, name: 'Sarah Wilson', role: 'Cashier', email: 'sarah@foodzone.com', phone: '+977-9841234570', status: 'inactive', joinDate: '2023-01-05', shift: 'evening' }
-  ]);
+  const [staff, setStaff] = useState([]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingStaff, setEditingStaff] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -2524,12 +2519,12 @@ const OrdersManagement = ({ orders, setOrders }) => {
 // Settings Component
 const SettingsView = () => {
   const [settings, setSettings] = useState({
-    restaurantName: 'Food Zone',
-    address: '123 Main Street, Kathmandu, Nepal',
-    phone: '+977-9841234567',
-    email: 'info@foodzone.com',
+    restaurantName: '',
+    address: '',
+    phone: '',
+    email: '',
     currency: 'NPR',
-    taxRate: 13,
+    taxRate: 0,
     serviceCharge: 10,
     deliveryFee: 50,
     minOrderAmount: 200,

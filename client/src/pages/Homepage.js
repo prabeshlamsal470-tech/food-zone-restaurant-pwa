@@ -94,7 +94,7 @@ const Homepage = () => {
               </Link>
             </div>
             <p className="text-lg text-yellow-200">
-              ✨ <strong>First in Duwakot!</strong> Complete digital restaurant experience on your mobile device
+              ✨ <strong>Digital Restaurant Experience!</strong> Complete mobile ordering system
             </p>
           </div>
           
@@ -102,11 +102,11 @@ const Homepage = () => {
             <div className="grid md:grid-cols-3 gap-4 text-lg">
               <div className="flex items-center justify-center gap-2">
                 <span className="text-2xl">📍</span>
-                <span>KMC Chowk, Duwakot, Bhaktapur</span>
+                <span>Location to be updated</span>
               </div>
               <div className="flex items-center justify-center gap-2">
                 <span className="text-2xl">📞</span>
-                <span>984-3343084 | 981-8942418</span>
+                <span>Contact for phone number</span>
               </div>
               <div className="flex items-center justify-center gap-2">
                 <span className="text-2xl">🕐</span>
@@ -208,7 +208,7 @@ const Homepage = () => {
                   🍽️ Order Now & Save 10%!
                 </Link>
                 <p className="mt-4 text-lg text-yellow-200">
-                  📞 Call: 984-3343084 | 981-8942418 for instant orders!
+                  📞 Call us for instant orders!
                 </p>
               </div>
             </div>
@@ -335,7 +335,7 @@ const Homepage = () => {
                   </Link>
                 </div>
                 <p className="mt-3 text-yellow-200">
-                  📍 Food Zone Duwakot • 📞 984-3343084 | 981-8942418
+                  📍 Food Zone • 📞 Contact for details
                 </p>
               </div>
             </div>
@@ -515,7 +515,7 @@ const Homepage = () => {
                     <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-60"></div>
                     <div className="absolute bottom-0 left-0 right-0 p-4">
                       <h4 className="font-bold text-xl mb-1 text-white">🍔 Gourmet Burgers</h4>
-                      <p className="text-gray-200 text-sm">Best burgers in Duwakot with fresh ingredients</p>
+                      <p className="text-gray-200 text-sm">Best burgers with fresh ingredients</p>
                     </div>
                   </div>
                 </div>
@@ -528,7 +528,7 @@ const Homepage = () => {
                       className="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-500"
                       onError={(e) => {
                         e.target.onerror = null;
-                        e.target.src = '/images/Best momo plater Set in Duwakot. Food Zone Restaurant for Night Food Delivery in Duwakot .jpg';
+                        e.target.src = '/images/momo-platter.jpg';
                       }}
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-60"></div>
@@ -547,7 +547,7 @@ const Homepage = () => {
                       className="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-500"
                       onError={(e) => {
                         e.target.onerror = null;
-                        e.target.src = '/images/Best Fast Food Combo Set in Duwakot. Food Zone Restaurant for Food Delivery in Duwakot .jpg';
+                        e.target.src = '/images/combo-set.jpg';
                       }}
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-60"></div>
@@ -566,7 +566,7 @@ const Homepage = () => {
                       className="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-500"
                       onError={(e) => {
                         e.target.onerror = null;
-                        e.target.src = '/images/Cheesy food delivery all day -all night at Food Zone at Duwakot, Bhaktapur .jpg';
+                        e.target.src = '/images/cheesy-food.jpg';
                       }}
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-60"></div>
@@ -668,8 +668,8 @@ const Homepage = () => {
                 Visit Us & Experience Food Zone!
               </h3>
               <p className="text-xl text-gray-200 mb-8 max-w-3xl mx-auto">
-                Come and taste these amazing dishes yourself at Duwakot's most innovative restaurant. 
-                Located at <span className="text-cyan-300 font-bold">KMC Chowk, Duwakot, Bhaktapur</span>
+                Come and taste these amazing dishes yourself at our innovative restaurant. 
+                Located at <span className="text-cyan-300 font-bold">Location to be updated</span>
               </p>
               
               <div className="flex flex-col sm:flex-row gap-6 justify-center">
@@ -796,19 +796,19 @@ const Homepage = () => {
                 
                 <div className="space-y-3">
                   <a 
-                    href="tel:9843343084" 
+                    href="#" 
                     className="block w-full bg-white text-blue-600 px-6 py-3 rounded-lg font-bold text-center hover:bg-gray-100 transition-colors"
                   >
-                    📞 Call to Reserve: 984-3343084
+                    📞 Call to Reserve
                   </a>
                   <a 
-                    href="tel:9818942418" 
+                    href="#" 
                     className="block w-full bg-yellow-500 text-black px-6 py-3 rounded-lg font-bold text-center hover:bg-yellow-400 transition-colors"
                   >
-                    📞 Alternative: 981-8942418
+                    📞 Alternative Contact
                   </a>
                   <a 
-                    href="https://wa.me/9779843343084" 
+                    href="#" 
                     target="_blank"
                     rel="noopener noreferrer"
                     className="block w-full bg-green-600 text-white px-6 py-3 rounded-lg font-bold text-center hover:bg-green-700 transition-colors"
@@ -818,7 +818,7 @@ const Homepage = () => {
                 </div>
                 
                 <p className="text-center text-sm mt-4 text-blue-100">
-                  📍 KMC Chowk, Duwakot, Bhaktapur
+                  📍 Location to be updated
                 </p>
               </div>
             </div>
@@ -859,10 +859,10 @@ const Homepage = () => {
               👑 PREMIUM DINING EXPERIENCE 👑
             </div>
             <h2 className="text-5xl font-bold mb-6 bg-gradient-to-r from-rose-200 via-pink-200 to-purple-200 bg-clip-text text-transparent">
-              About Food Zone Duwakot
+              About Food Zone
             </h2>
             <p className="text-2xl text-gray-300 max-w-4xl mx-auto">
-              Since 2020, pioneering the future of dining in Duwakot with innovation, quality, and exceptional service
+              Since 2020, pioneering the future of dining with innovation, quality, and exceptional service
             </p>
           </div>
           
@@ -870,8 +870,8 @@ const Homepage = () => {
             <div className="bg-white bg-opacity-10 backdrop-blur-sm rounded-3xl p-8 border border-white border-opacity-20">
               <h3 className="text-3xl font-bold mb-6 text-rose-200">🏪 Our Story</h3>
               <p className="text-lg text-gray-200 mb-6 leading-relaxed">
-                Since 2020, Food Zone Restaurant has been revolutionizing the dining experience in Duwakot, 
-                just steps from KMC Hospital. We've evolved from a traditional restaurant to the first 
+                Since 2020, Food Zone Restaurant has been revolutionizing the dining experience. 
+                We've evolved from a traditional restaurant to the first 
                 <span className="text-yellow-300 font-bold"> fully digital dining experience</span> in the area.
               </p>
               <p className="text-lg text-gray-200 mb-8 leading-relaxed">
@@ -911,7 +911,7 @@ const Homepage = () => {
                   <div className="text-3xl">📱</div>
                   <div>
                     <h4 className="font-bold text-yellow-200">First Digital Restaurant</h4>
-                    <p className="text-sm text-gray-200">Mobile-first ordering system in Duwakot</p>
+                    <p className="text-sm text-gray-200">Mobile-first ordering system</p>
                   </div>
                 </div>
                 
@@ -942,7 +942,7 @@ const Homepage = () => {
               
               <div className="mt-8 text-center">
                 <div className="bg-gradient-to-r from-yellow-400 to-orange-500 text-black px-6 py-3 rounded-full font-bold text-lg">
-                  🏆 Setting New Standards in Duwakot! 🏆
+                  🏆 Setting New Standards! 🏆
                 </div>
               </div>
             </div>
@@ -966,7 +966,7 @@ const Homepage = () => {
               Browse Menu
             </Link>
             <a 
-              href="https://wa.me/9779843343084" 
+              href="#" 
               target="_blank"
               rel="noopener noreferrer"
               className="bg-green-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors inline-block"
@@ -975,7 +975,7 @@ const Homepage = () => {
             </a>
           </div>
           <div className="mt-8 text-lg">
-            <p>📞 Call us: 984-3343084 | 981-8942418</p>
+            <p>📞 Call us for contact details</p>
             <p>🌐 Visit: foodzone.com.np</p>
           </div>
         </div>

@@ -65,20 +65,7 @@ const TableOrder = () => {
       // setLoading(true);
       
       // Always set fallback menu first for instant search functionality
-      const fallbackMenu = [
-        { id: 1, name: 'Chicken Momo', price: 180, category: 'Appetizers', description: 'Steamed chicken dumplings' },
-        { id: 2, name: 'Chicken Thali', price: 350, category: 'Main Course', description: 'Complete chicken meal set' },
-        { id: 3, name: 'Burger Combo', price: 280, category: 'Fast Food', description: 'Burger with fries and drink' },
-        { id: 4, name: 'Cheese Pizza', price: 450, category: 'Pizza', description: 'Classic cheese pizza' },
-        { id: 5, name: 'Fried Rice', price: 220, category: 'Main Course', description: 'Chicken fried rice' },
-        { id: 6, name: 'Veg Momo', price: 150, category: 'Appetizers', description: 'Steamed vegetable dumplings' },
-        { id: 7, name: 'Chicken Chowmein', price: 180, category: 'Noodles', description: 'Stir-fried noodles with chicken' },
-        { id: 8, name: 'Dal Bhat', price: 200, category: 'Main Course', description: 'Traditional Nepali meal' },
-        { id: 9, name: 'Chicken Curry', price: 250, category: 'Main Course', description: 'Spicy chicken curry' },
-        { id: 10, name: 'Tea', price: 25, category: 'Beverages', description: 'Hot tea' }
-      ];
-      
-      setMenuItems(fallbackMenu);
+      setMenuItems([]);
       
       // Try to fetch real data in background
       try {

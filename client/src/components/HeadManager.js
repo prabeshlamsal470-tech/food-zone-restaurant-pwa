@@ -20,7 +20,7 @@ export const HeadManager = () => {
 
   return (
     <Helmet>
-      <title>Food Zone Duwakot - Restaurant Ordering System</title>
+      <title>Food Zone - Restaurant Ordering System</title>
       <meta name="description" content="Food Zone Restaurant - Order delicious food online" />
       <meta name="viewport" content="width=device-width, initial-scale=1" />
       <meta name="theme-color" content="#f59e0b" />

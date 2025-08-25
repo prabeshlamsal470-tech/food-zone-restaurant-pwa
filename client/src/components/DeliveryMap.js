@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 
-// Food Zone Duwakot coordinates (KMC Chowk, Duwakot, Bhaktapur)
+// Food Zone coordinates
 const FOOD_ZONE_COORDS = {
   lat: 27.6710,
   lng: 85.4298
@@ -70,15 +70,15 @@ const getLocationDescription = (lat, lng) => {
   // Comprehensive Kathmandu Valley landmarks with accurate coordinates
   const landmarks = [
     // Food Zone and immediate area
-    { name: 'Food Zone Duwakot (Restaurant)', lat: 27.6710, lng: 85.4298, radius: 0.1 },
-    { name: 'KMC Hospital Area', lat: 27.6710, lng: 85.4298, radius: 0.5 },
-    { name: 'Duwakot Chowk', lat: 27.6720, lng: 85.4290, radius: 0.3 },
+    { name: 'Food Zone (Restaurant)', lat: 27.6710, lng: 85.4298, radius: 0.1 },
+    { name: 'Hospital Area', lat: 27.6710, lng: 85.4298, radius: 0.5 },
+    { name: 'Main Chowk', lat: 27.6720, lng: 85.4290, radius: 0.3 },
     
-    // Bhaktapur area
-    { name: 'Bhaktapur Durbar Square', lat: 27.6722, lng: 85.4276, radius: 0.8 },
-    { name: 'Pottery Square, Bhaktapur', lat: 27.6728, lng: 85.4297, radius: 0.5 },
+    // Local area
+    { name: 'Heritage Square', lat: 27.6722, lng: 85.4276, radius: 0.8 },
+    { name: 'Pottery Square', lat: 27.6728, lng: 85.4297, radius: 0.5 },
     { name: 'Nyatapola Temple Area', lat: 27.6719, lng: 85.4281, radius: 0.4 },
-    { name: 'Bhaktapur Bus Park', lat: 27.6698, lng: 85.4321, radius: 0.3 },
+    { name: 'Bus Park', lat: 27.6698, lng: 85.4321, radius: 0.3 },
     
     // Nearby areas
     { name: 'Sallaghari', lat: 27.6650, lng: 85.4350, radius: 0.8 },
@@ -124,11 +124,11 @@ const getLocationDescription = (lat, lng) => {
 
   // Enhanced area classification with more precision
   if (lat >= 27.665 && lat <= 27.675 && lng >= 85.425 && lng <= 85.435) {
-    return 'Duwakot/KMC Area';
+    return 'Local Area';
   } else if (lat >= 27.670 && lat <= 27.675 && lng >= 85.425 && lng <= 85.430) {
-    return 'Bhaktapur Heritage Area';
+    return 'Heritage Area';
   } else if (lat >= 27.650 && lat <= 27.690 && lng >= 85.380 && lng <= 85.450) {
-    return 'Bhaktapur District';
+    return 'Local District';
   } else if (lat >= 27.680 && lat <= 27.720 && lng >= 85.300 && lng <= 85.380) {
     return 'Kathmandu East Area';
   } else if (lat >= 27.650 && lat <= 27.750 && lng >= 85.250 && lng <= 85.500) {
@@ -317,7 +317,7 @@ const DeliveryMap = ({ deliveryOrders = [] }) => {
             Delivery Locations Map
           </h3>
           <p className="text-sm text-gray-600">
-            {processedOrders.length} active delivery orders • Distance calculated from Food Zone Duwakot
+            {processedOrders.length} active delivery orders • Distance calculated from Food Zone
           </p>
           <div className="mt-2 text-xs text-gray-500">
             📍 Food Zone Location: {FOOD_ZONE_COORDS.lat.toFixed(4)}, {FOOD_ZONE_COORDS.lng.toFixed(4)}
