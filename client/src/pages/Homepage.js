@@ -262,7 +262,7 @@ const Homepage = () => {
               <div className="grid md:grid-cols-2 gap-6 items-center">
                 <div>
                   <h3 className="text-3xl font-bold mb-3 text-yellow-200">
-                    🕰️ 7:00 PM - 10:00 PM
+                    🕰️ 5:00 PM - 8:00 PM
                   </h3>
                   <p className="text-lg mb-4">
                     Join us for an unforgettable evening of live music, delicious food, and great atmosphere!
