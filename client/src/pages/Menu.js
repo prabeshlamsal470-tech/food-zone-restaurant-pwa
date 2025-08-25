@@ -21,24 +21,8 @@ const MenuItemCard = lazy(() => import('../components/MenuItemCard'));
 const HappyHourSection = lazy(() => import('../components/HappyHourSection'));
 
 const Menu = () => {
-  // Initialize with instant preloaded data for seamless experience
-  const [menuItems, setMenuItems] = useState(() => {
-    // Check for preloaded menu data first
-    const preloadedMenu = localStorage.getItem('preloadedMenu');
-    if (preloadedMenu) {
-      try {
-        const parsed = JSON.parse(preloadedMenu);
-        if (Date.now() - parsed.timestamp < 120000) { // 2 minutes fresh
-          return parsed.data;
-        }
-      } catch (error) {
-        console.log('Preloaded menu parse error, using fallback');
-      }
-    }
-    
-    // Fallback to instant mock data
-    return tablePreloader.getFallbackMenu();
-  });
+  // Initialize with empty array for priority loading
+  const [menuItems, setMenuItems] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
@@ -104,47 +88,61 @@ const Menu = () => {
         { id: 8, name: 'Veg Burger', price: 200, category: 'Fast Food', description: 'Vegetarian burger with fries' }
       ];
       
-      // Add happy hour items if it's happy hour time
-      if (isHappyHour) {
-        instantMenu = [...instantMenu, ...happyHourItems];
-      }
-      
-      // Set instant menu immediately - NEVER wait for API
-      console.log('Setting instant menu with', instantMenu.length, 'items');
       setMenuItems(instantMenu);
-      setLoading(false);
+      setLoading(true);
       
-      // Try to fetch real data in background (non-blocking)
+      // Then load full menu in background
       setTimeout(async () => {
         try {
-          console.log('Attempting background API fetch...');
-          const response = await fetchApi.get('/api/menu');
+          // Use cached data if available and fresh (within 5 minutes)
+          const cachedMenu = sessionStorage.getItem('menuCache');
+          const cacheTimestamp = sessionStorage.getItem('menuCacheTimestamp');
           
-          // fetchApi.get returns the parsed JSON directly, not wrapped in .data
-          let menuData = Array.isArray(response) ? response : (response.data || response || []);
-          
-          // Add happy hour items if it's happy hour time
-          if (isHappyHour) {
-            menuData = [...menuData, ...happyHourItems];
+          if (cachedMenu && cacheTimestamp) {
+            const cacheAge = Date.now() - parseInt(cacheTimestamp);
+            if (cacheAge < 300000) { // 5 minutes
+              const parsedMenu = JSON.parse(cachedMenu);
+              setMenuItems(parsedMenu);
+              setLoading(false);
+              
+              // Still fetch fresh data in background
+              try {
+                const response = await fetchApi.get('/menu');
+                if (response && Array.isArray(response) && response.length > 0) {
+                  setMenuItems(response);
+                  sessionStorage.setItem('menuCache', JSON.stringify(response));
+                  sessionStorage.setItem('menuCacheTimestamp', Date.now().toString());
+                }
+              } catch (bgError) {
+                console.log('Background fetch failed, using cached data');
+              }
+              return;
+            }
           }
           
-          if (menuData.length > 8) {
-            console.log('Background API success - updating menu with', menuData.length, 'items');
-            setMenuItems(menuData);
-            
-            // Cache the data in localStorage for faster subsequent loads
-            localStorage.setItem(cacheKey, JSON.stringify(menuData));
-            localStorage.setItem(cacheKey + '_time', now.toString());
+          // Fetch fresh data
+          const response = await fetchApi.get('/menu');
+          
+          if (response && Array.isArray(response) && response.length > 0) {
+            setMenuItems(response);
+            // Cache the response
+            sessionStorage.setItem('menuCache', JSON.stringify(response));
+            sessionStorage.setItem('menuCacheTimestamp', Date.now().toString());
+          } else {
+            // Keep instant items if API fails
+            console.log('API response invalid, keeping instant items');
           }
         } catch (error) {
-          console.error('Background API failed - keeping mock data:', error.message);
-          // Keep existing mock data, don't replace with empty array
+          console.error('Error fetching full menu:', error);
+          // Keep instant items on error
+        } finally {
+          setLoading(false);
         }
-      }, 100);
+      }, 100); // Small delay to show categories first
       
     } catch (error) {
       console.error('Error in fetchMenuItems:', error);
-      // Keep existing mock data that was already set
+      setLoading(false);
     }
   }, []);
 
@@ -225,9 +223,21 @@ const Menu = () => {
     }
   }, []);
 
-  // Memoized categories to prevent recalculation
+  // Static categories for instant display - show immediately without waiting for menu items
   const categories = useMemo(() => {
-    return ['All', ...new Set(menuItems.map(item => item.category))];
+    const staticCategories = [
+      'All', 'Breakfast', 'Chopsuey', 'Chowmein', 'Cold Beverages', 'Combo Meals', 
+      'Corn Dog & Hot Dog', 'Curries', 'Fish Specials', 'Food Zone Specials', 'Fries', 
+      'Happy Hour', 'Hot Beverages', 'Hukka', 'Khaja & Khana Sets', 'MoMo', 
+      'Nanglo Khaja Set', 'Paneer & Veg Snacks', 'Pasta', 'Peri Peri & Chicken Specials', 
+      'Pizza', 'Rice & Biryani', 'Sandwiches & Burgers', 'Soups', 'Thukpa'
+    ];
+    
+    // If menu items are loaded, use dynamic categories, otherwise use static
+    if (menuItems.length > 0) {
+      return ['All', ...new Set(menuItems.map(item => item.category))];
+    }
+    return staticCategories;
   }, [menuItems]);
   
   // Happy Hour menu items - using integer IDs for database compatibility
