@@ -87,14 +87,20 @@ const Menu = () => {
       // Fetch fresh data from API
       const response = await fetchApi.get('/menu');
       
-      if (response && Array.isArray(response) && response.length > 0) {
-        console.log(`Loaded ${response.length} menu items from API`);
-        setMenuItems(response);
+      // Handle different response formats
+      let menuData = response;
+      if (response && response.data) {
+        menuData = response.data;
+      }
+      
+      if (menuData && Array.isArray(menuData) && menuData.length > 0) {
+        console.log(`Loaded ${menuData.length} menu items from API`);
+        setMenuItems(menuData);
         // Cache the response
-        sessionStorage.setItem('menuCache', JSON.stringify(response));
+        sessionStorage.setItem('menuCache', JSON.stringify(menuData));
         sessionStorage.setItem('menuCacheTimestamp', Date.now().toString());
       } else {
-        console.error('API response invalid or empty');
+        console.error('API response invalid or empty:', response);
         setMenuItems([]);
       }
     } catch (error) {
@@ -180,10 +186,10 @@ const Menu = () => {
     return menuItems.filter(item => {
       if (!item || !item.name) return false;
       
-      const matchesSearch = searchQuery === '' || 
-        item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (item.category && item.category.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        (item.description && item.description.toLowerCase().includes(searchQuery.toLowerCase()));
+      const matchesSearch = debouncedSearchQuery === '' || 
+        item.name.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
+        (item.category && item.category.toLowerCase().includes(debouncedSearchQuery.toLowerCase())) ||
+        (item.description && item.description.toLowerCase().includes(debouncedSearchQuery.toLowerCase()));
       
       const matchesCategory = selectedCategory === 'All' || item.category === selectedCategory;
       
