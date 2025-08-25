@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import io from 'socket.io-client';
 import { getSocketUrl, apiService } from '../services/apiService';
 import { useCart } from '../context/CartContext';
 import { decryptTableCode } from '../utils/tableEncryption';
-import LoadingSpinner from '../components/LoadingSpinner';
+// import LoadingSpinner from '../components/LoadingSpinner';
 
 const TableOrder = () => {
   const { tableId } = useParams();
@@ -15,7 +15,7 @@ const TableOrder = () => {
   const [showCheckout, setShowCheckout] = useState(false);
   const [customerInfo, setCustomerInfo] = useState({ name: '', phone: '' });
   const [orderSubmitted, setOrderSubmitted] = useState(false);
-  const [loading, setLoading] = useState(false);
+  // const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   // const [showMenuSearch, setShowMenuSearch] = useState(false);
@@ -62,7 +62,7 @@ const TableOrder = () => {
 
   const fetchMenuItems = async () => {
     try {
-      setLoading(true);
+      // setLoading(true);
       
       // Always set fallback menu first for instant search functionality
       const fallbackMenu = [
@@ -108,7 +108,7 @@ const TableOrder = () => {
         { id: 2, name: 'Tea', price: 25, category: 'Beverages', description: 'Hot tea' }
       ]);
     } finally {
-      setLoading(false);
+      // setLoading(false);
     }
   };
 
@@ -177,16 +177,19 @@ const TableOrder = () => {
   }, [actualTableNumber, clearCart, navigate]);
 
   const handleViewMenu = useCallback(() => {
-    // Use encrypted table code for menu navigation
-    const encryptedTableUrl = sessionStorage.getItem('currentTableUrl') || localStorage.getItem('currentTableUrl');
-    if (encryptedTableUrl) {
-      const encryptedCode = encryptedTableUrl.substring(1); // Remove leading slash
-      navigate(`/menu?table=${encryptedCode}`);
-    } else {
-      // Fallback - shouldn't happen with encrypted codes
-      navigate(`/menu?table=${actualTableNumber}`);
-    }
+    // Simple navigation using table number
+    navigate(`/menu?table=${actualTableNumber}`);
   }, [navigate, actualTableNumber]);
+
+  // Auto-clear error messages after 5 seconds
+  useEffect(() => {
+    if (errorMessage) {
+      const timer = setTimeout(() => {
+        setErrorMessage('');
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [errorMessage]);
 
   const handleSubmitOrder = async () => {
     // Clear any previous error messages
@@ -340,13 +343,14 @@ const TableOrder = () => {
     );
   }
 
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center min-h-screen">
-        <LoadingSpinner message="Loading dine-in menu..." />
-      </div>
-    );
-  }
+  // Remove full-page loading - show skeleton instead
+  // if (loading) {
+  //   return (
+  //     <div className="flex justify-center items-center min-h-screen">
+  //       <LoadingSpinner message="Loading dine-in menu..." />
+  //     </div>
+  //   );
+  // }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -397,7 +401,7 @@ const TableOrder = () => {
         </div>
 
         {/* Search Results */}
-        {filteredMenuItems.length > 0 && (
+        {filteredMenuItems.length > 0 && debouncedSearchQuery.trim() && (
           <div className="mb-4">
             <p className="text-sm text-gray-600 mb-3">
               Found {filteredMenuItems.length} items for "{debouncedSearchQuery}":
