@@ -63,8 +63,8 @@ const Header = React.memo(() => {
           </Link>
           
           <nav className="flex items-center space-x-6">
-            {/* Show menu button on homepage, table pages and delivery cart page, but not on menu page */}
-            {!pageInfo.isMenuPage && (
+            {/* Show menu button only on homepage and delivery cart page, NOT on table pages or menu page */}
+            {!pageInfo.isMenuPage && !isTablePage && (
               <Link 
                 to="/menu" 
                 className="bg-gradient-to-r from-yellow-400 to-yellow-500 hover:from-yellow-500 hover:to-yellow-600 text-black font-semibold px-6 py-2 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
