@@ -44,22 +44,7 @@ const TableOrder = () => {
         sessionStorage.setItem('currentTableUrl', window.location.pathname);
         localStorage.setItem('currentTableUrl', window.location.pathname);
         
-        // Initialize with happy hour items if it's happy hour time
-        const now = new Date();
-        const currentHour = now.getHours();
-        const isHappyHour = currentHour >= 11 && currentHour < 14;
-        
-        if (isHappyHour) {
-          const happyHourItems = [
-            { id: 1001, name: 'Chicken Momo', price: 125, category: 'Happy Hour', description: 'Delicious steamed chicken dumplings' },
-            { id: 1002, name: 'Chicken Fried Rice', price: 145, category: 'Happy Hour', description: 'Aromatic fried rice with tender chicken pieces' },
-            { id: 1003, name: 'Veg Fried Rice', price: 110, category: 'Happy Hour', description: 'Flavorful vegetarian fried rice with fresh vegetables' },
-            { id: 1004, name: 'Burger', price: 150, category: 'Happy Hour', description: 'Juicy beef burger with fresh toppings' },
-            { id: 1005, name: 'Chicken Chowmein', price: 110, category: 'Happy Hour', description: 'Stir-fried noodles with chicken and vegetables' },
-            { id: 1006, name: 'Veg Chowmein', price: 80, category: 'Happy Hour', description: 'Vegetarian stir-fried noodles with fresh vegetables' }
-          ];
-          setMenuItems(prev => [...prev, ...happyHourItems]);
-        }
+        // Don't initialize with happy hour items here - let fetchMenuItems handle all menu data
       } else {
         setActualTableNumber(null);
       }
@@ -92,6 +77,23 @@ const TableOrder = () => {
         { id: 9, name: 'Chicken Curry', price: 250, category: 'Main Course', description: 'Spicy chicken curry' },
         { id: 10, name: 'Tea', price: 25, category: 'Beverages', description: 'Hot tea' }
       ];
+      
+      // Add happy hour items if it's happy hour time
+      const now = new Date();
+      const currentHour = now.getHours();
+      const isHappyHour = currentHour >= 11 && currentHour < 14;
+      
+      if (isHappyHour) {
+        const happyHourItems = [
+          { id: 1001, name: 'Chicken Momo (Happy Hour)', price: 125, category: 'Happy Hour', description: 'Delicious steamed chicken dumplings - Happy Hour Special' },
+          { id: 1002, name: 'Chicken Fried Rice (Happy Hour)', price: 145, category: 'Happy Hour', description: 'Aromatic fried rice with tender chicken pieces - Happy Hour Special' },
+          { id: 1003, name: 'Veg Fried Rice (Happy Hour)', price: 110, category: 'Happy Hour', description: 'Flavorful vegetarian fried rice with fresh vegetables - Happy Hour Special' },
+          { id: 1004, name: 'Burger (Happy Hour)', price: 150, category: 'Happy Hour', description: 'Juicy beef burger with fresh toppings - Happy Hour Special' },
+          { id: 1005, name: 'Chicken Chowmein (Happy Hour)', price: 110, category: 'Happy Hour', description: 'Stir-fried noodles with chicken and vegetables - Happy Hour Special' },
+          { id: 1006, name: 'Veg Chowmein (Happy Hour)', price: 80, category: 'Happy Hour', description: 'Vegetarian stir-fried noodles with fresh vegetables - Happy Hour Special' }
+        ];
+        fallbackMenu.push(...happyHourItems);
+      }
       
       setMenuItems(fallbackMenu);
       
