@@ -8,17 +8,15 @@ const FloatingCart = () => {
   const { currentTable, cartItems, getTotalPrice } = useCart();
   const { deliveryCartItems, getDeliveryTotalPrice } = useDeliveryCart();
   
-  // Don't show on admin page, delivery cart page, or table ordering pages
+  // Don't show on admin page or delivery cart page
   if (location.pathname === '/admin' || 
-      location.pathname === '/delivery-cart' ||
-      location.pathname.match(/^\/\d+$/) ||
-      location.pathname.match(/^\/[A-Z0-9]{12}$/)) {
+      location.pathname === '/delivery-cart') {
     return null;
   }
   
   // Determine if user is on a table page
   const isNumericTablePage = location.pathname.match(/^\/\d+$/);
-  const isEncryptedTablePage = location.pathname.match(/^\/[A-Z0-9]{12}$/);
+  const isEncryptedTablePage = location.pathname.match(/^\/[A-Z0-9]{8,}$/);
   const isTablePage = isNumericTablePage || isEncryptedTablePage;
   const isTableCustomer = !!currentTable;
   
