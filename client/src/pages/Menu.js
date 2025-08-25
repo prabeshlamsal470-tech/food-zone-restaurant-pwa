@@ -1,8 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback, lazy, Suspense } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { fetchApi } from '../services/apiService';
-import { tablePreloader } from '../utils/tablePreloader';
-import { seamlessNavigation } from '../utils/seamlessNavigation';
 import { useCart } from '../context/CartContext';
 import { useDeliveryCart } from '../context/DeliveryCartContext';
 
@@ -146,51 +144,17 @@ const Menu = () => {
     }
   }, []);
 
-  // Set table context from URL 
+  // Set table context from URL parameters
   useEffect(() => {
-    const handleInstantMenuPopulation = (event) => {
-      const { tableNumber } = event.detail;
-      if (tableNumber) {
+    const tableParam = searchParams.get('table');
+    if (tableParam) {
+      const tableNumber = parseInt(tableParam);
+      if (tableNumber >= 1 && tableNumber <= 25) {
         setTableContext(tableNumber);
-        // Get preloaded data instantly
-        const preloadedData = seamlessNavigation.getCachedData(tableNumber);
-        if (preloadedData?.menu) {
-          setMenuItems(preloadedData.menu);
-        }
-      }
-    };
-
-    window.addEventListener('populateMenuInstantly', handleInstantMenuPopulation);
-    return () => window.removeEventListener('populateMenuInstantly', handleInstantMenuPopulation);
-  }, [setTableContext]);
-
-  useEffect(() => {
-    if (tableParam && !currentTable) {
-      // Handle both numeric and encrypted table parameters
-      if (!isNaN(tableParam)) {
-        // Allow numeric table access for menu functionality
-        const tableNum = parseInt(tableParam);
-        if (tableNum >= 1 && tableNum <= 25) {
-          setTableContext(tableNum);
-          localStorage.setItem('currentTable', tableNum.toString());
-          sessionStorage.setItem('currentTable', tableNum.toString());
-        }
-      } else {
-        // Decrypt encrypted table code to get actual table number
-        import('../utils/tableEncryption').then(({ decryptTableCode }) => {
-          const decryptedTable = decryptTableCode(tableParam);
-          if (decryptedTable) {
-            setTableContext(decryptedTable);
-            localStorage.setItem('currentTable', decryptedTable.toString());
-            sessionStorage.setItem('currentTable', decryptedTable.toString());
-            // Store the encrypted table URL for navigation
-            sessionStorage.setItem('currentTableUrl', `/${tableParam}`);
-            localStorage.setItem('currentTableUrl', `/${tableParam}`);
-          }
-        });
       }
     }
-  }, [tableParam, currentTable, setTableContext]);
+  }, [searchParams, setTableContext]);
+
 
   useEffect(() => {
     // Always check happy hour first
