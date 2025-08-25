@@ -418,14 +418,14 @@ const TableOrder = () => {
           <h2 className="text-xl font-semibold mb-4">Quick Search & Add Items</h2>
         
         {/* Menu Search */}
-        <div className="mb-4">
+        <div className="mb-6">
           <div className="relative">
             <input
               type="text"
-              placeholder="Search menu items (momo, chicken, pizza, tea...)"
+              placeholder="Search menu items, categories..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full px-4 py-3 pl-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+              className="w-full px-4 py-2 pl-10 border border-gray-300 rounded focus:outline-none focus:border-blue-500"
             />
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -434,6 +434,21 @@ const TableOrder = () => {
             </div>
           </div>
         </div>
+
+        {/* Search Results Info */}
+        {debouncedSearchQuery && (
+          <div className="text-center mb-4">
+            <p className="text-gray-600">
+              Found {filteredMenuItems.length} items for "{debouncedSearchQuery}"
+              <button
+                onClick={() => setSearchQuery('')}
+                className="ml-2 underline text-sm text-blue-600 hover:text-blue-800"
+              >
+                Clear search
+              </button>
+            </p>
+          </div>
+        )}
 
         {/* Search Results with Lazy Loading */}
         {displayedSearchItems.length > 0 && debouncedSearchQuery.trim() && (
