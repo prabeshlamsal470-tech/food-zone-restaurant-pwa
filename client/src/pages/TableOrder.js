@@ -355,14 +355,14 @@ const TableOrder = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Sticky Table Bar - Same as numeric URLs */}
-      <div className="sticky top-0 z-50 bg-gradient-to-r from-orange-500 to-red-600 text-white shadow-lg">
+      <div className="sticky top-0 z-50 bg-blue-600 text-white shadow-lg">
         <div className="container mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <span className="text-2xl">🪑</span>
+              <div className="text-xl">🪑</div>
               <div>
-                <h2 className="text-lg font-bold">You are at Table Number {actualTableNumber}</h2>
-                <p className="text-sm opacity-90">Click to Order</p>
+                <div className="font-semibold text-base">Table {actualTableNumber}</div>
+                <div className="text-sm opacity-90">Dine-in Order</div>
               </div>
             </div>
             <button
@@ -376,11 +376,11 @@ const TableOrder = () => {
       </div>
 
       <div className="container mx-auto px-4 py-8">
-        <h1 className="text-3xl font-bold text-center mb-8">Order for Table {actualTableNumber}</h1>
+        <h1 className="text-2xl font-semibold mb-6 text-center text-gray-800">Order for Table {actualTableNumber}</h1>
 
-      {/* Add Items Section */}
-      <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-        <h2 className="text-xl font-semibold mb-4">Quick Search & Add Items</h2>
+        {/* Add Items Section */}
+        <div className="bg-white rounded-lg border border-gray-200 p-6 max-w-md w-full mx-4">
+          <h2 className="text-xl font-semibold mb-4">Quick Search & Add Items</h2>
         
         {/* Menu Search */}
         <div className="mb-4">
@@ -478,7 +478,7 @@ const TableOrder = () => {
 
       {/* Cart Summary */}
       {cartItems.length > 0 && (
-        <div className="bg-white rounded-lg shadow-md p-6">
+        <div className="bg-white rounded-lg border border-gray-200 p-6 max-w-md w-full mx-4">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-semibold">Your Order</h2>
             <button
@@ -543,9 +543,9 @@ const TableOrder = () => {
           
           {!showCheckout ? (
             <button
+              type="button"
               onClick={() => setShowCheckout(true)}
-              className="w-full bg-primary text-white py-3 rounded-lg mt-4 hover:bg-orange-600 transition-colors min-h-[48px] touch-manipulation"
-              style={{ touchAction: 'manipulation' }}
+              className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
             >
               Proceed to Checkout
             </button>
@@ -574,9 +574,8 @@ const TableOrder = () => {
               
               <button
                 onClick={handleSubmitOrder}
-                disabled={isSubmitting}
-                className="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px] touch-manipulation"
-                style={{ touchAction: 'manipulation' }}
+                disabled={isSubmitting || !customerInfo.name || !customerInfo.phone}
+                className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 {isSubmitting ? 'Submitting...' : 'Submit Order'}
               </button>

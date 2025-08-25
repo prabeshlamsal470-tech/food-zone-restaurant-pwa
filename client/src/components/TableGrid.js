@@ -67,13 +67,13 @@ const TableGrid = () => {
 
   const getTableStatusColor = (status) => {
     switch (status) {
-      case 'empty': return 'bg-green-100 border-green-300 text-green-800';
-      case 'occupied': return 'bg-yellow-100 border-yellow-300 text-yellow-800';
-      case 'ordering': return 'bg-blue-100 border-blue-300 text-blue-800';
-      case 'dining': return 'bg-purple-100 border-purple-300 text-purple-800';
-      case 'payment_pending': return 'bg-orange-100 border-orange-300 text-orange-800';
-      case 'completed': return 'bg-gray-100 border-gray-300 text-gray-800';
-      default: return 'bg-gray-100 border-gray-300 text-gray-800';
+      case 'empty': return 'bg-white border-gray-200 text-gray-700';
+      case 'occupied': return 'bg-gray-50 border-gray-300 text-gray-800';
+      case 'ordering': return 'bg-blue-50 border-blue-200 text-blue-800';
+      case 'dining': return 'bg-gray-100 border-gray-300 text-gray-800';
+      case 'payment_pending': return 'bg-orange-50 border-orange-200 text-orange-800';
+      case 'completed': return 'bg-gray-100 border-gray-300 text-gray-700';
+      default: return 'bg-white border-gray-200 text-gray-700';
     }
   };
 
@@ -114,29 +114,29 @@ const TableGrid = () => {
     <div className="space-y-6">
       {/* Header Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-green-50 p-4 rounded-lg border border-green-200">
-          <div className="text-2xl font-bold text-green-600">
+        <div className="bg-white p-4 rounded-lg border border-gray-200">
+          <div className="text-xl font-semibold text-gray-700">
             {tables.filter(t => t.status === 'empty').length}
           </div>
-          <div className="text-sm text-green-700">Empty Tables</div>
+          <div className="text-sm text-gray-600">Empty Tables</div>
         </div>
-        <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
-          <div className="text-2xl font-bold text-yellow-600">
+        <div className="bg-white p-4 rounded-lg border border-gray-200">
+          <div className="text-xl font-semibold text-gray-700">
             {tables.filter(t => t.status !== 'empty').length}
           </div>
-          <div className="text-sm text-yellow-700">Occupied Tables</div>
+          <div className="text-sm text-gray-600">Occupied Tables</div>
         </div>
-        <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-          <div className="text-2xl font-bold text-blue-600">
+        <div className="bg-white p-4 rounded-lg border border-gray-200">
+          <div className="text-xl font-semibold text-gray-700">
             ${tables.reduce((sum, t) => sum + (t.total_amount || 0), 0).toFixed(2)}
           </div>
-          <div className="text-sm text-blue-700">Total Revenue</div>
+          <div className="text-sm text-gray-600">Total Revenue</div>
         </div>
-        <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
-          <div className="text-2xl font-bold text-purple-600">
+        <div className="bg-white p-4 rounded-lg border border-gray-200">
+          <div className="text-xl font-semibold text-gray-700">
             {tables.reduce((sum, t) => sum + (t.order_count || 0), 0)}
           </div>
-          <div className="text-sm text-purple-700">Total Orders</div>
+          <div className="text-sm text-gray-600">Total Orders</div>
         </div>
       </div>
 
@@ -146,14 +146,14 @@ const TableGrid = () => {
           <div
             key={table.table_id}
             className={`
-              relative p-4 rounded-lg border-2 cursor-pointer transition-all duration-200 hover:shadow-lg
+              relative p-3 rounded-lg border cursor-pointer transition-colors duration-150 hover:border-blue-300
               ${getTableStatusColor(table.status)}
             `}
             onClick={() => openTableDetails(table)}
           >
             {/* Table Number */}
             <div className="text-center">
-              <div className="text-2xl font-bold mb-2">
+              <div className="text-xl font-semibold mb-2">
                 {getStatusIcon(table.status)} {table.table_id}
               </div>
               
@@ -191,7 +191,7 @@ const TableGrid = () => {
                     e.stopPropagation();
                     clearTable(table.table_id);
                   }}
-                  className="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full text-xs hover:bg-red-600 transition-colors"
+                  className="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white rounded-full text-xs hover:bg-red-600 transition-colors"
                   title="Clear Table"
                 >
                   ×
