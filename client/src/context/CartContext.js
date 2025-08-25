@@ -15,19 +15,15 @@ export const CartProvider = ({ children }) => {
   const [cartItems, setCartItems] = useState([]);
   const [currentTable, setCurrentTable] = useState(null);
 
-  // Get current table from URL or localStorage
+  // Get current table from URL or localStorage - ENCRYPTED CODES ONLY
   useEffect(() => {
     const path = window.location.pathname;
-    const numericTableMatch = path.match(/^\/(\d+)$/);
-    const encryptedTableMatch = path.match(/^\/([A-Z0-9]{12})$/);
+    const encryptedTableMatch = path.match(/^\/([A-Z0-9]{8,})$/);
     
     let tableId = null;
     
-    if (numericTableMatch) {
-      // Numeric table (blocked in production but may exist in dev)
-      tableId = parseInt(numericTableMatch[1]);
-    } else if (encryptedTableMatch) {
-      // Encrypted table - decrypt to get actual table number
+    if (encryptedTableMatch) {
+      // Only encrypted table codes allowed - decrypt to get actual table number
       const encryptedCode = encryptedTableMatch[1];
       tableId = decryptTableCode(encryptedCode);
     }

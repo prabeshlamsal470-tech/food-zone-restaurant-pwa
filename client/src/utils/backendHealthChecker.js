@@ -21,7 +21,7 @@ class BackendHealthChecker {
   async checkBackendHealth() {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout for cold starts
       
       const response = await fetch(`${this.backendUrl}/api/menu`, {
         method: 'GET',

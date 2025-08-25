@@ -168,20 +168,24 @@ const Menu = () => {
 
   useEffect(() => {
     if (tableParam && !currentTable) {
-      // Handle both numeric and encrypted table parameters
+      // Handle encrypted table parameters - decrypt to get table number
       if (!isNaN(tableParam)) {
-        // Numeric table (1-25)
-        const tableNumber = parseInt(tableParam);
-        if (tableNumber >= 1 && tableNumber <= 25) {
-          setTableContext(tableNumber);
-          localStorage.setItem('currentTable', tableNumber.toString());
-          sessionStorage.setItem('currentTable', tableNumber.toString());
-        }
+        // Block numeric table access - redirect to home
+        console.log('Numeric table access blocked in menu');
+        return;
       } else {
-        // Encrypted table code
-        setTableContext(tableParam);
-        localStorage.setItem('currentTable', tableParam);
-        sessionStorage.setItem('currentTable', tableParam);
+        // Decrypt encrypted table code to get actual table number
+        import('../utils/tableEncryption').then(({ decryptTableCode }) => {
+          const decryptedTable = decryptTableCode(tableParam);
+          if (decryptedTable) {
+            setTableContext(decryptedTable);
+            localStorage.setItem('currentTable', decryptedTable.toString());
+            sessionStorage.setItem('currentTable', decryptedTable.toString());
+            // Store the encrypted table URL for navigation
+            sessionStorage.setItem('currentTableUrl', `/${tableParam}`);
+            localStorage.setItem('currentTableUrl', `/${tableParam}`);
+          }
+        });
       }
     }
   }, [tableParam, currentTable, setTableContext]);
@@ -370,29 +374,35 @@ const Menu = () => {
             <p className="text-lg mb-6 text-amber-600">Ready to order? Please select your favorite food from our menu.</p>
             <button
               onClick={() => {
+                console.log('Go Back to Table button clicked');
+                console.log('Current table:', currentTable);
+                console.log('Table param:', tableParam);
+                
                 // Get the encrypted table URL from sessionStorage or localStorage
                 const encryptedTableUrl = sessionStorage.getItem('currentTableUrl') || localStorage.getItem('currentTableUrl');
+                console.log('Stored encrypted URL:', encryptedTableUrl);
+                
                 if (encryptedTableUrl) {
+                  console.log('Using stored encrypted URL:', encryptedTableUrl);
                   window.location.href = encryptedTableUrl;
+                } else if (tableParam) {
+                  // Use the table parameter from URL if available
+                  console.log('Using table param for navigation:', tableParam);
+                  window.location.href = `/${tableParam}`;
                 } else {
-                  // Check if we came from an encrypted table URL in referrer
-                  const referrer = document.referrer;
-                  const encryptedMatch = referrer.match(/\/([A-Z0-9]+)$/);
-                  if (encryptedMatch) {
-                    window.location.href = `/${encryptedMatch[1]}`;
-                  } else {
-                    // Import encryption utility and generate encrypted URL
-                    import('../utils/tableEncryption').then(({ encryptTableNumber }) => {
-                      try {
-                        const encryptedCode = encryptTableNumber(currentTable);
-                        window.location.href = `/${encryptedCode}`;
-                      } catch (error) {
-                        console.error('Failed to encrypt table number:', error);
-                        // Last resort fallback - shouldn't happen in production
-                        window.location.href = `/${currentTable}`;
-                      }
-                    });
-                  }
+                  // Import encryption utility and generate encrypted URL
+                  console.log('Generating new encrypted URL for table:', currentTable);
+                  import('../utils/tableEncryption').then(({ encryptTableNumber }) => {
+                    try {
+                      const encryptedCode = encryptTableNumber(currentTable);
+                      console.log('Generated encrypted code:', encryptedCode);
+                      window.location.href = `/${encryptedCode}`;
+                    } catch (error) {
+                      console.error('Failed to encrypt table number:', error);
+                      // Redirect to home instead of numeric table
+                      window.location.href = '/';
+                    }
+                  });
                 }
               }}
               className="bg-gradient-to-r from-orange-500 to-red-500 text-white px-8 py-4 rounded-xl hover:from-orange-600 hover:to-red-600 transition-all duration-300 font-bold text-lg shadow-lg hover:shadow-xl transform hover:scale-105 inline-flex items-center space-x-3"

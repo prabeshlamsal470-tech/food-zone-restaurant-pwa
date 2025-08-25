@@ -22,7 +22,7 @@ const TableOrder = () => {
   const [errorMessage, setErrorMessage] = useState('');
   const [actualTableNumber, setActualTableNumber] = useState(null);
 
-  // Instant table setup with seamless preloading
+  // Instant table setup with seamless preloading - ENCRYPTED CODES ONLY
   useEffect(() => {
     if (tableId) {
       // Block all numeric table IDs - only encrypted codes allowed
@@ -31,7 +31,7 @@ const TableOrder = () => {
         return;
       }
       
-      // Only try to decrypt non-numeric table codes
+      // Only try to decrypt encrypted table codes
       const decryptedTable = decryptTableCode(tableId);
       if (decryptedTable) {
         setActualTableNumber(decryptedTable);
@@ -158,7 +158,15 @@ const TableOrder = () => {
   }, [actualTableNumber, clearCart, navigate]);
 
   const handleViewMenu = useCallback(() => {
-    navigate(`/menu?table=${actualTableNumber}`);
+    // Use encrypted table code for menu navigation
+    const encryptedTableUrl = sessionStorage.getItem('currentTableUrl') || localStorage.getItem('currentTableUrl');
+    if (encryptedTableUrl) {
+      const encryptedCode = encryptedTableUrl.substring(1); // Remove leading slash
+      navigate(`/menu?table=${encryptedCode}`);
+    } else {
+      // Fallback - shouldn't happen with encrypted codes
+      navigate(`/menu?table=${actualTableNumber}`);
+    }
   }, [navigate, actualTableNumber]);
 
   const handleSubmitOrder = async () => {
@@ -179,7 +187,7 @@ const TableOrder = () => {
       return;
     }
 
-    // Submit order directly without confirmation popup
+    // Submit order with enhanced error handling and fallback
     try {
       const orderData = {
         tableId: actualTableNumber,
@@ -190,25 +198,61 @@ const TableOrder = () => {
         items: cartItems
       };
 
-      await apiService.createOrder(orderData);
+      // Try to submit order with timeout
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Request timeout')), 15000)
+      );
+      
+      await Promise.race([
+        apiService.createOrder(orderData),
+        timeoutPromise
+      ]);
+      
       setOrderSubmitted(true);
       clearCart();
       
       // Store order submitted state for 30 minutes
       localStorage.setItem(`order_submitted_${actualTableNumber}`, Date.now().toString());
+      
+      // Success - no additional notification needed
+      
     } catch (error) {
       console.error('Error submitting order:', error);
       console.error('Error response:', error.response?.data);
       console.error('Error status:', error.response?.status);
       
-      let errorMsg = 'Failed to submit order. Please try again.';
-      if (error.response?.data?.message) {
-        errorMsg = error.response.data.message;
-      } else if (error.message) {
-        errorMsg = error.message;
+      // Enhanced error handling with fallback
+      if (error.message === 'Request timeout' || error.code === 'NETWORK_ERROR' || !navigator.onLine) {
+        // Save order locally for offline processing
+        const offlineOrder = {
+          ...orderData,
+          timestamp: Date.now(),
+          status: 'pending_offline'
+        };
+        
+        const offlineOrders = JSON.parse(localStorage.getItem('offlineOrders') || '[]');
+        offlineOrders.push(offlineOrder);
+        localStorage.setItem('offlineOrders', JSON.stringify(offlineOrders));
+        
+        setErrorMessage('Network issue detected. Your order has been saved locally and will be submitted when connection is restored. Please contact staff if this persists.');
+        
+        // Show offline success
+        setOrderSubmitted(true);
+        clearCart();
+        localStorage.setItem(`order_submitted_${actualTableNumber}`, Date.now().toString());
+        
+      } else {
+        let errorMsg = 'Failed to submit order. Please try again.';
+        if (error.response?.data?.message) {
+          errorMsg = error.response.data.message;
+        } else if (error.message.includes('timeout')) {
+          errorMsg = 'Request timed out. Please check your connection and try again.';
+        } else if (error.message) {
+          errorMsg = error.message;
+        }
+        
+        setErrorMessage(errorMsg);
       }
-      
-      setErrorMessage(errorMsg);
     } finally {
       setIsSubmitting(false);
     }
@@ -271,12 +315,12 @@ const TableOrder = () => {
                 <p className="text-sm opacity-90">Click to Order</p>
               </div>
             </div>
-            <Link 
-              to={`/menu?table=${actualTableNumber}`}
+            <button
+              onClick={handleViewMenu}
               className="bg-white text-orange-600 px-4 py-2 rounded-lg hover:bg-gray-100 transition-colors font-semibold text-sm"
             >
               📋 Full Menu
-            </Link>
+            </button>
           </div>
         </div>
       </div>
