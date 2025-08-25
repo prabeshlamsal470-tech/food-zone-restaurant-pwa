@@ -2,6 +2,7 @@
 import axios from 'axios';
 import { getApiUrl, getSocketUrl } from '../config/api';
 import API_CONFIG from '../config/api';
+import backendHealthChecker from '../utils/backendHealthChecker';
 
 // Mock data for frontend-only testing
 const mockMenuItems = [
@@ -21,8 +22,10 @@ let mockOrders = [
   { id: 5, table_id: 'Delivery', customer_name: 'David Brown', customer_phone: '9843333333', items: [{ name: 'Cheese Pizza', quantity: 1, price: 450 }], total_amount: 450, status: 'pending', order_type: 'delivery', created_at: new Date().toISOString(), delivery_address: 'Kathmandu, Nepal', order_number: 'ORD005' }
 ];
 
-// Check if we're in mock mode - disabled for production
-const isMockMode = () => false;
+// Check if we're in mock mode - enabled when backend is down
+const isMockMode = () => {
+  return backendHealthChecker.shouldUseMockMode();
+};
 
 // Create axios instance with base configuration
 const apiClient = axios.create({
@@ -64,6 +67,33 @@ apiClient.interceptors.response.use(
   }
 );
 
+// Success notification helper
+const showOrderSuccessNotification = (order) => {
+  const notification = document.createElement('div');
+  notification.className = 'fixed top-4 right-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-lg shadow-lg z-50';
+  notification.innerHTML = `
+    <div class="flex items-center">
+      <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+      </svg>
+      <div>
+        <p class="font-medium">Order Submitted Successfully!</p>
+        <p class="text-sm">Order #${order.order_number} for Table ${order.table_id}</p>
+        <p class="text-xs text-green-600 mt-1">Backend offline - order saved locally</p>
+      </div>
+    </div>
+  `;
+  
+  document.body.appendChild(notification);
+  
+  // Auto-remove after 5 seconds
+  setTimeout(() => {
+    if (notification.parentNode) {
+      notification.parentNode.removeChild(notification);
+    }
+  }, 5000);
+};
+
 // API Service methods
 export const apiService = {
   // Menu services
@@ -75,9 +105,31 @@ export const apiService = {
   },
   
   // Order services
-  createOrder: (orderData) => {
+  createOrder: async (orderData) => {
+    // Check backend health first
+    await backendHealthChecker.checkBackendHealth();
+    
     if (isMockMode()) {
-      return Promise.resolve({ data: { id: Date.now(), ...orderData, status: 'pending' } });
+      console.log('📝 Mock order created:', orderData);
+      // Add to mock orders for admin visibility
+      const newOrder = {
+        id: Date.now(),
+        table_id: orderData.tableId,
+        customer_name: orderData.customerName,
+        customer_phone: orderData.phone,
+        items: orderData.items,
+        total_amount: orderData.items.reduce((sum, item) => sum + (item.price * item.quantity), 0),
+        status: 'pending',
+        order_type: 'dine-in',
+        created_at: new Date().toISOString(),
+        order_number: `ORD${Date.now().toString().slice(-6)}`
+      };
+      mockOrders.unshift(newOrder);
+      
+      // Show success notification
+      showOrderSuccessNotification(newOrder);
+      
+      return Promise.resolve({ data: newOrder });
     }
     return apiClient.post(API_CONFIG.ENDPOINTS.ORDERS, orderData);
   },
