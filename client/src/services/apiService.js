@@ -98,7 +98,25 @@ const showOrderSuccessNotification = (order) => {
 export const apiService = {
   // Menu services
   getMenu: () => {
-    return apiClient.get(API_CONFIG.ENDPOINTS.MENU);
+    // Check cache first for fast loading
+    const cachedMenu = sessionStorage.getItem('menuCache');
+    const cacheTime = sessionStorage.getItem('menuCacheTime');
+    
+    if (cachedMenu && cacheTime) {
+      const now = Date.now();
+      const fiveMinutes = 5 * 60 * 1000;
+      
+      if (now - parseInt(cacheTime) < fiveMinutes) {
+        return Promise.resolve({ data: JSON.parse(cachedMenu) });
+      }
+    }
+    
+    // Fetch from API and cache
+    return apiClient.get(API_CONFIG.ENDPOINTS.MENU).then(response => {
+      sessionStorage.setItem('menuCache', JSON.stringify(response.data));
+      sessionStorage.setItem('menuCacheTime', Date.now().toString());
+      return response;
+    });
   },
   
   // Order services

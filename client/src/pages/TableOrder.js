@@ -315,13 +315,7 @@ const TableOrder = () => {
         phone: customerInfo.phone.trim(),
         orderType: 'dine-in',
         totalAmount: cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0),
-        items: cartItems.map(item => ({
-          id: item.id,
-          name: item.name,
-          price: item.price,
-          quantity: item.quantity,
-          isCustom: item.isCustom || false
-        }))
+        items: cartItems
       };
 
       await apiService.createOrder(orderData);
