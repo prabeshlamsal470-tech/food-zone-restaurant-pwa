@@ -20,7 +20,6 @@ const TableOrder = () => {
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   // const [showMenuSearch, setShowMenuSearch] = useState(false);
-  const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [actualTableNumber, setActualTableNumber] = useState(null);
@@ -285,29 +284,25 @@ const TableOrder = () => {
     seamlessNavigation.navigateToMenuInstantly(navigate, actualTableNumber);
   }, [navigate, actualTableNumber]);
 
-  const handleSubmitOrder = () => {
+  const handleSubmitOrder = async () => {
     // Clear any previous error messages
     setErrorMessage('');
+    setIsSubmitting(true);
 
     // Validation
     if (!customerInfo.name.trim() || !customerInfo.phone.trim()) {
       setErrorMessage('Please provide your name and phone number');
+      setIsSubmitting(false);
       return;
     }
 
     if (cartItems.length === 0) {
       setErrorMessage('Your cart is empty');
+      setIsSubmitting(false);
       return;
     }
 
-    // Show confirmation modal
-    setShowConfirmModal(true);
-  };
-
-  const confirmSubmitOrder = async () => {
-    setIsSubmitting(true);
-    setErrorMessage('');
-
+    // Submit order directly without confirmation popup
     try {
       const orderData = {
         tableId: actualTableNumber,
@@ -321,7 +316,6 @@ const TableOrder = () => {
       await apiService.createOrder(orderData);
       setOrderSubmitted(true);
       clearCart();
-      setShowConfirmModal(false);
       
       // Store order submitted state for 30 minutes
       localStorage.setItem(`order_submitted_${actualTableNumber}`, Date.now().toString());
@@ -338,16 +332,11 @@ const TableOrder = () => {
       }
       
       setErrorMessage(errorMsg);
-      setShowConfirmModal(false);
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const cancelSubmitOrder = () => {
-    setShowConfirmModal(false);
-    setErrorMessage('');
-  };
 
   // Filter menu items based on search query
   const filteredMenuItems = menuItems.filter(item => {
@@ -606,60 +595,6 @@ const TableOrder = () => {
         </div>
       )}
 
-      {/* Order Confirmation Modal */}
-      {showConfirmModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <div className="text-center">
-              <div className="text-4xl mb-4">🍽️</div>
-              <h3 className="text-lg font-semibold mb-2">Confirm Your Order</h3>
-              <div className="text-left bg-gray-50 rounded-lg p-4 mb-4">
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="font-medium">Table:</span>
-                    <span>{actualTableNumber}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="font-medium">Name:</span>
-                    <span>{customerInfo.name}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="font-medium">Phone:</span>
-                    <span>{customerInfo.phone}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="font-medium">Items:</span>
-                    <span>{cartItems.length} items</span>
-                  </div>
-                  <div className="flex justify-between font-semibold text-primary border-t pt-2">
-                    <span>Total:</span>
-                    <span>NPR {getTotalPrice()}/-</span>
-                  </div>
-                </div>
-              </div>
-              <p className="text-gray-600 mb-6 text-sm">
-                Please confirm that all details are correct before submitting your order.
-              </p>
-              <div className="flex gap-3 justify-center">
-                <button
-                  onClick={cancelSubmitOrder}
-                  disabled={isSubmitting}
-                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors disabled:opacity-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={confirmSubmitOrder}
-                  disabled={isSubmitting}
-                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isSubmitting ? 'Submitting...' : 'Confirm Order'}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
       </div>
     </div>
   );
