@@ -4,11 +4,13 @@ import './index.css';
 import App from './App';
 import { criticalResourcePreloader } from './utils/criticalResourcePreloader';
 import chunkErrorHandler from './utils/chunkErrorHandler';
+import chunk292Recovery from './utils/chunk292Recovery';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 
-// Initialize chunk error handler for recovery
-console.log('🛡️ Chunk error handler initialized');
+// Initialize chunk error handlers for recovery
+console.log('🛡️ Enhanced chunk error recovery system initialized');
+console.log('🔧 Specialized chunk 292 recovery active');
 
 // Preload critical resources immediately for instant table loading
 criticalResourcePreloader.preloadCriticalResources();

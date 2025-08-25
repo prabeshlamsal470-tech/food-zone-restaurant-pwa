@@ -327,7 +327,17 @@ const TableOrder = () => {
       localStorage.setItem(`order_submitted_${actualTableNumber}`, Date.now().toString());
     } catch (error) {
       console.error('Error submitting order:', error);
-      setErrorMessage('Failed to submit order. Please try again.');
+      console.error('Error response:', error.response?.data);
+      console.error('Error status:', error.response?.status);
+      
+      let errorMsg = 'Failed to submit order. Please try again.';
+      if (error.response?.data?.message) {
+        errorMsg = error.response.data.message;
+      } else if (error.message) {
+        errorMsg = error.message;
+      }
+      
+      setErrorMessage(errorMsg);
       setShowConfirmModal(false);
     } finally {
       setIsSubmitting(false);

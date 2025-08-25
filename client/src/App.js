@@ -4,6 +4,7 @@ import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-route
 import Header from './components/Header';
 import TableBanner from './components/TableBanner';
 import FloatingCart from './components/FloatingCart';
+import ChunkErrorBoundary from './components/ChunkErrorBoundary';
 import { CartProvider } from './context/CartContext';
 import { DeliveryCartProvider } from './context/DeliveryCartContext';
 import { initializeBundleOptimizations } from './utils/bundleOptimizer';
@@ -102,13 +103,15 @@ function App() {
   }, []);
 
   return (
-    <Router>
-      <CartProvider>
-        <DeliveryCartProvider>
-          <AppContent />
-        </DeliveryCartProvider>
-      </CartProvider>
-    </Router>
+    <ChunkErrorBoundary>
+      <Router>
+        <CartProvider>
+          <DeliveryCartProvider>
+            <AppContent />
+          </DeliveryCartProvider>
+        </CartProvider>
+      </Router>
+    </ChunkErrorBoundary>
   );
 }
 
