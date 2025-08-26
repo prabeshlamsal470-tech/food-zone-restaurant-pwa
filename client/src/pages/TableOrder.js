@@ -13,15 +13,8 @@ const TableOrder = () => {
   const { tableId } = useParams();
   const navigate = useNavigate();
   const { cartItems, addToCart, removeFromCart, updateQuantity, setTableContext, clearCart, getTotalPrice } = useCart();
-  // Initialize with basic menu items - start with fallback items for immediate search
-  const [menuItems, setMenuItems] = useState([
-    { id: 1, name: 'Chicken Momo', price: 180, category: 'Appetizers', description: 'Steamed chicken dumplings' },
-    { id: 2, name: 'Chicken Thali', price: 350, category: 'Main Course', description: 'Complete chicken meal set' },
-    { id: 3, name: 'Chicken Curry', price: 250, category: 'Main Course', description: 'Spicy chicken curry' },
-    { id: 4, name: 'Chicken Chowmein', price: 180, category: 'Noodles', description: 'Stir-fried noodles with chicken' },
-    { id: 5, name: 'Tea', price: 25, category: 'Beverages', description: 'Hot tea' },
-    { id: 6, name: 'Coffee', price: 35, category: 'Beverages', description: 'Hot coffee' }
-  ]);
+  // Initialize with empty array - will be populated by fetchMenuItems
+  const [menuItems, setMenuItems] = useState([]);
   const [showCheckout, setShowCheckout] = useState(false);
   const [customerInfo, setCustomerInfo] = useState({ name: '', phone: '' });
   const [orderSubmitted, setOrderSubmitted] = useState(false);
@@ -74,53 +67,63 @@ const TableOrder = () => {
 
   const fetchMenuItems = async () => {
     try {
-      // setLoading(true);
+      console.log('Fetching menu items from API...');
       
-      // Try to fetch real data from API
-      try {
-        const response = await apiService.getMenu();
-        
-        let menuData = [];
-        if (Array.isArray(response)) {
-          menuData = response;
-        } else if (response && Array.isArray(response.data)) {
-          menuData = response.data;
-        } else if (response && response.menu && Array.isArray(response.menu)) {
-          menuData = response.menu;
-        }
-        
-        if (menuData && menuData.length > 0) {
-          console.log('API response received:', menuData.length, 'items');
-          setMenuItems(menuData);
-        } else {
-          console.log('No menu data from API, using fallback');
-          setMenuItems([
-            { id: 1, name: 'Chicken Momo', price: 180, category: 'Appetizers', description: 'Steamed chicken dumplings' },
-            { id: 2, name: 'Chicken Thali', price: 350, category: 'Main Course', description: 'Complete chicken meal set' },
-            { id: 3, name: 'Chicken Curry', price: 250, category: 'Main Course', description: 'Spicy chicken curry' },
-            { id: 4, name: 'Chicken Chowmein', price: 180, category: 'Noodles', description: 'Stir-fried noodles with chicken' },
-            { id: 5, name: 'Tea', price: 25, category: 'Beverages', description: 'Hot tea' }
-          ]);
-        }
-      } catch (apiError) {
-        console.log('API fetch failed, using fallback menu:', apiError);
+      // Use the same API call as Menu.js
+      const response = await fetch('/api/menu');
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const menuData = await response.json();
+      console.log('Raw API response:', menuData);
+      
+      if (menuData && Array.isArray(menuData) && menuData.length > 0) {
+        console.log('Setting menu items from API:', menuData.length, 'items');
+        setMenuItems(menuData);
+      } else {
+        console.log('No valid menu data from API, using expanded fallback');
+        // Expanded fallback menu with more variety for better search testing
         setMenuItems([
           { id: 1, name: 'Chicken Momo', price: 180, category: 'Appetizers', description: 'Steamed chicken dumplings' },
-          { id: 2, name: 'Chicken Thali', price: 350, category: 'Main Course', description: 'Complete chicken meal set' },
-          { id: 3, name: 'Chicken Curry', price: 250, category: 'Main Course', description: 'Spicy chicken curry' },
-          { id: 4, name: 'Chicken Chowmein', price: 180, category: 'Noodles', description: 'Stir-fried noodles with chicken' },
-          { id: 5, name: 'Tea', price: 25, category: 'Beverages', description: 'Hot tea' }
+          { id: 2, name: 'Veg Momo', price: 150, category: 'Appetizers', description: 'Steamed vegetable dumplings' },
+          { id: 3, name: 'Chicken Thali', price: 350, category: 'Main Course', description: 'Complete chicken meal set' },
+          { id: 4, name: 'Veg Thali', price: 280, category: 'Main Course', description: 'Complete vegetarian meal set' },
+          { id: 5, name: 'Chicken Curry', price: 250, category: 'Main Course', description: 'Spicy chicken curry' },
+          { id: 6, name: 'Chicken Chowmein', price: 180, category: 'Noodles', description: 'Stir-fried noodles with chicken' },
+          { id: 7, name: 'Veg Chowmein', price: 150, category: 'Noodles', description: 'Stir-fried vegetable noodles' },
+          { id: 8, name: 'Chicken Fried Rice', price: 200, category: 'Rice', description: 'Fried rice with chicken' },
+          { id: 9, name: 'Veg Fried Rice', price: 170, category: 'Rice', description: 'Vegetarian fried rice' },
+          { id: 10, name: 'Pizza Margherita', price: 450, category: 'Pizza', description: 'Classic cheese pizza' },
+          { id: 11, name: 'Chicken Pizza', price: 550, category: 'Pizza', description: 'Pizza with chicken toppings' },
+          { id: 12, name: 'Tea', price: 25, category: 'Beverages', description: 'Hot tea' },
+          { id: 13, name: 'Coffee', price: 35, category: 'Beverages', description: 'Hot coffee' },
+          { id: 14, name: 'Cold Coffee', price: 65, category: 'Beverages', description: 'Iced coffee drink' },
+          { id: 15, name: 'Lassi', price: 80, category: 'Beverages', description: 'Yogurt-based drink' }
         ]);
       }
     } catch (error) {
-      console.error('Error in fetchMenuItems:', error);
-      // Ensure we always have some menu items for search
+      console.error('API fetch failed:', error);
+      console.log('Using expanded fallback menu due to API error');
+      // Same expanded fallback menu
       setMenuItems([
         { id: 1, name: 'Chicken Momo', price: 180, category: 'Appetizers', description: 'Steamed chicken dumplings' },
-        { id: 2, name: 'Tea', price: 25, category: 'Beverages', description: 'Hot tea' }
+        { id: 2, name: 'Veg Momo', price: 150, category: 'Appetizers', description: 'Steamed vegetable dumplings' },
+        { id: 3, name: 'Chicken Thali', price: 350, category: 'Main Course', description: 'Complete chicken meal set' },
+        { id: 4, name: 'Veg Thali', price: 280, category: 'Main Course', description: 'Complete vegetarian meal set' },
+        { id: 5, name: 'Chicken Curry', price: 250, category: 'Main Course', description: 'Spicy chicken curry' },
+        { id: 6, name: 'Chicken Chowmein', price: 180, category: 'Noodles', description: 'Stir-fried noodles with chicken' },
+        { id: 7, name: 'Veg Chowmein', price: 150, category: 'Noodles', description: 'Stir-fried vegetable noodles' },
+        { id: 8, name: 'Chicken Fried Rice', price: 200, category: 'Rice', description: 'Fried rice with chicken' },
+        { id: 9, name: 'Veg Fried Rice', price: 170, category: 'Rice', description: 'Vegetarian fried rice' },
+        { id: 10, name: 'Pizza Margherita', price: 450, category: 'Pizza', description: 'Classic cheese pizza' },
+        { id: 11, name: 'Chicken Pizza', price: 550, category: 'Pizza', description: 'Pizza with chicken toppings' },
+        { id: 12, name: 'Tea', price: 25, category: 'Beverages', description: 'Hot tea' },
+        { id: 13, name: 'Coffee', price: 35, category: 'Beverages', description: 'Hot coffee' },
+        { id: 14, name: 'Cold Coffee', price: 65, category: 'Beverages', description: 'Iced coffee drink' },
+        { id: 15, name: 'Lassi', price: 80, category: 'Beverages', description: 'Yogurt-based drink' }
       ]);
-    } finally {
-      // setLoading(false);
     }
   };
 
