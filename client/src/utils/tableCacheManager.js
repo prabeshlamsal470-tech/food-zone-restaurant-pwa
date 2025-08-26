@@ -1,6 +1,7 @@
 /**
- * Table Cache Manager - Automatic cache and cookie clearing for table URLs
- * Clears cache and cookies for tables 1-25 every 10 minutes
+ * Table Cache Manager - DISABLED
+ * This was causing performance issues by clearing cache every 10 minutes
+ * for all 25 tables even when not needed
  */
 
 class TableCacheManager {
@@ -11,8 +12,9 @@ class TableCacheManager {
     this.isRunning = false;
     this.lastCleanup = null;
     
-    // Initialize on construction
-    this.init();
+    // DISABLED: Initialize on construction
+    // this.init();
+    console.log('🚫 TableCacheManager disabled to improve performance');
   }
 
   init() {
@@ -20,27 +22,31 @@ class TableCacheManager {
     console.log(`📋 Managing cache for tables 1-${this.tableCount}`);
     console.log(`⏰ Cleanup interval: ${this.cleanupInterval / 1000 / 60} minutes`);
     
-    // Start automatic cleanup
-    this.startAutomaticCleanup();
+    // DISABLED: Start automatic cleanup
+    // this.startAutomaticCleanup();
     
-    // Run initial cleanup after 30 seconds to allow app to load
-    setTimeout(() => {
-      this.performCleanup();
-    }, 30000);
+    // DISABLED: Run initial cleanup after 30 seconds to allow app to load
+    // setTimeout(() => {
+    //   this.performCleanup();
+    // }, 30000);
   }
 
   startAutomaticCleanup() {
-    if (this.isRunning) {
-      console.log('⚠️ Cache manager already running');
-      return;
-    }
+    console.log('⚠️ Automatic cleanup is disabled');
+    return;
+    
+    // DISABLED CODE BELOW
+    // if (this.isRunning) {
+    //   console.log('⚠️ Cache manager already running');
+    //   return;
+    // }
 
-    this.isRunning = true;
-    this.intervalId = setInterval(() => {
-      this.performCleanup();
-    }, this.cleanupInterval);
+    // this.isRunning = true;
+    // this.intervalId = setInterval(() => {
+    //   this.performCleanup();
+    // }, this.cleanupInterval);
 
-    console.log('✅ Automatic cache cleanup started');
+    // console.log('✅ Automatic cache cleanup started');
   }
 
   stopAutomaticCleanup() {

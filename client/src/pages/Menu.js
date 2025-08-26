@@ -37,6 +37,16 @@ const Menu = () => {
   
   const { currentTable, setTableContext } = useCart();
   
+  // Handle table context from URL parameter
+  useEffect(() => {
+    if (tableParam && !isNaN(tableParam) && parseInt(tableParam) >= 1 && parseInt(tableParam) <= 25) {
+      const tableId = parseInt(tableParam);
+      if (currentTable !== tableId) {
+        setTableContext(tableId);
+      }
+    }
+  }, [tableParam, currentTable, setTableContext]);
+
   // Use appropriate cart based on customer type
   const { deliveryCartItems, addToDeliveryCart, updateDeliveryQuantity } = useDeliveryCart();
   const { cartItems, addToCart, updateQuantity } = useCart();

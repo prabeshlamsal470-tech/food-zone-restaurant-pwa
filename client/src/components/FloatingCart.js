@@ -9,19 +9,15 @@ const FloatingCart = () => {
   const { currentTable, cartItems, getTotalPrice } = useCart();
   const { deliveryCartItems, getDeliveryTotalPrice } = useDeliveryCart();
   
-  // Don't show on admin page, delivery cart page, or table pages (encrypted table pages have their own cart UI)
+  // Don't show on admin page, delivery cart page, or table pages
   if (location.pathname === '/admin' || 
       location.pathname === '/delivery-cart') {
     return null;
   }
   
-  // Determine if user is on a table page - only encrypted codes allowed
+  // Don't show on encrypted table pages (they have their own cart UI)
   const isEncryptedTablePage = location.pathname.match(/^\/[A-Z0-9]{8,}$/);
-  const isTablePage = isEncryptedTablePage;
-  const isTableCustomer = !!currentTable;
-  
-  // Don't show floating cart on table pages since they have their own cart UI
-  if (isTablePage) {
+  if (isEncryptedTablePage) {
     return null;
   }
   
@@ -36,36 +32,23 @@ const FloatingCart = () => {
   let cartType = '';
   let cartColor = '';
   
-  if (isTableCustomer && tableCartCount > 0) {
-    // Show table cart for table customers - use encrypted URL
+  if (currentTable && tableCartCount > 0) {
+    // Show table cart - generate encrypted URL
     cartItemCount = tableCartCount;
     totalPrice = getTotalPrice();
-    const encryptedTableUrl = sessionStorage.getItem('currentTableUrl') || localStorage.getItem('currentTableUrl');
     
-    if (encryptedTableUrl) {
-      // Use stored encrypted URL
-      cartLink = encryptedTableUrl;
-    } else if (currentTable && !isNaN(currentTable) && currentTable >= 1 && currentTable <= 25) {
-      // Generate new encrypted URL for valid table number
-      try {
-        const encryptedCode = encryptTableNumber(parseInt(currentTable));
-        const newEncryptedUrl = `/${encryptedCode}`;
-        // Store the new encrypted URL for future use
-        sessionStorage.setItem('currentTableUrl', newEncryptedUrl);
-        cartLink = newEncryptedUrl;
-      } catch (error) {
-        console.warn('Failed to encrypt table number:', error);
-        cartLink = '/'; // Fallback to home instead of menu
-      }
-    } else {
-      // Fallback to home page
+    try {
+      const encryptedCode = encryptTableNumber(currentTable);
+      cartLink = `/${encryptedCode}`;
+    } catch (error) {
+      console.warn('Failed to encrypt table number:', error);
       cartLink = '/';
     }
     
     cartType = `Table ${currentTable}`;
     cartColor = 'bg-primary hover:bg-orange-600';
-  } else if (!isTableCustomer && deliveryCartCount > 0) {
-    // Show delivery cart on homepage, menu, and other non-table pages
+  } else if (!currentTable && deliveryCartCount > 0) {
+    // Show delivery cart
     cartItemCount = deliveryCartCount;
     totalPrice = getDeliveryTotalPrice();
     cartLink = '/delivery-cart';

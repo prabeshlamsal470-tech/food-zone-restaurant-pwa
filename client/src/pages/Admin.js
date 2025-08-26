@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import io from 'socket.io-client';
 import { fetchApi, getSocketUrl } from '../services/apiService';
 import apiService from '../services/apiService';
-import io from 'socket.io-client';
+import offlineStorage from '../utils/offlineStorage';
+import NotificationManager from '../components/NotificationManager';
+import { useNotifications } from '../hooks/useNotifications';
 import OfflineStorageManager from '../utils/offlineStorage';
 import audioManager from '../utils/audioNotifications';
 import AdminSettings from '../components/AdminSettings';
@@ -25,6 +28,9 @@ const Admin = () => {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [tableToDelete, setTableToDelete] = useState(null);
   const [confirmDialog, setConfirmDialog] = useState({ show: false, orderId: null, message: '' });
+
+  // Initialize push notifications for admin
+  const { notifyNewOrder, notifyOrderReady } = useNotifications('admin');
   const [deleteDialog, setDeleteDialog] = useState({ show: false, orderId: null, orderNumber: '', password: '' });
   const [activeTab, setActiveTab] = useState('dine-in'); // 'dine-in', 'delivery', 'history', 'customers', or 'settings'
 
@@ -93,26 +99,14 @@ const Admin = () => {
         audioAlertManager.playNotificationAlert();
       }
 
-      // Show push notification
-      if (pushManager && pushEnabled) {
-        const notificationTitle = order.order_type === 'delivery' ? '🚚 New Delivery Order' : '🍽️ New Table Order';
-        const notificationBody = `Order #${order.order_number || order.id} from ${order.customer_name}`;
-        try {
-          pushManager.showLocalNotification(notificationTitle, {
-            body: notificationBody,
-            icon: '/icon-192x192.png',
-            badge: '/icon-192x192.png',
-            vibrate: [200, 100, 200],
-            requireInteraction: true,
-            actions: [
-              { action: 'view', title: 'View Order' },
-              { action: 'dismiss', title: 'Dismiss' }
-            ]
-          });
-        } catch (error) {
-          console.error('Push notification failed:', error);
-        }
-      }
+      // Show push notification using new notification system
+      notifyNewOrder({
+        tableId: order.table_id,
+        orderType: order.order_type,
+        totalAmount: order.total_amount,
+        customerName: order.customer_name,
+        items: order.items
+      });
 
       // Show in-app notification
       showNotification(

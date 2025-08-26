@@ -15,7 +15,10 @@ export const CartProvider = ({ children }) => {
   const [cartItems, setCartItems] = useState([]);
   const [currentTable, setCurrentTable] = useState(null);
 
-  // Get current table from URL or localStorage - ENCRYPTED CODES ONLY
+  // Simple table session management - 4 hours duration
+  const TABLE_SESSION_DURATION = 4 * 60 * 60 * 1000; // 4 hours
+
+  // Get current table from URL or session
   useEffect(() => {
     const path = window.location.pathname;
     const encryptedTableMatch = path.match(/^\/([A-Z0-9]{8,})$/);
@@ -23,7 +26,7 @@ export const CartProvider = ({ children }) => {
     let tableId = null;
     
     if (encryptedTableMatch) {
-      // Only encrypted table codes allowed - decrypt to get actual table number
+      // Decrypt table code from URL
       const encryptedCode = encryptedTableMatch[1];
       tableId = decryptTableCode(encryptedCode);
     }
@@ -31,31 +34,81 @@ export const CartProvider = ({ children }) => {
     if (tableId && tableId >= 1 && tableId <= 25) {
       setCurrentTable(tableId);
       
-      // Load cart items for current table
-      const savedCart = localStorage.getItem(`cart_table_${tableId}`);
-      const savedTimestamp = localStorage.getItem(`cart_timestamp_${tableId}`);
+      // Create/update table session
+      const tableSession = {
+        tableId,
+        sessionStart: Date.now(),
+        lastActivity: Date.now()
+      };
+      sessionStorage.setItem('tableSession', JSON.stringify(tableSession));
       
-      if (savedCart && savedTimestamp) {
-        const oneHourAgo = Date.now() - (60 * 60 * 1000);
-        if (parseInt(savedTimestamp) > oneHourAgo) {
-          setCartItems(JSON.parse(savedCart));
+      // Load cart for this table
+      loadCartForTable(tableId);
+    } else {
+      // Check if we have an existing table session
+      const existingSession = sessionStorage.getItem('tableSession');
+      if (existingSession) {
+        const session = JSON.parse(existingSession);
+        const now = Date.now();
+        
+        // Check if session is still valid (within 4 hours)
+        if (now - session.sessionStart < TABLE_SESSION_DURATION) {
+          setCurrentTable(session.tableId);
+          loadCartForTable(session.tableId);
+          
+          // Update last activity
+          session.lastActivity = now;
+          sessionStorage.setItem('tableSession', JSON.stringify(session));
         } else {
-          // Clear expired cart
-          localStorage.removeItem(`cart_table_${tableId}`);
-          localStorage.removeItem(`cart_timestamp_${tableId}`);
-          setCartItems([]);
+          // Session expired, clear it
+          clearExpiredSession();
         }
       }
-    } else {
-      setCurrentTable(null);
-      setCartItems([]);
     }
   }, []);
+
+  const loadCartForTable = (tableId) => {
+    const savedCart = localStorage.getItem(`cart_table_${tableId}`);
+    const savedTimestamp = localStorage.getItem(`cart_timestamp_${tableId}`);
+    
+    if (savedCart && savedTimestamp) {
+      const now = Date.now();
+      const cartAge = now - parseInt(savedTimestamp);
+      
+      // Load cart if it's less than 4 hours old
+      if (cartAge < TABLE_SESSION_DURATION) {
+        setCartItems(JSON.parse(savedCart));
+      } else {
+        // Cart expired, clear it
+        clearCartForTable(tableId);
+      }
+    }
+  };
+
+  const clearExpiredSession = () => {
+    sessionStorage.removeItem('tableSession');
+    setCurrentTable(null);
+    setCartItems([]);
+  };
+
+  const clearCartForTable = (tableId) => {
+    localStorage.removeItem(`cart_table_${tableId}`);
+    localStorage.removeItem(`cart_timestamp_${tableId}`);
+    setCartItems([]);
+  };
 
   const saveCart = (items) => {
     if (currentTable) {
       localStorage.setItem(`cart_table_${currentTable}`, JSON.stringify(items));
       localStorage.setItem(`cart_timestamp_${currentTable}`, Date.now().toString());
+      
+      // Update session activity
+      const session = sessionStorage.getItem('tableSession');
+      if (session) {
+        const sessionData = JSON.parse(session);
+        sessionData.lastActivity = Date.now();
+        sessionStorage.setItem('tableSession', JSON.stringify(sessionData));
+      }
     }
   };
 
@@ -114,22 +167,7 @@ export const CartProvider = ({ children }) => {
     setCurrentTable(tableId);
     
     // Load cart items for the new table
-    const savedCart = localStorage.getItem(`cart_table_${tableId}`);
-    const savedTimestamp = localStorage.getItem(`cart_timestamp_${tableId}`);
-    
-    if (savedCart && savedTimestamp) {
-      const oneHourAgo = Date.now() - (60 * 60 * 1000);
-      if (parseInt(savedTimestamp) > oneHourAgo) {
-        setCartItems(JSON.parse(savedCart));
-      } else {
-        // Clear expired cart
-        localStorage.removeItem(`cart_table_${tableId}`);
-        localStorage.removeItem(`cart_timestamp_${tableId}`);
-        setCartItems([]);
-      }
-    } else {
-      setCartItems([]);
-    }
+    loadCartForTable(tableId);
   };
 
   const getTotalPrice = () => {
