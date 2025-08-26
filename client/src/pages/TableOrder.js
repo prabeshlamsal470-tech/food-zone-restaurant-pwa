@@ -4,7 +4,6 @@ import io from 'socket.io-client';
 import { getSocketUrl, apiService } from '../services/apiService';
 import { useCart } from '../context/CartContext';
 import { decryptTableCode } from '../utils/tableEncryption';
-// import LoadingSpinner from '../components/LoadingSpinner';
 
 // Lazy load menu item card component
 const MenuItemCard = lazy(() => import('../components/MenuItemCard'));
@@ -174,41 +173,31 @@ const TableOrder = () => {
   const handleSubmitOrder = async () => {
     // Clear any previous error messages
     setErrorMessage('');
-    setIsSubmitting(true);
 
     // Validation
     if (!customerInfo.name.trim() || !customerInfo.phone.trim()) {
       setErrorMessage('Please provide your name and phone number');
-      setIsSubmitting(false);
       return;
     }
 
     if (cartItems.length === 0) {
       setErrorMessage('Your cart is empty');
-      setIsSubmitting(false);
       return;
     }
 
-    // Submit order with enhanced error handling and fallback
-    const orderData = {
-      tableId: actualTableNumber,
-      customerName: customerInfo.name.trim(),
-      phone: customerInfo.phone.trim(),
-      orderType: 'dine-in',
-      totalAmount: cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0),
-      items: cartItems
-    };
-
+    setIsSubmitting(true);
+    
     try {
-      // Try to submit order with timeout
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Request timeout')), 15000)
-      );
-      
-      await Promise.race([
-        apiService.createOrder(orderData),
-        timeoutPromise
-      ]);
+      const orderData = {
+        tableId: actualTableNumber,
+        customerName: customerInfo.name.trim(),
+        phone: customerInfo.phone.trim(),
+        orderType: 'dine-in',
+        totalAmount: cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0),
+        items: cartItems
+      };
+
+      await apiService.createOrder(orderData);
       
       setOrderSubmitted(true);
       clearCart();
@@ -216,45 +205,9 @@ const TableOrder = () => {
       // Store order submitted state for 30 minutes
       localStorage.setItem(`order_submitted_${actualTableNumber}`, Date.now().toString());
       
-      // Success - no additional notification needed
-      
     } catch (error) {
       console.error('Error submitting order:', error);
-      console.error('Error response:', error.response?.data);
-      console.error('Error status:', error.response?.status);
-      
-      // Enhanced error handling with fallback
-      if (error.message === 'Request timeout' || error.code === 'NETWORK_ERROR' || !navigator.onLine) {
-        // Save order locally for offline processing
-        const offlineOrder = {
-          ...orderData,
-          timestamp: Date.now(),
-          status: 'pending_offline'
-        };
-        
-        const offlineOrders = JSON.parse(localStorage.getItem('offlineOrders') || '[]');
-        offlineOrders.push(offlineOrder);
-        localStorage.setItem('offlineOrders', JSON.stringify(offlineOrders));
-        
-        setErrorMessage('Network issue detected. Your order has been saved locally and will be submitted when connection is restored. Please contact staff if this persists.');
-        
-        // Show offline success
-        setOrderSubmitted(true);
-        clearCart();
-        localStorage.setItem(`order_submitted_${actualTableNumber}`, Date.now().toString());
-        
-      } else {
-        let errorMsg = 'Failed to submit order. Please try again.';
-        if (error.response?.data?.message) {
-          errorMsg = error.response.data.message;
-        } else if (error.message.includes('timeout')) {
-          errorMsg = 'Request timed out. Please check your connection and try again.';
-        } else if (error.message) {
-          errorMsg = error.message;
-        }
-        
-        setErrorMessage(errorMsg);
-      }
+      setErrorMessage('Failed to submit order. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
