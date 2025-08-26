@@ -316,15 +316,15 @@ const Admin = () => {
       try {
         console.log('🔧 Making API call to clear table:', tableToDelete);
         // Call server to clear table (database handles everything)
-        const response = await apiService.clearTableAdmin(tableToDelete);
-        console.log('🔧 API response:', response.data);
+        const response = await fetchApi.post(`/api/clear-table/${tableToDelete}`);
+        console.log('🔧 API response:', response);
         
-        if (response.data.success) {
+        if (response.success) {
           // Refresh orders from database to get updated state
           console.log('🔧 Refreshing orders from database...');
           await fetchOrders();
           
-          console.log(`✅ Table ${tableToDelete} cleared successfully. ${response.data.movedToHistory} orders moved to history.`);
+          console.log(`✅ Table ${tableToDelete} cleared successfully. ${response.movedToHistory} orders moved to history.`);
           // Success - no alert needed, the UI will update automatically
         }
         

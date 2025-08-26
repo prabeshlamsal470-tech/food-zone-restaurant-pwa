@@ -926,29 +926,22 @@ const TablesManagement = ({ orders, setOrders }) => {
 
   const clearTable = async (tableId) => {
     try {
-      // Update orders to mark table orders as completed
-      const ordersToUpdate = orders.filter(order => 
-        order.table_id === tableId && ['pending', 'preparing', 'ready'].includes(order.status)
-      );
-
-      // Update each order individually via API
-      for (const order of ordersToUpdate) {
-        await fetchApi.put(`/api/orders/${order.id}`, { status: 'completed' });
+      console.log('🔧 AdminPremium clearing table:', tableId);
+      
+      // Call the proper clear table API endpoint that handles database cleanup
+      const response = await fetchApi.post(`/api/clear-table/${tableId}`);
+      console.log('🔧 Clear table API response:', response);
+      
+      if (response.success) {
+        // Refresh orders from database to get updated state
+        window.location.reload(); // Simple refresh for now
+        console.log(`✅ Table ${tableId} cleared successfully. ${response.movedToHistory} orders moved to history.`);
       }
-
-      // Update local state
-      setOrders(prevOrders => 
-        prevOrders.map(order => 
-          order.table_id === tableId && ['pending', 'preparing', 'ready'].includes(order.status)
-            ? { ...order, status: 'completed' }
-            : order
-        )
-      );
       
       setShowClearModal(false);
       setSelectedTable(null);
     } catch (error) {
-      console.error('Error clearing table:', error);
+      console.error('❌ Error clearing table:', error);
       // Fallback: update locally if API fails
       setOrders(prevOrders => 
         prevOrders.map(order => 

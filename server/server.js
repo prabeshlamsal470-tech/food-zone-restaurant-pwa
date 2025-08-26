@@ -1919,6 +1919,38 @@ app.post('/api/populate-menu', async (req, res) => {
   }
 });
 
+// Clear all test data endpoint (orders, customers, sessions)
+app.post('/api/clear-all-data', async (req, res) => {
+  try {
+    console.log('🧹 Clearing all test data from database...');
+    
+    // Clear orders and related data
+    await query('DELETE FROM order_items');
+    await query('DELETE FROM orders');
+    
+    // Clear customers
+    await query('DELETE FROM customers');
+    
+    // Clear table sessions and payments
+    await query('DELETE FROM table_payments');
+    await query('DELETE FROM table_sessions');
+    
+    // Clear any cached sessions in memory
+    tableSessions.clear();
+    
+    console.log('✅ All test data cleared successfully');
+    
+    res.json({ 
+      success: true, 
+      message: 'All test data cleared successfully',
+      cleared: ['orders', 'order_items', 'customers', 'table_sessions', 'table_payments', 'memory_cache']
+    });
+  } catch (error) {
+    console.error('❌ Error clearing test data:', error);
+    res.status(500).json({ error: 'Failed to clear test data', details: error.message });
+  }
+});
+
 const PORT = process.env.PORT || 5001;
 server.listen(PORT, () => {
 console.log(`Server running on port ${PORT}`);
