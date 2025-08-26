@@ -69,8 +69,8 @@ const TableOrder = () => {
     try {
       console.log('Fetching menu items from API...');
       
-      // Use the same API call as Menu.js
-      const response = await fetch('/api/menu');
+      // Use the same API call as Menu.js with correct base URL
+      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5001'}/api/menu`);
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -83,55 +83,20 @@ const TableOrder = () => {
         console.log('Setting menu items from API:', menuData.length, 'items');
         setMenuItems(menuData);
       } else {
-        console.log('No valid menu data from API, using expanded fallback');
-        // Expanded fallback menu with more variety for better search testing
-        setMenuItems([
-          { id: 1, name: 'Chicken Momo', price: 180, category: 'Appetizers', description: 'Steamed chicken dumplings' },
-          { id: 2, name: 'Veg Momo', price: 150, category: 'Appetizers', description: 'Steamed vegetable dumplings' },
-          { id: 3, name: 'Chicken Thali', price: 350, category: 'Main Course', description: 'Complete chicken meal set' },
-          { id: 4, name: 'Veg Thali', price: 280, category: 'Main Course', description: 'Complete vegetarian meal set' },
-          { id: 5, name: 'Chicken Curry', price: 250, category: 'Main Course', description: 'Spicy chicken curry' },
-          { id: 6, name: 'Chicken Chowmein', price: 180, category: 'Noodles', description: 'Stir-fried noodles with chicken' },
-          { id: 7, name: 'Veg Chowmein', price: 150, category: 'Noodles', description: 'Stir-fried vegetable noodles' },
-          { id: 8, name: 'Chicken Fried Rice', price: 200, category: 'Rice', description: 'Fried rice with chicken' },
-          { id: 9, name: 'Veg Fried Rice', price: 170, category: 'Rice', description: 'Vegetarian fried rice' },
-          { id: 10, name: 'Pizza Margherita', price: 450, category: 'Pizza', description: 'Classic cheese pizza' },
-          { id: 11, name: 'Chicken Pizza', price: 550, category: 'Pizza', description: 'Pizza with chicken toppings' },
-          { id: 12, name: 'Tea', price: 25, category: 'Beverages', description: 'Hot tea' },
-          { id: 13, name: 'Coffee', price: 35, category: 'Beverages', description: 'Hot coffee' },
-          { id: 14, name: 'Cold Coffee', price: 65, category: 'Beverages', description: 'Iced coffee drink' },
-          { id: 15, name: 'Lassi', price: 80, category: 'Beverages', description: 'Yogurt-based drink' }
-        ]);
+        console.log('No valid menu data from API, using fallback');
+        setMenuItems([]);
       }
     } catch (error) {
       console.error('API fetch failed:', error);
-      console.log('Using expanded fallback menu due to API error');
-      // Same expanded fallback menu
-      setMenuItems([
-        { id: 1, name: 'Chicken Momo', price: 180, category: 'Appetizers', description: 'Steamed chicken dumplings' },
-        { id: 2, name: 'Veg Momo', price: 150, category: 'Appetizers', description: 'Steamed vegetable dumplings' },
-        { id: 3, name: 'Chicken Thali', price: 350, category: 'Main Course', description: 'Complete chicken meal set' },
-        { id: 4, name: 'Veg Thali', price: 280, category: 'Main Course', description: 'Complete vegetarian meal set' },
-        { id: 5, name: 'Chicken Curry', price: 250, category: 'Main Course', description: 'Spicy chicken curry' },
-        { id: 6, name: 'Chicken Chowmein', price: 180, category: 'Noodles', description: 'Stir-fried noodles with chicken' },
-        { id: 7, name: 'Veg Chowmein', price: 150, category: 'Noodles', description: 'Stir-fried vegetable noodles' },
-        { id: 8, name: 'Chicken Fried Rice', price: 200, category: 'Rice', description: 'Fried rice with chicken' },
-        { id: 9, name: 'Veg Fried Rice', price: 170, category: 'Rice', description: 'Vegetarian fried rice' },
-        { id: 10, name: 'Pizza Margherita', price: 450, category: 'Pizza', description: 'Classic cheese pizza' },
-        { id: 11, name: 'Chicken Pizza', price: 550, category: 'Pizza', description: 'Pizza with chicken toppings' },
-        { id: 12, name: 'Tea', price: 25, category: 'Beverages', description: 'Hot tea' },
-        { id: 13, name: 'Coffee', price: 35, category: 'Beverages', description: 'Hot coffee' },
-        { id: 14, name: 'Cold Coffee', price: 65, category: 'Beverages', description: 'Iced coffee drink' },
-        { id: 15, name: 'Lassi', price: 80, category: 'Beverages', description: 'Yogurt-based drink' }
-      ]);
+      console.log('API fetch failed, setting empty menu');
+      setMenuItems([]);
     }
   };
 
   useEffect(() => {
-    if (actualTableNumber && actualTableNumber >= 1 && actualTableNumber <= 25) {
-      fetchMenuItems();
-    }
-  }, [actualTableNumber]);
+    // Always fetch menu items when component mounts, regardless of table number
+    fetchMenuItems();
+  }, []); // Remove dependency on actualTableNumber
   
   // Skip background preload to reduce initial load time
   // useEffect(() => {
@@ -296,39 +261,60 @@ const TableOrder = () => {
   };
 
 
-  // Memoized filter for better performance - search ONLY main menu items (exclude happy hour)
+  // Enhanced search filter with better data validation
   const filteredMenuItems = useMemo(() => {
-    if (!debouncedSearchQuery || debouncedSearchQuery.trim() === '') {
-      return []; // Show no items when not searching - only show results when user types
+    if (!menuItems || menuItems.length === 0) {
+      return [];
     }
     
-    // Filter to include ONLY main menu items (exclude happy hour items)
-    const validMenuItems = menuItems.filter(item => 
-      item && 
-      item.id && 
-      item.name && 
-      item.price && 
-      typeof item.price === 'number' &&
-      item.category &&
-      item.category !== 'Happy Hour' && // Exclude happy hour items from search
-      !item.name.toLowerCase().includes('duplicate') &&
-      !item.name.toLowerCase().includes('test') &&
-      !item.name.toLowerCase().includes('happy hour') && // Extra safety check
-      item.price > 0 &&
-      item.price < 10000 // Reasonable price range
-    );
+    // Clean and validate menu items
+    const validMenuItems = menuItems.filter(item => {
+      if (!item || !item.id || !item.name) return false;
+      
+      // Handle both string and number prices from API
+      const price = typeof item.price === 'string' ? parseFloat(item.price) : item.price;
+      if (!price || isNaN(price) || price <= 0 || price > 10000) return false;
+      
+      // Exclude test/duplicate items
+      const name = item.name.toLowerCase();
+      if (name.includes('duplicate') || name.includes('test') || name.includes('happy hour')) {
+        return false;
+      }
+      
+      // Exclude happy hour category
+      if (item.category && item.category.toLowerCase() === 'happy hour') {
+        return false;
+      }
+      
+      return true;
+    });
     
     // Remove duplicates based on name and price
-    const uniqueItems = validMenuItems.filter((item, index, arr) => 
-      arr.findIndex(i => i.name === item.name && i.price === item.price) === index
-    );
+    const uniqueItems = validMenuItems.reduce((acc, item) => {
+      const price = typeof item.price === 'string' ? parseFloat(item.price) : item.price;
+      const key = `${item.name.toLowerCase()}-${price}`;
+      if (!acc.has(key)) {
+        acc.set(key, { ...item, price });
+      }
+      return acc;
+    }, new Map());
     
+    const cleanItems = Array.from(uniqueItems.values());
+    
+    // If no search query, return all clean items
+    if (!debouncedSearchQuery || debouncedSearchQuery.trim() === '') {
+      return cleanItems;
+    }
+    
+    // Apply search filter
     const query = debouncedSearchQuery.toLowerCase().trim();
-    return uniqueItems.filter(item => 
-      item.name.toLowerCase().includes(query) ||
-      (item.category && item.category.toLowerCase().includes(query)) ||
-      (item.description && item.description.toLowerCase().includes(query))
-    );
+    return cleanItems.filter(item => {
+      const name = item.name.toLowerCase();
+      const category = (item.category || '').toLowerCase();
+      const description = (item.description || '').toLowerCase();
+      
+      return name.includes(query) || category.includes(query) || description.includes(query);
+    });
   }, [menuItems, debouncedSearchQuery]);
 
   // Items to display with lazy loading
@@ -420,7 +406,7 @@ const TableOrder = () => {
         <div className="bg-white rounded-lg border border-gray-200 p-6 max-w-md w-full mx-4">
           <h2 className="text-xl font-semibold mb-4">Quick Search & Add Items</h2>
         
-        {/* Menu Search */}
+        {/* Enhanced Menu Search */}
         <div className="mb-6">
           <div className="relative">
             <input
@@ -428,47 +414,67 @@ const TableOrder = () => {
               placeholder="Search menu items, categories..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full px-4 py-2 pl-10 border border-gray-300 rounded focus:outline-none focus:border-blue-500"
+              className="w-full px-4 py-3 pl-10 pr-10 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
             />
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
             </div>
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+              >
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            )}
           </div>
+          {menuItems.length > 0 && (
+            <p className="text-xs text-gray-500 mt-2">
+              Searching {menuItems.length} menu items from Railway database
+            </p>
+          )}
         </div>
 
         {/* Search Results Info */}
         {debouncedSearchQuery && (
-          <div className="text-center mb-4">
-            <p className="text-gray-600">
-              Found {filteredMenuItems.length} items for "{debouncedSearchQuery}"
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+            <div className="flex items-center justify-between">
+              <p className="text-blue-800 font-medium">
+                {filteredMenuItems.length > 0 
+                  ? `Found ${filteredMenuItems.length} items for "${debouncedSearchQuery}"`
+                  : `No items found for "${debouncedSearchQuery}"`
+                }
+              </p>
               <button
                 onClick={() => setSearchQuery('')}
-                className="ml-2 underline text-sm text-blue-600 hover:text-blue-800"
+                className="text-blue-600 hover:text-blue-800 underline text-sm font-medium"
               >
-                Clear search
+                Clear
               </button>
-            </p>
+            </div>
           </div>
         )}
 
-        {/* Search Results with Lazy Loading */}
-        {displayedSearchItems.length > 0 && debouncedSearchQuery.trim() && (
+        {/* Menu Items with Lazy Loading */}
+        {displayedSearchItems.length > 0 && (
           <div className="mb-4">
-            <p className="text-sm text-gray-600 mb-3">
-              Found {filteredMenuItems.length} items for "{debouncedSearchQuery}" (showing {displayedSearchItems.length}):
-            </p>
-            <div className="space-y-2 max-h-60 overflow-y-auto">
+            <div className="space-y-3 max-h-80 overflow-y-auto">
               <Suspense fallback={<div className="animate-pulse bg-gray-200 h-16 rounded-lg"></div>}>
                 {displayedSearchItems.map(item => {
                 const quantity = cartItems.find(cartItem => cartItem.id === item.id)?.quantity || 0;
                 return (
-                  <div key={item.id} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+                  <div key={item.id} className="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow">
                     <div className="flex-1">
-                      <h4 className="font-medium">{item.name}</h4>
-                      <p className="text-sm text-gray-500">{item.category}</p>
-                      <p className="text-sm font-semibold text-primary">NPR {item.price}/-</p>
+                      <h4 className="font-semibold text-gray-900">{item.name}</h4>
+                      <p className="text-sm text-blue-600 font-medium">{item.category}</p>
+                      {item.description && (
+                        <p className="text-xs text-gray-500 mt-1">{item.description}</p>
+                      )}
+                      <p className="text-lg font-bold text-orange-600 mt-1">NPR {typeof item.price === 'string' ? parseFloat(item.price) : item.price}/-</p>
                     </div>
                     <div className="flex items-center gap-2">
                       {quantity === 0 ? (
@@ -532,12 +538,21 @@ const TableOrder = () => {
           </div>
         )}
 
-        {/* Search Instructions */}
-        {!debouncedSearchQuery && (
+        {/* No Menu Items Message */}
+        {!debouncedSearchQuery && filteredMenuItems.length === 0 && menuItems.length === 0 && (
+          <div className="text-center py-8">
+            <div className="text-4xl mb-3">🍽️</div>
+            <p className="text-gray-500 text-lg mb-2">Loading menu items...</p>
+            <p className="text-gray-400 text-sm">Please wait while we fetch the latest menu from our kitchen</p>
+          </div>
+        )}
+
+        {/* Menu Available Message */}
+        {!debouncedSearchQuery && filteredMenuItems.length === 0 && menuItems.length > 0 && (
           <div className="text-center py-8">
             <div className="text-4xl mb-3">🔍</div>
-            <p className="text-gray-500 text-lg mb-2">Search for menu items</p>
-            <p className="text-gray-400 text-sm">Type in the search box above to find items by name, category, or description</p>
+            <p className="text-gray-500 text-lg mb-2">Search our menu</p>
+            <p className="text-gray-400 text-sm">Type in the search box above to find items from our {menuItems.length} available dishes</p>
           </div>
         )}
 
