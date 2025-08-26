@@ -1,5 +1,5 @@
 # Food Zone Database Configuration
-DATABASE_URL=postgresql://postgres:SIPhohEQaPfxFPLQhbrYmvMHlROQEVKF@postgres.railway.internal:5432/railway
+DATABASE_URL=postgresql://postgres:SIPhohEQaPfxFPLQhbrYmvMHlROQEVKF@trolley.proxy.rlwy.net:41468/railway
 # Restaurant Configuration
 RESTAURANT_NAME="Food Zone Duwakot"
 RESTAURANT_PHONE="9851234567"
