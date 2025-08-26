@@ -185,17 +185,20 @@ const TableOrder = () => {
     
     try {
       const orderData = {
-        table_id: actualTableNumber,
-        customer_name: customerInfo.name,
-        customer_phone: customerInfo.phone,
+        tableId: actualTableNumber,
+        customerName: customerInfo.name,
+        phone: customerInfo.phone,
         items: cartItems,
-        order_type: 'dine-in',
-        total_amount: getTotalPrice()
+        orderType: 'dine-in',
+        totalAmount: getTotalPrice()
       };
 
-      console.log('Submitting table order:', orderData);
+      console.log('🍽️ Submitting table order:', orderData);
+      console.log('📡 API endpoint:', '/api/order');
+      console.log('🔗 Backend URL:', process.env.REACT_APP_API_URL || 'https://food-zone-backend-l00k.onrender.com');
+      
       const response = await apiService.createOrder(orderData);
-      console.log('Table order response:', response);
+      console.log('✅ Table order response:', response);
       
       setOrderSubmitted(true);
       clearCart();
@@ -204,8 +207,25 @@ const TableOrder = () => {
       localStorage.setItem(`order_submitted_${actualTableNumber}`, Date.now().toString());
       
     } catch (error) {
-      console.error('Error submitting table order:', error);
-      setErrorMessage('Failed to submit order. Please try again.');
+      console.error('❌ Table order submission failed:', error);
+      console.error('📋 Error details:', {
+        message: error.message,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        config: error.config
+      });
+      
+      // More specific error messages
+      if (error.response?.status === 404) {
+        setErrorMessage('Order endpoint not found. Please contact support.');
+      } else if (error.response?.status === 500) {
+        setErrorMessage('Server error. Please try again in a moment.');
+      } else if (error.code === 'NETWORK_ERROR' || !error.response) {
+        setErrorMessage('Network error. Please check your connection and try again.');
+      } else {
+        setErrorMessage(`Failed to submit order: ${error.response?.data?.message || error.message}`);
+      }
     } finally {
       setIsSubmitting(false);
     }
