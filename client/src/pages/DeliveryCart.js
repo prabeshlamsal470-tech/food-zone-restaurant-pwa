@@ -113,15 +113,16 @@ const DeliveryCart = () => {
     setIsSubmitting(true);
     try {
       const orderData = {
-        tableId: 'Delivery',
-        customerName: customerInfo.name,
-        phone: customerInfo.phone,
-        address: customerInfo.address,
-        deliveryNotes: customerInfo.deliveryNotes,
-        coordinates: customerInfo.coordinates,
+        table_id: null,
+        customer_name: customerInfo.name,
+        customer_phone: customerInfo.phone,
+        delivery_address: customerInfo.address,
+        delivery_notes: customerInfo.deliveryNotes,
+        delivery_latitude: customerInfo.coordinates?.lat,
+        delivery_longitude: customerInfo.coordinates?.lng,
         items: deliveryCartItems,
-        orderType: 'delivery',
-        totalAmount: getDeliveryTotalPrice()
+        order_type: 'delivery',
+        total_amount: getDeliveryTotalPrice()
       };
 
       await apiService.createOrder(orderData);

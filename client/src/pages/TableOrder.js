@@ -185,15 +185,17 @@ const TableOrder = () => {
     
     try {
       const orderData = {
-        tableId: actualTableNumber,
-        customerName: customerInfo.name,
-        phone: customerInfo.phone,
+        table_id: actualTableNumber,
+        customer_name: customerInfo.name,
+        customer_phone: customerInfo.phone,
         items: cartItems,
-        orderType: 'dine-in',
-        totalAmount: getTotalPrice()
+        order_type: 'dine-in',
+        total_amount: getTotalPrice()
       };
 
-      await apiService.createOrder(orderData);
+      console.log('Submitting table order:', orderData);
+      const response = await apiService.createOrder(orderData);
+      console.log('Table order response:', response);
       
       setOrderSubmitted(true);
       clearCart();
