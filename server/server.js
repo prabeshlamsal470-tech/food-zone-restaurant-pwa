@@ -1924,26 +1924,61 @@ app.post('/api/clear-all-data', async (req, res) => {
   try {
     console.log('🧹 Clearing all test data from database...');
     
+    const clearedTables = [];
+    
     // Clear orders and related data
-    await query('DELETE FROM order_items');
-    await query('DELETE FROM orders');
+    try {
+      await query('DELETE FROM order_items');
+      clearedTables.push('order_items');
+      console.log('✅ Cleared order_items');
+    } catch (e) {
+      console.log('⚠️ order_items table not found, skipping');
+    }
+    
+    try {
+      await query('DELETE FROM orders');
+      clearedTables.push('orders');
+      console.log('✅ Cleared orders');
+    } catch (e) {
+      console.log('⚠️ orders table not found, skipping');
+    }
     
     // Clear customers
-    await query('DELETE FROM customers');
+    try {
+      await query('DELETE FROM customers');
+      clearedTables.push('customers');
+      console.log('✅ Cleared customers');
+    } catch (e) {
+      console.log('⚠️ customers table not found, skipping');
+    }
     
-    // Clear table sessions and payments
-    await query('DELETE FROM table_payments');
-    await query('DELETE FROM table_sessions');
+    // Clear table sessions and payments (if they exist)
+    try {
+      await query('DELETE FROM table_payments');
+      clearedTables.push('table_payments');
+      console.log('✅ Cleared table_payments');
+    } catch (e) {
+      console.log('⚠️ table_payments table not found, skipping');
+    }
+    
+    try {
+      await query('DELETE FROM table_sessions');
+      clearedTables.push('table_sessions');
+      console.log('✅ Cleared table_sessions');
+    } catch (e) {
+      console.log('⚠️ table_sessions table not found, skipping');
+    }
     
     // Clear any cached sessions in memory
     tableSessions.clear();
+    clearedTables.push('memory_cache');
     
-    console.log('✅ All test data cleared successfully');
+    console.log('✅ All available test data cleared successfully');
     
     res.json({ 
       success: true, 
-      message: 'All test data cleared successfully',
-      cleared: ['orders', 'order_items', 'customers', 'table_sessions', 'table_payments', 'memory_cache']
+      message: 'All available test data cleared successfully',
+      cleared: clearedTables
     });
   } catch (error) {
     console.error('❌ Error clearing test data:', error);
