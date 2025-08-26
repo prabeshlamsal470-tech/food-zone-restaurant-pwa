@@ -109,49 +109,96 @@ const TableOrder = () => {
   //   preloadMenu();
   // }, []);
 
-  // Socket connection for real-time table clearing
+  // Socket connection for real-time table clearing - with error handling
   useEffect(() => {
     if (!actualTableNumber) return;
     
-    const socket = io(getSocketUrl());
+    let socket = null;
+    let reconnectAttempts = 0;
+    const maxReconnectAttempts = 3;
     
-    socket.on('tableCleared', (data) => {
-      console.log('🔔 Table cleared event received:', data);
-      if (data.tableId === actualTableNumber) {
-        clearCart();
-        navigate('/');
-        // Remove ALL localStorage items related to this table
-        localStorage.removeItem(`customerInfo_${actualTableNumber}`);
-        localStorage.removeItem(`tableSession_${actualTableNumber}`);
-        localStorage.removeItem(`cart_table_${actualTableNumber}`);
-        localStorage.removeItem(`cart_timestamp_${actualTableNumber}`);
-        localStorage.removeItem(`order_submitted_${actualTableNumber}`);
-        localStorage.removeItem('currentTable');
-        localStorage.removeItem('tableTimestamp');
+    const connectSocket = () => {
+      try {
+        socket = io(getSocketUrl(), {
+          timeout: 10000,
+          transports: ['polling'], // Use polling only to avoid websocket issues
+          forceNew: true
+        });
         
-        // Clear any other table-related data
-        const keysToRemove = [];
-        for (let i = 0; i < localStorage.length; i++) {
-          const key = localStorage.key(i);
-          if (key && (key.includes(`_${actualTableNumber}`) || key.includes(`table_${actualTableNumber}`) || key.includes(`${actualTableNumber}_`))) {
-            keysToRemove.push(key);
+        socket.on('connect', () => {
+          console.log('✅ Socket connected for table', actualTableNumber);
+          reconnectAttempts = 0;
+        });
+        
+        socket.on('connect_error', (error) => {
+          console.warn('🔴 Socket connection failed:', error.message);
+          if (reconnectAttempts < maxReconnectAttempts) {
+            reconnectAttempts++;
+            setTimeout(connectSocket, 5000 * reconnectAttempts);
           }
-        }
-        keysToRemove.forEach(key => localStorage.removeItem(key));
+        });
         
-        console.log('🧹 All localStorage cleared for table:', actualTableNumber);
+        socket.on('tableCleared', (data) => {
+          console.log('🔔 Table cleared event received:', data);
+          if (data.tableId === actualTableNumber) {
+            clearCart();
+            navigate('/');
+            // Remove ALL localStorage items related to this table
+            localStorage.removeItem(`customerInfo_${actualTableNumber}`);
+            localStorage.removeItem(`tableSession_${actualTableNumber}`);
+            localStorage.removeItem(`cart_table_${actualTableNumber}`);
+            localStorage.removeItem(`cart_timestamp_${actualTableNumber}`);
+            localStorage.removeItem(`order_submitted_${actualTableNumber}`);
+            localStorage.removeItem('currentTable');
+            localStorage.removeItem('tableTimestamp');
+            
+            // Clear any other table-related data
+            const keysToRemove = [];
+            for (let i = 0; i < localStorage.length; i++) {
+              const key = localStorage.key(i);
+              if (key && (key.includes(`_${actualTableNumber}`) || key.includes(`table_${actualTableNumber}`) || key.includes(`${actualTableNumber}_`))) {
+                keysToRemove.push(key);
+              }
+            }
+            keysToRemove.forEach(key => localStorage.removeItem(key));
+            
+            console.log('🧹 All localStorage cleared for table:', actualTableNumber);
+            
+            // Show notification to customer
+            alert('🍽️ Your table session has been cleared by restaurant staff. You will be redirected to the homepage.');
+            
+            // Redirect to homepage
+            navigate('/', { replace: true });
+          }
+        });
         
-        // Show notification to customer
-        alert('🍽️ Your table session has been cleared by restaurant staff. You will be redirected to the homepage.');
-        
-        // Redirect to homepage
-        navigate('/', { replace: true });
+      } catch (error) {
+        console.warn('Socket initialization failed:', error);
       }
+    };
+    
+    // Only connect if backend is likely available
+    const backendUrl = process.env.NODE_ENV === 'production' 
+      ? 'https://food-zone-backend-l00k.onrender.com'
+      : 'http://localhost:5001';
+    
+    // Quick check before connecting socket
+    fetch(`${backendUrl}/api/menu`, { 
+      method: 'HEAD',
+      signal: AbortSignal.timeout(5000)
+    })
+    .then(() => {
+      connectSocket();
+    })
+    .catch(() => {
+      console.log('Backend not available, skipping socket connection');
     });
 
     // Cleanup socket connection
     return () => {
-      socket.disconnect();
+      if (socket) {
+        socket.disconnect();
+      }
     };
   }, [actualTableNumber, clearCart, navigate]);
 
@@ -188,6 +235,61 @@ const TableOrder = () => {
     setIsSubmitting(true);
     
     try {
+      // Show connecting notification
+      const notification = document.createElement('div');
+      notification.id = 'order-submission-notification';
+      notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+        color: white;
+        padding: 16px 20px;
+        border-radius: 12px;
+        box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+        z-index: 10000;
+        font-family: system-ui, -apple-system, sans-serif;
+        font-size: 14px;
+        max-width: 350px;
+      `;
+      notification.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+          <div style="width: 20px; height: 20px; border: 2px solid white; border-top: 2px solid transparent; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+          <strong>Submitting Order...</strong>
+        </div>
+        <p style="margin: 0; opacity: 0.9; font-size: 13px;">Connecting to server. Please wait...</p>
+      `;
+      document.body.appendChild(notification);
+
+      // Wake backend first if needed
+      const backendUrl = process.env.NODE_ENV === 'production' 
+        ? 'https://food-zone-backend-l00k.onrender.com'
+        : 'http://localhost:5001';
+      
+      // Quick health check with wake attempt
+      try {
+        const healthResponse = await fetch(`${backendUrl}/api/menu`, {
+          method: 'GET',
+          headers: { 'Cache-Control': 'no-cache' },
+          signal: AbortSignal.timeout(10000)
+        });
+        
+        if (!healthResponse.ok) {
+          // Backend might be hibernated, try to wake it
+          console.log('🔄 Backend appears hibernated, attempting wake...');
+          await fetch(`${backendUrl}/`, { 
+            method: 'GET',
+            headers: { 'Cache-Control': 'no-cache' },
+            signal: AbortSignal.timeout(15000)
+          }).catch(() => {});
+          
+          // Wait for wake up
+          await new Promise(resolve => setTimeout(resolve, 3000));
+        }
+      } catch (error) {
+        console.warn('Health check failed, proceeding with order submission:', error);
+      }
+
       const orderData = {
         tableId: actualTableNumber,
         customerName: customerInfo.name.trim(),
@@ -197,7 +299,62 @@ const TableOrder = () => {
         items: cartItems
       };
 
-      await apiService.createOrder(orderData);
+      console.log('📤 Submitting table order:', orderData);
+      
+      // Try order submission with extended timeout
+      const orderResponse = await fetch(`${backendUrl}/api/order`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache'
+        },
+        body: JSON.stringify(orderData),
+        signal: AbortSignal.timeout(30000) // 30 second timeout
+      });
+
+      if (!orderResponse.ok) {
+        const errorText = await orderResponse.text();
+        throw new Error(`Order submission failed: ${orderResponse.status} - ${errorText}`);
+      }
+
+      const result = await orderResponse.json();
+      console.log('✅ Order submitted successfully:', result);
+      
+      // Remove notification
+      if (notification.parentNode) {
+        notification.parentNode.removeChild(notification);
+      }
+      
+      // Show success notification
+      const successNotification = document.createElement('div');
+      successNotification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: linear-gradient(135deg, #10b981, #059669);
+        color: white;
+        padding: 16px 20px;
+        border-radius: 12px;
+        box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+        z-index: 10000;
+        font-family: system-ui, -apple-system, sans-serif;
+        font-size: 14px;
+        max-width: 350px;
+      `;
+      successNotification.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+          <div style="color: white; font-size: 18px;">✅</div>
+          <strong>Order Submitted!</strong>
+        </div>
+        <p style="margin: 0; opacity: 0.9; font-size: 13px;">Order #${result.order_number || 'N/A'} for Table ${actualTableNumber}</p>
+      `;
+      document.body.appendChild(successNotification);
+      
+      setTimeout(() => {
+        if (successNotification.parentNode) {
+          successNotification.parentNode.removeChild(successNotification);
+        }
+      }, 5000);
       
       setOrderSubmitted(true);
       clearCart();
@@ -206,8 +363,22 @@ const TableOrder = () => {
       localStorage.setItem(`order_submitted_${actualTableNumber}`, Date.now().toString());
       
     } catch (error) {
-      console.error('Error submitting order:', error);
-      setErrorMessage('Failed to submit order. Please try again.');
+      console.error('❌ Error submitting table order:', error);
+      
+      // Remove loading notification
+      const notification = document.getElementById('order-submission-notification');
+      if (notification && notification.parentNode) {
+        notification.parentNode.removeChild(notification);
+      }
+      
+      // Show specific error message based on error type
+      if (error.name === 'TimeoutError' || error.message.includes('timeout')) {
+        setErrorMessage('Server is starting up. Please wait 30-60 seconds and try again.');
+      } else if (error.message.includes('Failed to fetch') || error.message.includes('ERR_FAILED')) {
+        setErrorMessage('Server is hibernated. Please wait 1 minute and try again.');
+      } else {
+        setErrorMessage('Failed to submit order. Please try again.');
+      }
     } finally {
       setIsSubmitting(false);
     }
