@@ -56,7 +56,7 @@ const Header = React.memo(() => {
                 <span className="text-white font-bold text-lg">FZ</span>
               </div>
             </div>
-            <div className={`${isTablePage ? 'text-amber-100' : 'text-white'} transition-all duration-300 ${isScrolled || location.pathname !== '/' ? 'opacity-0 w-0 overflow-hidden' : 'opacity-100'}`}>
+            <div className={`text-white transition-all duration-300 ${isScrolled || location.pathname !== '/' ? 'opacity-0 w-0 overflow-hidden' : 'opacity-100'}`}>
               <h1 className="text-xl font-bold">Food Zone</h1>
               <p className="text-sm opacity-90">Restaurant</p>
             </div>
