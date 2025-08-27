@@ -24,18 +24,21 @@ const TableOrder = () => {
   const [visibleItems, setVisibleItems] = useState(8); // Initial items to show for lazy loading
   const [isLoadingMore, setIsLoadingMore] = useState(false);
 
-  // Table setup - support both numeric and encrypted table IDs for search functionality
+  // Table setup - ONLY allow encrypted table codes for security
   useEffect(() => {
     if (tableId) {
       let tableNumber = null;
       
-      // Try numeric table ID first (needed for search to work)
+      // Block direct numeric access (1,2,3...25) - only allow encrypted codes
       if (!isNaN(tableId) && parseInt(tableId) >= 1 && parseInt(tableId) <= 25) {
-        tableNumber = parseInt(tableId);
-      } else {
-        // Try to decrypt encrypted table codes
-        tableNumber = decryptTableCode(tableId);
+        // Numeric table IDs are blocked for security
+        console.warn('Direct numeric table access blocked:', tableId);
+        setActualTableNumber(null);
+        return;
       }
+      
+      // Only allow encrypted table codes from QR codes
+      tableNumber = decryptTableCode(tableId);
       
       if (tableNumber) {
         setActualTableNumber(tableNumber);
@@ -164,17 +167,40 @@ const TableOrder = () => {
   }, [errorMessage]);
 
   const handleSubmitOrder = async () => {
+    console.log('🔄 Submit order button clicked');
+    console.log('📋 Customer info:', customerInfo);
+    console.log('🛒 Cart items:', cartItems);
+    console.log('🪑 Table number:', actualTableNumber);
+    
     // Clear any previous error messages
     setErrorMessage('');
 
-    // Validation
-    if (!customerInfo.name.trim() || !customerInfo.phone.trim()) {
-      setErrorMessage('Please provide your name and phone number');
+    // Enhanced validation
+    if (!customerInfo.name.trim()) {
+      setErrorMessage('Please provide your name');
+      return;
+    }
+
+    if (!customerInfo.phone.trim()) {
+      setErrorMessage('Please provide your phone number');
+      return;
+    }
+
+    // Validate phone number format (basic validation)
+    const phoneRegex = /^[0-9]{10}$/;
+    const cleanPhone = customerInfo.phone.replace(/\D/g, '');
+    if (cleanPhone.length < 10) {
+      setErrorMessage('Please provide a valid 10-digit phone number');
       return;
     }
 
     if (cartItems.length === 0) {
-      setErrorMessage('Your cart is empty');
+      setErrorMessage('Your cart is empty. Please add items before ordering.');
+      return;
+    }
+
+    if (!actualTableNumber) {
+      setErrorMessage('Table number not found. Please scan the QR code again.');
       return;
     }
 
@@ -183,11 +209,22 @@ const TableOrder = () => {
     try {
       const orderData = {
         tableId: actualTableNumber,
-        customerName: customerInfo.name,
-        phone: customerInfo.phone,
-        items: cartItems,
+        customerName: customerInfo.name.trim(),
+        phone: customerInfo.phone.trim(),
+        address: null, // Not needed for dine-in
+        deliveryNotes: null, // Not needed for dine-in
+        coordinates: null, // Not needed for dine-in
+        items: cartItems.map(item => ({
+          id: item.id,
+          name: item.name,
+          category: item.category || 'Main Course',
+          price: typeof item.price === 'string' ? parseFloat(item.price) : item.price,
+          quantity: item.quantity,
+          instructions: item.instructions || null
+        })),
         orderType: 'dine-in',
-        totalAmount: getTotalPrice()
+        totalAmount: getTotalPrice(),
+        deliveryFee: 0 // Always 0 for dine-in orders
       };
 
       console.log('🍽️ Submitting table order:', orderData);
@@ -196,6 +233,11 @@ const TableOrder = () => {
       
       const response = await apiService.createOrder(orderData);
       console.log('✅ Table order response:', response);
+      
+      // Show success message with order number
+      if (response.data && response.data.order && response.data.order.order_number) {
+        console.log(`🎉 Order ${response.data.order.order_number} submitted successfully for Table ${actualTableNumber}`);
+      }
       
       setOrderSubmitted(true);
       clearCart();
@@ -215,13 +257,17 @@ const TableOrder = () => {
       
       // More specific error messages
       if (error.response?.status === 404) {
-        setErrorMessage('Order endpoint not found. Please contact support.');
+        setErrorMessage('Order service not available. Please try again or contact staff.');
       } else if (error.response?.status === 500) {
-        setErrorMessage('Server error. Please try again in a moment.');
+        setErrorMessage('Server error occurred. Your order was not submitted. Please try again.');
+      } else if (error.response?.status === 400) {
+        setErrorMessage(`Order validation failed: ${error.response?.data?.error || 'Invalid order data'}`);
       } else if (error.code === 'NETWORK_ERROR' || !error.response) {
-        setErrorMessage('Network error. Please check your connection and try again.');
+        setErrorMessage('Connection failed. Please check your internet and try again.');
+      } else if (error.name === 'TimeoutError') {
+        setErrorMessage('Request timed out. The server may be starting up. Please try again in 30 seconds.');
       } else {
-        setErrorMessage(`Failed to submit order: ${error.response?.data?.message || error.message}`);
+        setErrorMessage(`Order submission failed: ${error.response?.data?.error || error.message}`);
       }
     } finally {
       setIsSubmitting(false);
@@ -307,10 +353,15 @@ const TableOrder = () => {
       <div className="container mx-auto px-4 py-8 text-center">
         <h1 className="text-2xl font-bold text-red-600 mb-4">🔒 Access Denied</h1>
         <p className="text-lg mb-4">Please scan the QR code from your table to place an order.</p>
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 max-w-md mx-auto">
-          <p className="text-yellow-800 text-sm">
-            <strong>Security Notice:</strong> Direct table access is disabled for your protection. 
-            Only QR code scanning is allowed.
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 max-w-md mx-auto mb-4">
+          <p className="text-red-800 text-sm">
+            <strong>Security Notice:</strong> Direct numeric table URLs (1,2,3...25) are blocked for security. 
+            Only encrypted QR code access is allowed.
+          </p>
+        </div>
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 max-w-md mx-auto">
+          <p className="text-blue-800 text-sm">
+            <strong>How to order:</strong> Scan the QR code on your table to get the secure ordering link.
           </p>
         </div>
         <p className="text-sm text-gray-600 mt-4">Need help? Please contact our staff.</p>
@@ -618,8 +669,9 @@ const TableOrder = () => {
               )}
               
               <button
+                type="button"
                 onClick={handleSubmitOrder}
-                disabled={isSubmitting || !customerInfo.name || !customerInfo.phone}
+                disabled={isSubmitting || !customerInfo.name.trim() || !customerInfo.phone.trim()}
                 className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 {isSubmitting ? 'Submitting...' : 'Submit Order'}
