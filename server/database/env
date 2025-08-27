@@ -1,5 +1,10 @@
 # Food Zone Database Configuration
 DATABASE_URL=postgresql://postgres:SIPhohEQaPfxFPLQhbrYmvMHlROQEVKF@trolley.proxy.rlwy.net:41468/railway
+
+# Server Configuration
+PORT=5001
+NODE_ENV=development
+
 # Restaurant Configuration
 RESTAURANT_NAME="Food Zone Duwakot"
 RESTAURANT_PHONE="9851234567"
@@ -11,3 +16,6 @@ RESTAURANT_LONGITUDE=85.4298
 DELIVERY_RADIUS=5.0
 MIN_DELIVERY_AMOUNT=200
 BASE_DELIVERY_FEE=50
+
+# CORS Configuration for local development
+ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000

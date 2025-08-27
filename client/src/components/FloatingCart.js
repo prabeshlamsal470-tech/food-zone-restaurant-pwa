@@ -16,8 +16,11 @@ const FloatingCart = () => {
   }
   
   // Don't show on encrypted table pages (they have their own cart UI)
+  // Updated regex to match encrypted table codes more accurately
   const isEncryptedTablePage = location.pathname.match(/^\/[A-Z0-9]{8,}$/);
-  if (isEncryptedTablePage) {
+  const isNumericTablePage = location.pathname.match(/^\/\d+$/);
+  
+  if (isEncryptedTablePage || isNumericTablePage) {
     return null;
   }
   

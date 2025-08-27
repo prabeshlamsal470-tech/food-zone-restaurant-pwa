@@ -3,10 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import io from 'socket.io-client';
 import { getSocketUrl, apiService } from '../services/apiService';
 import { useCart } from '../context/CartContext';
-import { getTableNumberFromCode } from '../utils/tableMapping';
-
-// Lazy load menu item card component
-const MenuItemCard = lazy(() => import('../components/MenuItemCard'));
+import { decryptTableCode } from '../utils/tableEncryption';
 
 const TableOrder = () => {
   const { tableId } = useParams();
@@ -27,17 +24,17 @@ const TableOrder = () => {
   const [visibleItems, setVisibleItems] = useState(8); // Initial items to show for lazy loading
   const [isLoadingMore, setIsLoadingMore] = useState(false);
 
-  // Table setup - support both numeric and mapped table IDs
+  // Table setup - support both numeric and encrypted table IDs for search functionality
   useEffect(() => {
     if (tableId) {
       let tableNumber = null;
       
-      // Try numeric table ID first (1-25)
+      // Try numeric table ID first (needed for search to work)
       if (!isNaN(tableId) && parseInt(tableId) >= 1 && parseInt(tableId) <= 25) {
         tableNumber = parseInt(tableId);
       } else {
-        // Try to get table number from URL mapping
-        tableNumber = getTableNumberFromCode(tableId);
+        // Try to decrypt encrypted table codes
+        tableNumber = decryptTableCode(tableId);
       }
       
       if (tableNumber) {
@@ -47,6 +44,8 @@ const TableOrder = () => {
         // Store the table URL for proper navigation
         sessionStorage.setItem('currentTableUrl', window.location.pathname);
         localStorage.setItem('currentTableUrl', window.location.pathname);
+        
+        // Don't initialize with happy hour items here - let fetchMenuItems handle all menu data
       } else {
         setActualTableNumber(null);
       }
@@ -246,12 +245,7 @@ const TableOrder = () => {
       
       // Exclude test/duplicate items
       const name = item.name.toLowerCase();
-      if (name.includes('duplicate') || name.includes('test') || name.includes('happy hour')) {
-        return false;
-      }
-      
-      // Exclude happy hour category
-      if (item.category && item.category.toLowerCase() === 'happy hour') {
+      if (name.includes('duplicate') || name.includes('test')) {
         return false;
       }
       
@@ -270,12 +264,11 @@ const TableOrder = () => {
     
     const cleanItems = Array.from(uniqueItems.values());
     
-    // If no search query, return all clean items
+    // Apply search filter only if there's a search query
     if (!debouncedSearchQuery || debouncedSearchQuery.trim() === '') {
       return cleanItems;
     }
     
-    // Apply search filter
     const query = debouncedSearchQuery.toLowerCase().trim();
     return cleanItems.filter(item => {
       const name = item.name.toLowerCase();
@@ -429,7 +422,7 @@ const TableOrder = () => {
         )}
 
         {/* Menu Items with Lazy Loading */}
-        {displayedSearchItems.length > 0 && (
+        {displayedSearchItems.length > 0 ? (
           <div className="mb-4">
             <div className="space-y-3 max-h-80 overflow-y-auto">
               <Suspense fallback={<div className="animate-pulse bg-gray-200 h-16 rounded-lg"></div>}>
@@ -492,39 +485,40 @@ const TableOrder = () => {
               )}
             </div>
           </div>
-        )}
+        ) : (
+          <>
+            {/* No Results Message */}
+            {debouncedSearchQuery && debouncedSearchQuery.trim() !== '' && (
+              <div className="text-center py-4">
+                <p className="text-gray-500">No items found for "{debouncedSearchQuery}"</p>
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="text-primary hover:text-orange-600 underline text-sm mt-1"
+                >
+                  Clear search
+                </button>
+              </div>
+            )}
 
-        {/* No Results Message */}
-        {debouncedSearchQuery && debouncedSearchQuery.trim() !== '' && filteredMenuItems.length === 0 && (
-          <div className="text-center py-4">
-            <p className="text-gray-500">No items found for "{debouncedSearchQuery}"</p>
-            <button
-              onClick={() => setSearchQuery('')}
-              className="text-primary hover:text-orange-600 underline text-sm mt-1"
-            >
-              Clear search
-            </button>
-          </div>
-        )}
+            {/* No Menu Items Message */}
+            {!debouncedSearchQuery && menuItems.length === 0 && (
+              <div className="text-center py-8">
+                <div className="text-4xl mb-3">🍽️</div>
+                <p className="text-gray-500 text-lg mb-2">Loading menu items...</p>
+                <p className="text-gray-400 text-sm">Please wait while we fetch the latest menu from our kitchen</p>
+              </div>
+            )}
 
-        {/* No Menu Items Message */}
-        {!debouncedSearchQuery && filteredMenuItems.length === 0 && menuItems.length === 0 && (
-          <div className="text-center py-8">
-            <div className="text-4xl mb-3">🍽️</div>
-            <p className="text-gray-500 text-lg mb-2">Loading menu items...</p>
-            <p className="text-gray-400 text-sm">Please wait while we fetch the latest menu from our kitchen</p>
-          </div>
+            {/* Menu Available Message */}
+            {!debouncedSearchQuery && menuItems.length > 0 && filteredMenuItems.length === 0 && (
+              <div className="text-center py-8">
+                <div className="text-4xl mb-3">🔍</div>
+                <p className="text-gray-500 text-lg mb-2">All menu items available</p>
+                <p className="text-gray-400 text-sm">Start typing in the search box above to find items from our {menuItems.length} available dishes</p>
+              </div>
+            )}
+          </>
         )}
-
-        {/* Menu Available Message */}
-        {!debouncedSearchQuery && filteredMenuItems.length === 0 && menuItems.length > 0 && (
-          <div className="text-center py-8">
-            <div className="text-4xl mb-3">🔍</div>
-            <p className="text-gray-500 text-lg mb-2">Search our menu</p>
-            <p className="text-gray-400 text-sm">Type in the search box above to find items from our {menuItems.length} available dishes</p>
-          </div>
-        )}
-
       </div>
 
       {/* Cart Summary */}
