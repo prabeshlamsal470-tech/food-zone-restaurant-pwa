@@ -88,9 +88,13 @@ class CriticalResourcePreloader {
 
   // Preload critical API endpoints
   async preloadCriticalAPIs() {
+    const baseUrl = process.env.NODE_ENV === 'production' 
+      ? 'https://food-zone-backend-l00k.onrender.com' 
+      : 'http://localhost:5001';
+    
     const apiEndpoints = [
-      'https://food-zone-backend-l00k.onrender.com/api/menu',
-      'https://food-zone-backend-l00k.onrender.com/api/tables/status'
+      `${baseUrl}/api/menu`,
+      `${baseUrl}/api/tables/status`
     ];
 
     const apiPromises = apiEndpoints.map(endpoint => 

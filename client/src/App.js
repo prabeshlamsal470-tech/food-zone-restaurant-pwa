@@ -13,11 +13,7 @@ import { initializeBundleOptimizations } from './utils/bundleOptimizer';
 import Menu from './pages/Menu';
 import Homepage from './pages/Homepage';
 import Tables from './pages/Tables';
-
-// Critical components for instant table loading (higher priority)
-const TableOrder = React.lazy(() => 
-  import(/* webpackChunkName: "table-critical" */ './pages/TableOrder')
-);
+import TableOrder from './pages/TableOrder';
 
 // Non-critical components (lower priority)
 const DeliveryCart = React.lazy(() => 

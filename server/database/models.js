@@ -1,4 +1,4 @@
-const { query, getClient } = require('./config');
+const { query, getClient, pool } = require('./config');
 
 // Customer Model
 class Customer {
