@@ -1,6 +1,6 @@
 import React, { useState, useMemo, lazy, Suspense } from 'react';
 import { Link } from 'react-router-dom';
-import { getUrlFromTableNumber } from '../utils/tableUrlMapping';
+// No longer need table URL mapping - using simple numeric IDs
 
 // Lazy load table card component for better performance
 const TableCard = lazy(() => Promise.resolve({
@@ -17,10 +17,9 @@ const TableCard = lazy(() => Promise.resolve({
 }));
 
 const Tables = () => {
-  // Generate custom table links for tables 1-25
+  // Generate simple numeric table links for tables 1-25
   const generateTableLink = (tableNumber) => {
-    const customUrl = getUrlFromTableNumber(tableNumber);
-    return customUrl ? `/${customUrl}` : '/';
+    return `/${tableNumber}`;
   };
 
   const [visibleTables, setVisibleTables] = useState(12); // Show 12 tables initially

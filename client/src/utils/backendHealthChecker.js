@@ -3,10 +3,10 @@ class BackendHealthChecker {
   constructor() {
     this.isBackendHealthy = false;
     this.lastHealthCheck = 0;
-    this.healthCheckInterval = 15000; // 15 seconds
+    this.healthCheckInterval = 30000; // 30 seconds
     this.failureCount = 0;
-    this.maxFailures = 5;
-    this.checkInterval = 15000; // 15 seconds
+    this.maxFailures = 10; // Allow more failures before showing notifications
+    this.checkInterval = 30000; // 30 seconds
     this.notificationShown = false;
     this.intervalId = null;
     this.wakeAttempts = 0;
@@ -48,8 +48,8 @@ class BackendHealthChecker {
       console.warn('🔴 Backend health check failed:', error.message);
       this.recordFailure();
       
-      // Try to wake up the backend if it's hibernated
-      if (!this.isWaking && this.wakeAttempts < this.maxWakeAttempts) {
+      // Only try to wake backend if we've had many consecutive failures
+      if (!this.isWaking && this.wakeAttempts < this.maxWakeAttempts && this.failureCount >= this.maxFailures) {
         await this.wakeBackend();
       }
       

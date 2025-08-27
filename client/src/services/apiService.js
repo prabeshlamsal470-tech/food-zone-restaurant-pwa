@@ -56,11 +56,8 @@ const showOrderSuccessNotification = (order) => {
   }, 5000);
 };
 
-// Enhanced order submission with backend health checks and notifications
+// Streamlined order submission without aggressive health checks
 const createOrderWithHealthCheck = async (orderData) => {
-  // Import health checker dynamically to avoid circular dependencies
-  const { default: backendHealthChecker } = await import('../utils/backendHealthChecker');
-  
   // Show connecting notification
   const showConnectingNotification = () => {
     const notification = document.createElement('div');
@@ -171,41 +168,7 @@ const createOrderWithHealthCheck = async (orderData) => {
   const connectingNotification = showConnectingNotification();
   
   try {
-    // Check backend health first
-    const isHealthy = await backendHealthChecker.checkBackendHealth();
-    
-    if (!isHealthy) {
-      // Try to wake backend
-      await backendHealthChecker.wakeBackend();
-      
-      // Wait a moment and check again
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      const isAwakeNow = await backendHealthChecker.checkBackendHealth();
-      
-      if (!isAwakeNow) {
-        // Store order locally as fallback
-        const fallbackOrder = {
-          ...orderData,
-          order_number: `LOCAL_${Date.now()}`,
-          timestamp: new Date().toISOString(),
-          status: 'pending_sync'
-        };
-        
-        const localOrders = JSON.parse(localStorage.getItem('pendingOrders') || '[]');
-        localOrders.push(fallbackOrder);
-        localStorage.setItem('pendingOrders', JSON.stringify(localOrders));
-        
-        // Remove connecting notification
-        if (connectingNotification.parentNode) {
-          connectingNotification.parentNode.removeChild(connectingNotification);
-        }
-        
-        showErrorNotification('Server is starting up. Please wait 30-60 seconds and try again.');
-        throw new Error('Backend unavailable - order saved locally');
-      }
-    }
-    
-    // Submit order to backend
+    // Direct order submission - let axios handle timeouts and retries
     const response = await apiClient.post(API_CONFIG.ENDPOINTS.ORDERS, orderData);
     
     // Remove connecting notification
@@ -226,20 +189,34 @@ const createOrderWithHealthCheck = async (orderData) => {
       connectingNotification.parentNode.removeChild(connectingNotification);
     }
     
-    // Show error notification with specific message
-    let errorMessage = 'Connection failed. Please check your internet and try again.';
-    
-    if (error.response?.status === 404) {
-      errorMessage = 'Order service not available. Please try again or contact staff.';
-    } else if (error.response?.status === 500) {
-      errorMessage = 'Server error occurred. Your order was not submitted. Please try again.';
-    } else if (error.response?.status === 400) {
-      errorMessage = `Order validation failed: ${error.response?.data?.error || 'Invalid order data'}`;
-    } else if (error.message.includes('Backend unavailable')) {
-      errorMessage = 'Server is starting up. Please wait 30-60 seconds and try again.';
+    // Handle backend wake-up only if it's a connection error
+    if (error.code === 'ECONNREFUSED' || error.response?.status === 503) {
+      try {
+        // Import health checker only when needed
+        const { default: backendHealthChecker } = await import('../utils/backendHealthChecker');
+        
+        // Single wake attempt without blocking the UI
+        backendHealthChecker.wakeBackend();
+        
+        showErrorNotification('Server is starting up. Please wait 30-60 seconds and try again.');
+      } catch (wakeError) {
+        showErrorNotification('Connection failed. Please check your internet and try again.');
+      }
+    } else {
+      // Show specific error messages for different scenarios
+      let errorMessage = 'Connection failed. Please check your internet and try again.';
+      
+      if (error.response?.status === 404) {
+        errorMessage = 'Order service not available. Please try again or contact staff.';
+      } else if (error.response?.status === 500) {
+        errorMessage = 'Server error occurred. Your order was not submitted. Please try again.';
+      } else if (error.response?.status === 400) {
+        errorMessage = `Order validation failed: ${error.response?.data?.error || 'Invalid order data'}`;
+      }
+      
+      showErrorNotification(errorMessage);
     }
     
-    showErrorNotification(errorMessage);
     throw error;
   }
 };

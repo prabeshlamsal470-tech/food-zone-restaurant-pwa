@@ -1,5 +1,4 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { getTableNumberFromUrl } from '../utils/tableUrlMapping';
 
 const CartContext = createContext();
 
@@ -21,14 +20,13 @@ export const CartProvider = ({ children }) => {
   // Get current table from URL or session
   useEffect(() => {
     const path = window.location.pathname;
-    // Remove leading slash and get table URL
-    const tableUrl = path.startsWith('/') ? path.slice(1) : path;
+    // Simple numeric table detection (e.g., /5 for Table 5)
+    const tableMatch = path.match(/^\/(\d+)$/);
     
     let tableId = null;
     
-    // Check if it's a custom table URL
-    if (tableUrl) {
-      tableId = getTableNumberFromUrl(tableUrl);
+    if (tableMatch) {
+      tableId = parseInt(tableMatch[1]);
     }
     
     if (tableId && tableId >= 1 && tableId <= 25) {

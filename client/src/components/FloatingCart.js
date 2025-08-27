@@ -2,7 +2,7 @@ import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useDeliveryCart } from '../context/DeliveryCartContext';
-import { getUrlFromTableNumber } from '../utils/tableUrlMapping';
+// No longer need table URL mapping - using simple numeric IDs
 
 const FloatingCart = () => {
   const location = useLocation();
@@ -15,11 +15,11 @@ const FloatingCart = () => {
     return null;
   }
   
-  // Don't show on custom table pages (they have their own cart UI)
-  // Check for custom table URLs like /table-alpha-7, /table-bravo-12, etc.
-  const isCustomTablePage = location.pathname.match(/^\/table-[a-z]+-\d+$/);
+  // Don't show on table pages (they have their own cart UI)
+  // Check for numeric table URLs like /1, /2, /3, etc.
+  const isTablePage = location.pathname.match(/^\/\d+$/);
   
-  if (isCustomTablePage) {
+  if (isTablePage) {
     return null;
   }
   
@@ -35,17 +35,12 @@ const FloatingCart = () => {
   let cartColor = '';
   
   if (currentTable && tableCartCount > 0) {
-    // Show table cart - generate custom URL
+    // Show table cart - simple numeric URL
     cartItemCount = tableCartCount;
     totalPrice = getTotalPrice();
     
-    try {
-      const customUrl = getUrlFromTableNumber(currentTable);
-      cartLink = customUrl ? `/${customUrl}` : '/';
-    } catch (error) {
-      console.warn('Failed to get custom URL for table:', error);
-      cartLink = '/';
-    }
+    // Simple numeric table URL
+    cartLink = `/${currentTable}`;
     
     cartType = `Table ${currentTable}`;
     cartColor = 'bg-primary hover:bg-orange-600';

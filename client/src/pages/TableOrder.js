@@ -1,384 +1,178 @@
-import React, { useState, useEffect, useCallback, useMemo, lazy, Suspense } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useParams, Link, useNavigate } from 'react-router-dom';
+import { apiService } from '../services/apiService';
 import io from 'socket.io-client';
-import { getSocketUrl, apiService } from '../services/apiService';
 import { useCart } from '../context/CartContext';
-import { getTableNumberFromUrl } from '../utils/tableUrlMapping';
 
 const TableOrder = () => {
   const { tableId } = useParams();
   const navigate = useNavigate();
   const { cartItems, addToCart, removeFromCart, updateQuantity, setTableContext, clearCart, getTotalPrice } = useCart();
-  // Initialize with empty array - will be populated by fetchMenuItems
   const [menuItems, setMenuItems] = useState([]);
+  const [customItem, setCustomItem] = useState({ name: '', quantity: 1 });
   const [showCheckout, setShowCheckout] = useState(false);
   const [customerInfo, setCustomerInfo] = useState({ name: '', phone: '' });
   const [orderSubmitted, setOrderSubmitted] = useState(false);
-  // const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
-  // const [showMenuSearch, setShowMenuSearch] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
-  const [actualTableNumber, setActualTableNumber] = useState(null);
-  const [visibleItems, setVisibleItems] = useState(8); // Initial items to show for lazy loading
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
 
-  // Table setup - Use custom URL mapping for security
   useEffect(() => {
-    if (tableId) {
-      // Get table number from custom URL mapping
-      const tableNumber = getTableNumberFromUrl(tableId);
-      
-      if (tableNumber) {
-        setActualTableNumber(tableNumber);
-        // Set table context
-        setTableContext(tableNumber);
-        // Store the table URL for proper navigation
-        sessionStorage.setItem('currentTableUrl', window.location.pathname);
-        localStorage.setItem('currentTableUrl', window.location.pathname);
-        
-        console.log(`🪑 Table access granted: ${tableId} -> Table ${tableNumber}`);
-      } else {
-        console.warn('Invalid table URL:', tableId);
-        setActualTableNumber(null);
-      }
+    if (tableId && !isNaN(tableId) && parseInt(tableId) >= 1 && parseInt(tableId) <= 25) {
+      setTableContext(parseInt(tableId));
+      fetchMenuItems();
     }
   }, [tableId, setTableContext]);
 
-  // Debounce search query to improve performance
+  // Socket connection for real-time table clearing
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearchQuery(searchQuery);
-    }, 150); // 150ms debounce
+    const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://food-zone-backend-l00k.onrender.com';
+    const socket = io(API_BASE_URL);
+    
+    // Listen for table cleared event
+    socket.on('tableCleared', (data) => {
+      console.log('🔔 Table cleared event received:', data);
+      
+      // Check if this customer's table was cleared
+      if (data.tableId === parseInt(tableId)) {
+        console.log('🧹 This table was cleared by admin, redirecting to homepage...');
+        
+        // Clear customer's cart and session data
+        clearCart();
+        
+        // Remove ALL localStorage items related to this table
+        localStorage.removeItem(`customerInfo_${tableId}`);
+        localStorage.removeItem(`tableSession_${tableId}`);
+        localStorage.removeItem(`cart_table_${tableId}`);
+        localStorage.removeItem(`cart_timestamp_${tableId}`);
+        localStorage.removeItem(`order_submitted_${tableId}`);
+        localStorage.removeItem('currentTable');
+        localStorage.removeItem('tableTimestamp');
+        
+        // Clear any other table-related data
+        const keysToRemove = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && (key.includes(`_${tableId}`) || key.includes(`table_${tableId}`) || key.includes(`${tableId}_`))) {
+            keysToRemove.push(key);
+          }
+        }
+        keysToRemove.forEach(key => localStorage.removeItem(key));
+        
+        console.log('🧹 All localStorage cleared for table:', tableId);
+        
+        // Show notification to customer
+        alert('🍽️ Your table session has been cleared by restaurant staff. You will be redirected to the homepage.');
+        
+        // Redirect to homepage
+        navigate('/', { replace: true });
+      }
+    });
 
-    return () => clearTimeout(timer);
-  }, [searchQuery]);
+    // Cleanup socket connection
+    return () => {
+      socket.disconnect();
+    };
+  }, [tableId, clearCart, navigate]);
 
   const fetchMenuItems = async () => {
     try {
-      console.log('Fetching menu items from API...');
-      
-      // Use centralized API service instead of direct fetch
       const response = await apiService.getMenu();
-      const menuData = response.data;
-      
-      console.log('Raw API response:', menuData);
-      
-      if (menuData && Array.isArray(menuData) && menuData.length > 0) {
-        console.log('Setting menu items from API:', menuData.length, 'items');
-        setMenuItems(menuData);
-      } else {
-        console.log('No valid menu data from API, using fallback');
-        setMenuItems([]);
-      }
+      setMenuItems(response.data);
     } catch (error) {
-      console.error('API fetch failed:', error);
-      console.log('API fetch failed, setting empty menu');
-      setMenuItems([]);
+      console.error('Error fetching menu:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  useEffect(() => {
-    // Always fetch menu items when component mounts, regardless of table number
-    fetchMenuItems();
-  }, []); // Remove dependency on actualTableNumber
-  
-  // Socket connection for real-time updates
-  useEffect(() => {
-    if (!actualTableNumber) return;
-
-    let socket = null;
-    let reconnectAttempts = 0;
-    const maxReconnectAttempts = 3;
-    let reconnectTimeout = null;
-
-    const connectSocket = () => {
-      try {
-        // Only create socket if we haven't exceeded retry attempts
-        if (reconnectAttempts >= maxReconnectAttempts) {
-          console.log('🔌 Max socket reconnection attempts reached, skipping socket for table:', actualTableNumber);
-          return;
-        }
-
-        socket = io(getSocketUrl(), {
-          timeout: 15000,
-          transports: ['websocket', 'polling'], // Try websocket first, fallback to polling
-          forceNew: false, // Reuse existing connections
-          reconnection: false, // Disable automatic reconnection to prevent spam
-          autoConnect: true
-        });
-
-        socket.on('connect', () => {
-          console.log('🔌 Socket connected for table:', actualTableNumber);
-          reconnectAttempts = 0; // Reset on successful connection
-        });
-
-        socket.on('connect_error', (error) => {
-          console.warn('Socket connection failed:', error.message);
-          reconnectAttempts++;
-          
-          // Only retry if we haven't exceeded max attempts
-          if (reconnectAttempts < maxReconnectAttempts) {
-            reconnectTimeout = setTimeout(() => {
-              if (socket) {
-                socket.disconnect();
-              }
-              connectSocket();
-            }, 5000 * reconnectAttempts); // Exponential backoff
-          }
-        });
-
-        socket.on('disconnect', (reason) => {
-          console.log('🔌 Socket disconnected:', reason);
-          // Don't auto-reconnect to prevent spam
-        });
-
-        socket.on('tableCleared', (data) => {
-          console.log('🔔 Table cleared event received:', data);
-          if (data.tableId === actualTableNumber) {
-            clearCart();
-            navigate('/');
-          }
-        });
-
-      } catch (error) {
-        console.warn('Socket connection error:', error);
-        reconnectAttempts++;
-      }
-    };
-
-    // Only connect socket if backend health is good
-    const connectWithHealthCheck = async () => {
-      try {
-        const { default: backendHealthChecker } = await import('../utils/backendHealthChecker');
-        const isHealthy = await backendHealthChecker.checkBackendHealth();
-        
-        if (isHealthy) {
-          connectSocket();
-        } else {
-          console.log('🔌 Backend unhealthy, skipping socket connection for table:', actualTableNumber);
-        }
-      } catch (error) {
-        console.warn('Health check failed, skipping socket:', error);
-      }
-    };
-
-    connectWithHealthCheck();
-
-    return () => {
-      if (reconnectTimeout) {
-        clearTimeout(reconnectTimeout);
-      }
-      if (socket) {
-        socket.removeAllListeners();
-        socket.disconnect();
-      }
-    };
-  }, [actualTableNumber, clearCart, navigate]);
-
-  const handleViewMenu = useCallback(() => {
-    // Simple navigation using table number
-    navigate(`/menu?table=${actualTableNumber}`);
-  }, [navigate, actualTableNumber]);
-
-  // Auto-clear error messages after 5 seconds
-  useEffect(() => {
-    if (errorMessage) {
-      const timer = setTimeout(() => {
-        setErrorMessage('');
-      }, 5000);
-      return () => clearTimeout(timer);
+  const handleAddCustomItem = () => {
+    if (customItem.name.trim() && customItem.quantity > 0) {
+      const customMenuItem = {
+        id: `custom_${Date.now()}`,
+        name: customItem.name.trim(),
+        price: 0,
+        category: 'Custom',
+        isCustom: true
+      };
+      addToCart(customMenuItem, customItem.quantity);
+      setCustomItem({ name: '', quantity: 1 });
     }
-  }, [errorMessage]);
+  };
 
-  const handleSubmitOrder = async () => {
-    console.log('🔄 Submit order button clicked');
-    console.log('📋 Customer info:', customerInfo);
-    console.log('🛒 Cart items:', cartItems);
-    console.log('🪑 Table number:', actualTableNumber);
-    
+  const handleSubmitOrder = () => {
     // Clear any previous error messages
     setErrorMessage('');
 
-    // Enhanced validation
-    if (!customerInfo.name.trim()) {
-      setErrorMessage('Please provide your name');
-      return;
-    }
-
-    if (!customerInfo.phone.trim()) {
-      setErrorMessage('Please provide your phone number');
-      return;
-    }
-
-    // Validate phone number format (basic validation)
-    const phoneRegex = /^[0-9]{10}$/;
-    const cleanPhone = customerInfo.phone.replace(/\D/g, '');
-    if (cleanPhone.length < 10) {
-      setErrorMessage('Please provide a valid 10-digit phone number');
+    // Validation
+    if (!customerInfo.name.trim() || !customerInfo.phone.trim()) {
+      setErrorMessage('Please provide your name and phone number');
       return;
     }
 
     if (cartItems.length === 0) {
-      setErrorMessage('Your cart is empty. Please add items before ordering.');
+      setErrorMessage('Your cart is empty');
       return;
     }
 
-    if (!actualTableNumber) {
-      setErrorMessage('Table number not found. Please scan the QR code again.');
-      return;
-    }
+    // Show confirmation modal
+    setShowConfirmModal(true);
+  };
 
+  const confirmSubmitOrder = async () => {
     setIsSubmitting(true);
-    
+    setErrorMessage('');
+
     try {
       const orderData = {
-        tableId: actualTableNumber, // Use numeric table number for database
+        tableId: parseInt(tableId),
         customerName: customerInfo.name.trim(),
         phone: customerInfo.phone.trim(),
-        address: null, // Not needed for dine-in
-        deliveryNotes: null, // Not needed for dine-in
-        coordinates: null, // Not needed for dine-in
         items: cartItems.map(item => ({
           id: item.id,
           name: item.name,
-          category: item.category || 'Main Course',
-          price: typeof item.price === 'string' ? parseFloat(item.price) : item.price,
+          price: item.price,
           quantity: item.quantity,
-          instructions: item.instructions || null
-        })),
-        orderType: 'dine-in',
-        totalAmount: getTotalPrice(),
-        deliveryFee: 0 // Always 0 for dine-in orders
+          isCustom: item.isCustom || false
+        }))
       };
 
-      console.log('🍽️ Submitting table order:', orderData);
-      console.log('📡 API endpoint:', '/api/order');
-      console.log('🔗 Backend URL:', process.env.REACT_APP_API_URL || 'https://food-zone-backend-l00k.onrender.com');
-      
-      const response = await apiService.createOrder(orderData);
-      console.log('✅ Table order response:', response);
-      
-      // Show success message with order number
-      if (response.data && response.data.order && response.data.order.order_number) {
-        console.log(`🎉 Order ${response.data.order.order_number} submitted successfully for Table ${actualTableNumber}`);
-      }
-      
+      await apiService.createOrder(orderData);
       setOrderSubmitted(true);
       clearCart();
+      setShowConfirmModal(false);
       
       // Store order submitted state for 30 minutes
       localStorage.setItem(`order_submitted_${tableId}`, Date.now().toString());
-      
     } catch (error) {
-      console.error('❌ Table order submission failed:', error);
-      console.error('📋 Error details:', {
-        message: error.message,
-        status: error.response?.status,
-        statusText: error.response?.statusText,
-        data: error.response?.data,
-        config: error.config
-      });
-      
-      // Enhanced apiService handles all notifications, just clear any existing error message
-      setErrorMessage('');
+      console.error('Error submitting order:', error);
+      setErrorMessage('Failed to submit order. Please try again.');
+      setShowConfirmModal(false);
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  const cancelSubmitOrder = () => {
+    setShowConfirmModal(false);
+    setErrorMessage('');
+  };
 
-  // Enhanced search filter with better data validation
-  const filteredMenuItems = useMemo(() => {
-    if (!menuItems || menuItems.length === 0) {
-      return [];
-    }
-    
-    // Clean and validate menu items
-    const validMenuItems = menuItems.filter(item => {
-      if (!item || !item.id || !item.name) return false;
-      
-      // Handle both string and number prices from API
-      const price = typeof item.price === 'string' ? parseFloat(item.price) : item.price;
-      if (!price || isNaN(price) || price <= 0 || price > 10000) return false;
-      
-      // Exclude test/duplicate items
-      const name = item.name.toLowerCase();
-      if (name.includes('duplicate') || name.includes('test')) {
-        return false;
-      }
-      
-      return true;
-    });
-    
-    // Remove duplicates based on name and price
-    const uniqueItems = validMenuItems.reduce((acc, item) => {
-      const price = typeof item.price === 'string' ? parseFloat(item.price) : item.price;
-      const key = `${item.name.toLowerCase()}-${price}`;
-      if (!acc.has(key)) {
-        acc.set(key, { ...item, price });
-      }
-      return acc;
-    }, new Map());
-    
-    const cleanItems = Array.from(uniqueItems.values());
-    
-    // Apply search filter only if there's a search query
-    if (!debouncedSearchQuery || debouncedSearchQuery.trim() === '') {
-      return cleanItems;
-    }
-    
-    const query = debouncedSearchQuery.toLowerCase().trim();
-    return cleanItems.filter(item => {
-      const name = item.name.toLowerCase();
-      const category = (item.category || '').toLowerCase();
-      const description = (item.description || '').toLowerCase();
-      
-      return name.includes(query) || category.includes(query) || description.includes(query);
-    });
-  }, [menuItems, debouncedSearchQuery]);
+  // Filter menu items based on search query
+  const filteredMenuItems = menuItems.filter(item => {
+    if (!searchQuery) return false; // Only show items when searching
+    return item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+           item.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
+           (item.description && item.description.toLowerCase().includes(searchQuery.toLowerCase()));
+  });
 
-  // Items to display with lazy loading
-  const displayedSearchItems = useMemo(() => {
-    return filteredMenuItems.slice(0, visibleItems);
-  }, [filteredMenuItems, visibleItems]);
-  
-  const hasMoreSearchItems = filteredMenuItems.length > visibleItems;
-
-  // Load more items function
-  const loadMoreItems = useCallback(() => {
-    if (!isLoadingMore && hasMoreSearchItems) {
-      setIsLoadingMore(true);
-      setTimeout(() => {
-        setVisibleItems(prev => prev + 8);
-        setIsLoadingMore(false);
-      }, 300); // Small delay for smooth UX
-    }
-  }, [isLoadingMore, hasMoreSearchItems]);
-
-  // Reset visible items when search changes
-  useEffect(() => {
-    setVisibleItems(8);
-  }, [debouncedSearchQuery]);
-
-  if (!tableId || actualTableNumber === null) {
+  if (!tableId || isNaN(tableId) || parseInt(tableId) < 1 || parseInt(tableId) > 25) {
     return (
       <div className="container mx-auto px-4 py-8 text-center">
-        <h1 className="text-2xl font-bold text-red-600 mb-4">🔒 Access Denied</h1>
-        <p className="text-lg mb-4">Please scan the QR code from your table to place an order.</p>
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 max-w-md mx-auto mb-4">
-          <p className="text-red-800 text-sm">
-            <strong>Security Notice:</strong> Direct numeric table URLs (1,2,3...25) are blocked for security. 
-            Only encrypted QR code access is allowed.
-          </p>
-        </div>
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 max-w-md mx-auto">
-          <p className="text-blue-800 text-sm">
-            <strong>How to order:</strong> Scan the QR code on your table to get the secure ordering link.
-          </p>
-        </div>
-        <p className="text-sm text-gray-600 mt-4">Need help? Please contact our staff.</p>
+        <h1 className="text-2xl font-bold text-red-600 mb-4">Invalid Table</h1>
+        <p>Please scan a valid QR code from tables 1-25.</p>
       </div>
     );
   }
@@ -394,121 +188,72 @@ const TableOrder = () => {
     );
   }
 
-  // Remove full-page loading - show skeleton instead
-  // if (loading) {
-  //   return (
-  //     <div className="flex justify-center items-center min-h-screen">
-  //       <LoadingSpinner message="Loading dine-in menu..." />
-  //     </div>
-  //   );
-  // }
-
-  return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Sticky Table Bar - Same as numeric URLs */}
-      <div className="sticky top-0 z-50 bg-blue-600 text-white shadow-lg">
-        <div className="container mx-auto px-4 py-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="text-xl">🪑</div>
-              <div>
-                <div className="font-semibold text-base">Table {actualTableNumber}</div>
-                <div className="text-sm opacity-90">Dine-in Order</div>
-              </div>
-            </div>
-            <button
-              onClick={handleViewMenu}
-              className="bg-white text-orange-600 px-4 py-2 rounded-lg hover:bg-gray-100 transition-colors font-semibold text-sm"
-            >
-              📋 Full Menu
-            </button>
-          </div>
+  if (loading) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading menu...</p>
         </div>
       </div>
+    );
+  }
 
-      <div className="container mx-auto px-4 py-8">
-        <h1 className="text-2xl font-semibold mb-6 text-center text-gray-800">Order for Table {actualTableNumber}</h1>
+  return (
+    <div className="container mx-auto px-4 py-8">
+      <h1 className="text-3xl font-bold text-center mb-8">Order for Table {tableId}</h1>
 
-        {/* Add Items Section */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6 max-w-md w-full mx-4">
-          <h2 className="text-xl font-semibold mb-4">Quick Search & Add Items</h2>
+      {/* Add Items Section */}
+      <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+        <h2 className="text-xl font-semibold mb-4">Add Items to Your Order</h2>
         
-        {/* Enhanced Menu Search */}
-        <div className="mb-6">
+        {/* Menu Search */}
+        <div className="mb-4">
           <div className="relative">
             <input
               type="text"
-              placeholder="Search menu items, categories..."
+              placeholder="Search menu items (momo, chicken, pizza, tea...)"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full px-4 py-3 pl-10 pr-10 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
+              className="w-full px-4 py-3 pl-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
             />
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
             </div>
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery('')}
-                className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
-              >
-                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            )}
           </div>
-          {menuItems.length > 0 && (
-            <p className="text-xs text-gray-500 mt-2">
-              Searching {menuItems.length} menu items from Railway database
-            </p>
-          )}
+          
+          {/* Browse Menu Button */}
+          <div className="mt-3 text-center">
+            <Link 
+              to="/menu"
+              className="inline-flex items-center px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+            >
+              📋 Browse Full Menu
+            </Link>
+          </div>
         </div>
 
-        {/* Search Results Info */}
-        {debouncedSearchQuery && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
-            <div className="flex items-center justify-between">
-              <p className="text-blue-800 font-medium">
-                {filteredMenuItems.length > 0 
-                  ? `Found ${filteredMenuItems.length} items for "${debouncedSearchQuery}"`
-                  : `No items found for "${debouncedSearchQuery}"`
-                }
-              </p>
-              <button
-                onClick={() => setSearchQuery('')}
-                className="text-blue-600 hover:text-blue-800 underline text-sm font-medium"
-              >
-                Clear
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Menu Items with Lazy Loading */}
-        {displayedSearchItems.length > 0 ? (
+        {/* Search Results */}
+        {searchQuery && filteredMenuItems.length > 0 && (
           <div className="mb-4">
-            <div className="space-y-3 max-h-80 overflow-y-auto">
-              <Suspense fallback={<div className="animate-pulse bg-gray-200 h-16 rounded-lg"></div>}>
-                {displayedSearchItems.map(item => {
+            <p className="text-sm text-gray-600 mb-3">Found {filteredMenuItems.length} items:</p>
+            <div className="space-y-2 max-h-60 overflow-y-auto">
+              {filteredMenuItems.map(item => {
                 const quantity = cartItems.find(cartItem => cartItem.id === item.id)?.quantity || 0;
                 return (
-                  <div key={item.id} className="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow">
+                  <div key={item.id} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
                     <div className="flex-1">
-                      <h4 className="font-semibold text-gray-900">{item.name}</h4>
-                      <p className="text-sm text-blue-600 font-medium">{item.category}</p>
-                      {item.description && (
-                        <p className="text-xs text-gray-500 mt-1">{item.description}</p>
-                      )}
-                      <p className="text-lg font-bold text-orange-600 mt-1">NPR {typeof item.price === 'string' ? parseFloat(item.price) : item.price}/-</p>
+                      <h4 className="font-medium">{item.name}</h4>
+                      <p className="text-sm text-gray-500">{item.category}</p>
+                      <p className="text-sm font-semibold text-primary">NPR {item.price}/-</p>
                     </div>
                     <div className="flex items-center gap-2">
                       {quantity === 0 ? (
                         <button
                           onClick={() => addToCart(item, 1)}
-                          className="bg-primary text-white px-4 py-2 rounded hover:bg-orange-600 transition-colors text-sm min-h-[40px] touch-manipulation"
-                          style={{ touchAction: 'manipulation' }}
+                          className="bg-primary text-white px-3 py-1 rounded hover:bg-orange-600 transition-colors text-sm"
                         >
                           Add
                         </button>
@@ -516,16 +261,14 @@ const TableOrder = () => {
                         <div className="flex items-center gap-2">
                           <button
                             onClick={() => updateQuantity(item.id, quantity - 1)}
-                            className="bg-gray-200 text-gray-700 w-10 h-10 md:w-8 md:h-8 rounded-full hover:bg-gray-300 text-sm flex items-center justify-center touch-manipulation"
-                            style={{ touchAction: 'manipulation' }}
+                            className="bg-gray-200 text-gray-700 w-7 h-7 rounded-full hover:bg-gray-300 text-sm"
                           >
                             -
                           </button>
                           <span className="text-sm font-medium w-8 text-center">{quantity}</span>
                           <button
                             onClick={() => updateQuantity(item.id, quantity + 1)}
-                            className="bg-primary text-white w-10 h-10 md:w-8 md:h-8 rounded-full hover:bg-orange-600 text-sm flex items-center justify-center touch-manipulation"
-                            style={{ touchAction: 'manipulation' }}
+                            className="bg-primary text-white w-7 h-7 rounded-full hover:bg-orange-600 text-sm"
                           >
                             +
                           </button>
@@ -534,61 +277,55 @@ const TableOrder = () => {
                     </div>
                   </div>
                 );
-                })}
-              </Suspense>
-              {/* Load More Button for Search Results */}
-              {hasMoreSearchItems && (
-                <div className="text-center py-2">
-                  <button
-                    onClick={loadMoreItems}
-                    disabled={isLoadingMore}
-                    className="px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50"
-                  >
-                    {isLoadingMore ? 'Loading...' : `Load More (${filteredMenuItems.length - displayedSearchItems.length} remaining)`}
-                  </button>
-                </div>
-              )}
+              })}
             </div>
           </div>
-        ) : (
-          <>
-            {/* No Results Message */}
-            {debouncedSearchQuery && debouncedSearchQuery.trim() !== '' && (
-              <div className="text-center py-4">
-                <p className="text-gray-500">No items found for "{debouncedSearchQuery}"</p>
-                <button
-                  onClick={() => setSearchQuery('')}
-                  className="text-primary hover:text-orange-600 underline text-sm mt-1"
-                >
-                  Clear search
-                </button>
-              </div>
-            )}
-
-            {/* No Menu Items Message */}
-            {!debouncedSearchQuery && menuItems.length === 0 && (
-              <div className="text-center py-8">
-                <div className="text-4xl mb-3">🍽️</div>
-                <p className="text-gray-500 text-lg mb-2">Loading menu items...</p>
-                <p className="text-gray-400 text-sm">Please wait while we fetch the latest menu from our kitchen</p>
-              </div>
-            )}
-
-            {/* Menu Available Message */}
-            {!debouncedSearchQuery && menuItems.length > 0 && filteredMenuItems.length === 0 && (
-              <div className="text-center py-8">
-                <div className="text-4xl mb-3">🔍</div>
-                <p className="text-gray-500 text-lg mb-2">All menu items available</p>
-                <p className="text-gray-400 text-sm">Start typing in the search box above to find items from our {menuItems.length} available dishes</p>
-              </div>
-            )}
-          </>
         )}
+
+        {/* No Results Message */}
+        {searchQuery && filteredMenuItems.length === 0 && (
+          <div className="text-center py-4">
+            <p className="text-gray-500">No items found for "{searchQuery}"</p>
+            <button
+              onClick={() => setSearchQuery('')}
+              className="text-primary hover:text-orange-600 underline text-sm mt-1"
+            >
+              Clear search
+            </button>
+          </div>
+        )}
+
+        {/* Custom Item Section */}
+        <div className="border-t pt-4 mt-4">
+          <h3 className="font-semibold mb-3">Add Custom Item</h3>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              placeholder="Enter custom item name"
+              value={customItem.name}
+              onChange={(e) => setCustomItem({ ...customItem, name: e.target.value })}
+              className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm"
+            />
+            <input
+              type="number"
+              min="1"
+              value={customItem.quantity}
+              onChange={(e) => setCustomItem({ ...customItem, quantity: parseInt(e.target.value) || 1 })}
+              className="w-16 border border-gray-300 rounded-lg px-2 py-2 text-sm"
+            />
+            <button
+              onClick={handleAddCustomItem}
+              className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition-colors text-sm"
+            >
+              Add
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Cart Summary */}
       {cartItems.length > 0 && (
-        <div className="bg-white rounded-lg border border-gray-200 p-6 max-w-md w-full mx-4">
+        <div className="bg-white rounded-lg shadow-md p-6">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-semibold">Your Order</h2>
             <button
@@ -619,16 +356,14 @@ const TableOrder = () => {
                 <div className="flex items-center gap-1">
                   <button
                     onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                    className="bg-gray-200 text-gray-700 w-10 h-10 md:w-8 md:h-8 rounded-full hover:bg-gray-300 transition-colors text-sm flex items-center justify-center touch-manipulation"
-                    style={{ touchAction: 'manipulation' }}
+                    className="bg-gray-200 text-gray-700 w-7 h-7 rounded-full hover:bg-gray-300 transition-colors text-sm flex items-center justify-center"
                   >
                     -
                   </button>
                   <span className="w-8 text-center font-medium">{item.quantity}</span>
                   <button
                     onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                    className="bg-primary text-white w-10 h-10 md:w-8 md:h-8 rounded-full hover:bg-orange-600 transition-colors text-sm flex items-center justify-center touch-manipulation"
-                    style={{ touchAction: 'manipulation' }}
+                    className="bg-primary text-white w-7 h-7 rounded-full hover:bg-orange-600 transition-colors text-sm flex items-center justify-center"
                   >
                     +
                   </button>
@@ -636,8 +371,7 @@ const TableOrder = () => {
                 
                 <button
                   onClick={() => removeFromCart(item.id)}
-                  className="text-red-500 hover:text-red-700 ml-2 p-2 min-w-[40px] min-h-[40px] flex items-center justify-center touch-manipulation"
-                  style={{ touchAction: 'manipulation' }}
+                  className="text-red-500 hover:text-red-700 ml-2 p-1"
                   title="Remove item"
                 >
                   🗑️
@@ -653,9 +387,8 @@ const TableOrder = () => {
           
           {!showCheckout ? (
             <button
-              type="button"
               onClick={() => setShowCheckout(true)}
-              className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+              className="w-full bg-primary text-white py-3 rounded-lg mt-4 hover:bg-orange-600 transition-colors"
             >
               Proceed to Checkout
             </button>
@@ -683,10 +416,9 @@ const TableOrder = () => {
               )}
               
               <button
-                type="button"
                 onClick={handleSubmitOrder}
-                disabled={isSubmitting || !customerInfo.name.trim() || !customerInfo.phone.trim()}
-                className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                disabled={isSubmitting}
+                className="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isSubmitting ? 'Submitting...' : 'Submit Order'}
               </button>
@@ -695,7 +427,60 @@ const TableOrder = () => {
         </div>
       )}
 
-      </div>
+      {/* Order Confirmation Modal */}
+      {showConfirmModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <div className="text-center">
+              <div className="text-4xl mb-4">🍽️</div>
+              <h3 className="text-lg font-semibold mb-2">Confirm Your Order</h3>
+              <div className="text-left bg-gray-50 rounded-lg p-4 mb-4">
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="font-medium">Table:</span>
+                    <span>{tableId}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="font-medium">Name:</span>
+                    <span>{customerInfo.name}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="font-medium">Phone:</span>
+                    <span>{customerInfo.phone}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="font-medium">Items:</span>
+                    <span>{cartItems.length} items</span>
+                  </div>
+                  <div className="flex justify-between font-semibold text-primary border-t pt-2">
+                    <span>Total:</span>
+                    <span>NPR {getTotalPrice()}/-</span>
+                  </div>
+                </div>
+              </div>
+              <p className="text-gray-600 mb-6 text-sm">
+                Please confirm that all details are correct before submitting your order.
+              </p>
+              <div className="flex gap-3 justify-center">
+                <button
+                  onClick={cancelSubmitOrder}
+                  disabled={isSubmitting}
+                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmSubmitOrder}
+                  disabled={isSubmitting}
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isSubmitting ? 'Submitting...' : 'Confirm Order'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

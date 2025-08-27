@@ -328,12 +328,9 @@ const Menu = () => {
             <p className="text-sm mb-4 text-gray-600">Ready to order? Please select your favorite food from our menu.</p>
             <button
               onClick={() => {
-                // Get the custom table URL from sessionStorage or localStorage first
-                const customTableUrl = sessionStorage.getItem('currentTableUrl') || localStorage.getItem('currentTableUrl');
-                
-                if (customTableUrl) {
-                  // Use stored custom URL
-                  window.location.href = customTableUrl;
+                // Simple numeric table URL navigation
+                if (currentTable) {
+                  window.location.href = `/${currentTable}`;
                 } else {
                   // Fallback to home page
                   window.location.href = '/';
