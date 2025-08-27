@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import io from 'socket.io-client';
 import { getSocketUrl, apiService } from '../services/apiService';
 import { useCart } from '../context/CartContext';
-import { decryptTableCode } from '../utils/tableEncryption';
+import { getTableNumberFromCode } from '../utils/tableMapping';
 
 // Lazy load menu item card component
 const MenuItemCard = lazy(() => import('../components/MenuItemCard'));
@@ -27,17 +27,17 @@ const TableOrder = () => {
   const [visibleItems, setVisibleItems] = useState(8); // Initial items to show for lazy loading
   const [isLoadingMore, setIsLoadingMore] = useState(false);
 
-  // Table setup - support both numeric and encrypted table IDs for search functionality
+  // Table setup - support both numeric and mapped table IDs
   useEffect(() => {
     if (tableId) {
       let tableNumber = null;
       
-      // Try numeric table ID first (needed for search to work)
+      // Try numeric table ID first (1-25)
       if (!isNaN(tableId) && parseInt(tableId) >= 1 && parseInt(tableId) <= 25) {
         tableNumber = parseInt(tableId);
       } else {
-        // Try to decrypt encrypted table codes
-        tableNumber = decryptTableCode(tableId);
+        // Try to get table number from URL mapping
+        tableNumber = getTableNumberFromCode(tableId);
       }
       
       if (tableNumber) {
@@ -47,8 +47,6 @@ const TableOrder = () => {
         // Store the table URL for proper navigation
         sessionStorage.setItem('currentTableUrl', window.location.pathname);
         localStorage.setItem('currentTableUrl', window.location.pathname);
-        
-        // Don't initialize with happy hour items here - let fetchMenuItems handle all menu data
       } else {
         setActualTableNumber(null);
       }

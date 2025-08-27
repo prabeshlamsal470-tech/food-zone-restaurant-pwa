@@ -366,7 +366,7 @@ const StaffDashboard = () => {
   const filteredOrders = Array.isArray(orders) ? orders.filter(order => {
     return order.status === filter;
   }) : [];
-  const activeOrders = Array.isArray(orders) ? orders.filter(order => ['pending', 'preparing', 'ready'].includes(order.status)) : [];
+  const activeOrders = Array.isArray(orders) ? orders.filter(order => ['pending', 'preparing', 'ready', 'completed'].includes(order.status)) : [];
 
   return (
     <div className="min-h-screen bg-gray-50">

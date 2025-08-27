@@ -88,7 +88,7 @@ const Reception = () => {
       
       // Separate active and completed orders
       const active = todayOrders.filter(order => 
-        ['pending', 'preparing', 'ready'].includes(order.status)
+        ['pending', 'preparing', 'ready', 'completed'].includes(order.status)
       );
       const completed = todayOrders.filter(order => 
         order.status === 'completed'

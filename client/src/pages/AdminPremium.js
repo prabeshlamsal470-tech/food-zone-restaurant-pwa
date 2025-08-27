@@ -255,7 +255,7 @@ const PremiumSidebar = ({ activeTab, setActiveTab, collapsed, setCollapsed, onLo
   // Calculate real-time badge counts
   const activeOrders = orders?.filter(o => o.status !== 'completed' && o.status !== 'cancelled').length || 0;
   const occupiedTables = orders?.filter(order => 
-    order.order_type === 'dine-in' && ['pending', 'preparing', 'ready'].includes(order.status)
+    order.order_type === 'dine-in' && ['pending', 'preparing', 'ready', 'completed'].includes(order.status)
   ).reduce((tables, order) => {
     if (!tables.includes(order.table_id)) {
       tables.push(order.table_id);
@@ -902,7 +902,7 @@ const TablesManagement = ({ orders, setOrders }) => {
     const tableData = [];
     for (let i = 1; i <= 25; i++) {
       const tableOrders = orders.filter(order => 
-        order.table_id === i && ['pending', 'preparing', 'ready'].includes(order.status)
+        order.table_id === i && ['pending', 'preparing', 'ready', 'completed'].includes(order.status)
       );
       const isOccupied = tableOrders.length > 0;
       const totalAmount = tableOrders.reduce((sum, order) => {
@@ -945,7 +945,7 @@ const TablesManagement = ({ orders, setOrders }) => {
       // Fallback: update locally if API fails
       setOrders(prevOrders => 
         prevOrders.map(order => 
-          order.table_id === tableId && ['pending', 'preparing', 'ready'].includes(order.status)
+          order.table_id === tableId && ['pending', 'preparing', 'ready', 'completed'].includes(order.status)
             ? { ...order, status: 'completed' }
             : order
         )
