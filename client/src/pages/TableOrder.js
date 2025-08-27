@@ -93,59 +93,94 @@ const TableOrder = () => {
     fetchMenuItems();
   }, []); // Remove dependency on actualTableNumber
   
-  // Skip background preload to reduce initial load time
-  // useEffect(() => {
-  //   const preloadMenu = async () => {
-  //     try {
-  //       await apiService.getMenu();
-  //     } catch (error) {
-  //       console.log('Background preload failed:', error);
-  //     }
-  //   };
-  //   preloadMenu();
-  // }, []);
-
-  // Socket connection for real-time table clearing
+  // Socket connection for real-time updates
   useEffect(() => {
     if (!actualTableNumber) return;
 
     let socket = null;
+    let reconnectAttempts = 0;
+    const maxReconnectAttempts = 3;
+    let reconnectTimeout = null;
 
     const connectSocket = () => {
       try {
+        // Only create socket if we haven't exceeded retry attempts
+        if (reconnectAttempts >= maxReconnectAttempts) {
+          console.log('🔌 Max socket reconnection attempts reached, skipping socket for table:', actualTableNumber);
+          return;
+        }
+
         socket = io(getSocketUrl(), {
-          timeout: 10000,
-          transports: ['polling'],
-          forceNew: true
+          timeout: 15000,
+          transports: ['websocket', 'polling'], // Try websocket first, fallback to polling
+          forceNew: false, // Reuse existing connections
+          reconnection: false, // Disable automatic reconnection to prevent spam
+          autoConnect: true
         });
 
         socket.on('connect', () => {
           console.log('🔌 Socket connected for table:', actualTableNumber);
+          reconnectAttempts = 0; // Reset on successful connection
         });
 
         socket.on('connect_error', (error) => {
           console.warn('Socket connection failed:', error.message);
+          reconnectAttempts++;
+          
+          // Only retry if we haven't exceeded max attempts
+          if (reconnectAttempts < maxReconnectAttempts) {
+            reconnectTimeout = setTimeout(() => {
+              if (socket) {
+                socket.disconnect();
+              }
+              connectSocket();
+            }, 5000 * reconnectAttempts); // Exponential backoff
+          }
+        });
+
+        socket.on('disconnect', (reason) => {
+          console.log('🔌 Socket disconnected:', reason);
+          // Don't auto-reconnect to prevent spam
         });
 
         socket.on('tableCleared', (data) => {
           console.log('🔔 Table cleared event received:', data);
           if (data.tableId === actualTableNumber) {
             clearCart();
-            localStorage.removeItem(`cart_${actualTableNumber}`);
-            localStorage.removeItem(`order_submitted_${actualTableNumber}`);
             navigate('/');
           }
         });
 
       } catch (error) {
-        console.warn('Socket initialization failed:', error);
+        console.warn('Socket connection error:', error);
+        reconnectAttempts++;
       }
     };
 
-    connectSocket();
+    // Only connect socket if backend health is good
+    const connectWithHealthCheck = async () => {
+      try {
+        const { default: backendHealthChecker } = await import('../utils/backendHealthChecker');
+        const isHealthy = await backendHealthChecker.checkBackendHealth();
+        
+        if (isHealthy) {
+          connectSocket();
+        } else {
+          console.log('🔌 Backend unhealthy, skipping socket connection for table:', actualTableNumber);
+        }
+      } catch (error) {
+        console.warn('Health check failed, skipping socket:', error);
+      }
+    };
+
+    connectWithHealthCheck();
 
     return () => {
+      if (reconnectTimeout) {
+        clearTimeout(reconnectTimeout);
+      }
       if (socket) {
+        socket.removeAllListeners();
         socket.disconnect();
       }
     };
@@ -255,20 +290,8 @@ const TableOrder = () => {
         config: error.config
       });
       
-      // More specific error messages
-      if (error.response?.status === 404) {
-        setErrorMessage('Order service not available. Please try again or contact staff.');
-      } else if (error.response?.status === 500) {
-        setErrorMessage('Server error occurred. Your order was not submitted. Please try again.');
-      } else if (error.response?.status === 400) {
-        setErrorMessage(`Order validation failed: ${error.response?.data?.error || 'Invalid order data'}`);
-      } else if (error.code === 'NETWORK_ERROR' || !error.response) {
-        setErrorMessage('Connection failed. Please check your internet and try again.');
-      } else if (error.name === 'TimeoutError') {
-        setErrorMessage('Request timed out. The server may be starting up. Please try again in 30 seconds.');
-      } else {
-        setErrorMessage(`Order submission failed: ${error.response?.data?.error || error.message}`);
-      }
+      // Enhanced apiService handles all notifications, just clear any existing error message
+      setErrorMessage('');
     } finally {
       setIsSubmitting(false);
     }

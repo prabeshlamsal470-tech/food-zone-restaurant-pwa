@@ -56,6 +56,194 @@ const showOrderSuccessNotification = (order) => {
   }, 5000);
 };
 
+// Enhanced order submission with backend health checks and notifications
+const createOrderWithHealthCheck = async (orderData) => {
+  // Import health checker dynamically to avoid circular dependencies
+  const { default: backendHealthChecker } = await import('../utils/backendHealthChecker');
+  
+  // Show connecting notification
+  const showConnectingNotification = () => {
+    const notification = document.createElement('div');
+    notification.id = 'order-connecting-notification';
+    notification.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+      color: white;
+      padding: 16px 20px;
+      border-radius: 12px;
+      box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+      z-index: 10000;
+      font-family: system-ui, -apple-system, sans-serif;
+      font-size: 14px;
+      max-width: 350px;
+    `;
+    
+    notification.innerHTML = `
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+        <div style="width: 20px; height: 20px; border: 2px solid white; border-top: 2px solid transparent; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+        <strong>Submitting Order...</strong>
+      </div>
+      <p style="margin: 0; opacity: 0.9; font-size: 13px;">Processing your order securely</p>
+    `;
+    
+    document.body.appendChild(notification);
+    return notification;
+  };
+  
+  // Show success notification
+  const showSuccessNotification = (order) => {
+    const notification = document.createElement('div');
+    notification.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: white;
+      padding: 16px 20px;
+      border-radius: 12px;
+      box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+      z-index: 10000;
+      font-family: system-ui, -apple-system, sans-serif;
+      font-size: 14px;
+      max-width: 350px;
+    `;
+    
+    notification.innerHTML = `
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+        <svg style="width: 20px; height: 20px;" fill="currentColor" viewBox="0 0 20 20">
+          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+        </svg>
+        <strong>Order Submitted Successfully!</strong>
+      </div>
+      <p style="margin: 0; opacity: 0.9; font-size: 13px;">Order #${order.order_number || 'PENDING'} ${orderData.orderType === 'dine-in' ? `for Table ${orderData.tableId}` : 'for delivery'}</p>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Auto-remove after 5 seconds
+    setTimeout(() => {
+      if (notification.parentNode) {
+        notification.parentNode.removeChild(notification);
+      }
+    }, 5000);
+  };
+  
+  // Show error notification
+  const showErrorNotification = (message) => {
+    const notification = document.createElement('div');
+    notification.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: linear-gradient(135deg, #ef4444, #dc2626);
+      color: white;
+      padding: 16px 20px;
+      border-radius: 12px;
+      box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+      z-index: 10000;
+      font-family: system-ui, -apple-system, sans-serif;
+      font-size: 14px;
+      max-width: 350px;
+    `;
+    
+    notification.innerHTML = `
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+        <svg style="width: 20px; height: 20px;" fill="currentColor" viewBox="0 0 20 20">
+          <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+        </svg>
+        <strong>Order Failed</strong>
+      </div>
+      <p style="margin: 0; opacity: 0.9; font-size: 13px;">${message}</p>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Auto-remove after 8 seconds
+    setTimeout(() => {
+      if (notification.parentNode) {
+        notification.parentNode.removeChild(notification);
+      }
+    }, 8000);
+  };
+  
+  const connectingNotification = showConnectingNotification();
+  
+  try {
+    // Check backend health first
+    const isHealthy = await backendHealthChecker.checkBackendHealth();
+    
+    if (!isHealthy) {
+      // Try to wake backend
+      await backendHealthChecker.wakeBackend();
+      
+      // Wait a moment and check again
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      const isAwakeNow = await backendHealthChecker.checkBackendHealth();
+      
+      if (!isAwakeNow) {
+        // Store order locally as fallback
+        const fallbackOrder = {
+          ...orderData,
+          order_number: `LOCAL_${Date.now()}`,
+          timestamp: new Date().toISOString(),
+          status: 'pending_sync'
+        };
+        
+        const localOrders = JSON.parse(localStorage.getItem('pendingOrders') || '[]');
+        localOrders.push(fallbackOrder);
+        localStorage.setItem('pendingOrders', JSON.stringify(localOrders));
+        
+        // Remove connecting notification
+        if (connectingNotification.parentNode) {
+          connectingNotification.parentNode.removeChild(connectingNotification);
+        }
+        
+        showErrorNotification('Server is starting up. Please wait 30-60 seconds and try again.');
+        throw new Error('Backend unavailable - order saved locally');
+      }
+    }
+    
+    // Submit order to backend
+    const response = await apiClient.post(API_CONFIG.ENDPOINTS.ORDERS, orderData);
+    
+    // Remove connecting notification
+    if (connectingNotification.parentNode) {
+      connectingNotification.parentNode.removeChild(connectingNotification);
+    }
+    
+    // Show success notification
+    if (response.data && response.data.order) {
+      showSuccessNotification(response.data.order);
+    }
+    
+    return response;
+    
+  } catch (error) {
+    // Remove connecting notification
+    if (connectingNotification.parentNode) {
+      connectingNotification.parentNode.removeChild(connectingNotification);
+    }
+    
+    // Show error notification with specific message
+    let errorMessage = 'Connection failed. Please check your internet and try again.';
+    
+    if (error.response?.status === 404) {
+      errorMessage = 'Order service not available. Please try again or contact staff.';
+    } else if (error.response?.status === 500) {
+      errorMessage = 'Server error occurred. Your order was not submitted. Please try again.';
+    } else if (error.response?.status === 400) {
+      errorMessage = `Order validation failed: ${error.response?.data?.error || 'Invalid order data'}`;
+    } else if (error.message.includes('Backend unavailable')) {
+      errorMessage = 'Server is starting up. Please wait 30-60 seconds and try again.';
+    }
+    
+    showErrorNotification(errorMessage);
+    throw error;
+  }
+};
+
 // API Service methods
 export const apiService = {
   // Menu services
@@ -81,11 +269,8 @@ export const apiService = {
     });
   },
   
-  // Direct order submission - no health checks
-  createOrder: async (orderData) => {
-    const response = await apiClient.post(API_CONFIG.ENDPOINTS.ORDERS, orderData);
-    return response;
-  },
+  // Enhanced order submission with health checks and notifications
+  createOrder: createOrderWithHealthCheck,
   getOrders: (params = {}) => {
     return apiClient.get(API_CONFIG.ENDPOINTS.ORDERS, { params });
   },
