@@ -141,7 +141,7 @@ const TableOrder = () => {
 
       const response = await apiService.createOrder(orderData);
       
-      if (response && response.success) {
+      if (response && response.data && response.data.success) {
         setOrderSubmitted(true);
         clearCart();
         setShowConfirmModal(false);

@@ -169,7 +169,7 @@ const createOrderWithHealthCheck = async (orderData) => {
   
   try {
     // Direct order submission - let axios handle timeouts and retries
-    const response = await apiClient.post(API_CONFIG.ENDPOINTS.ORDERS, orderData);
+    const response = await apiClient.post(API_CONFIG.ENDPOINTS.ORDER, orderData);
     
     // Remove connecting notification
     if (connectingNotification.parentNode) {
