@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import io from 'socket.io-client';
 import { getSocketUrl, apiService } from '../services/apiService';
 import { useCart } from '../context/CartContext';
-import { decryptTableCode } from '../utils/tableEncryption';
+import { getTableNumberFromUrl } from '../utils/tableUrlMapping';
 
 const TableOrder = () => {
   const { tableId } = useParams();
@@ -24,21 +24,11 @@ const TableOrder = () => {
   const [visibleItems, setVisibleItems] = useState(8); // Initial items to show for lazy loading
   const [isLoadingMore, setIsLoadingMore] = useState(false);
 
-  // Table setup - ONLY allow encrypted table codes for security
+  // Table setup - Use custom URL mapping for security
   useEffect(() => {
     if (tableId) {
-      let tableNumber = null;
-      
-      // Block direct numeric access (1,2,3...25) - only allow encrypted codes
-      if (!isNaN(tableId) && parseInt(tableId) >= 1 && parseInt(tableId) <= 25) {
-        // Numeric table IDs are blocked for security
-        console.warn('Direct numeric table access blocked:', tableId);
-        setActualTableNumber(null);
-        return;
-      }
-      
-      // Only allow encrypted table codes from QR codes
-      tableNumber = decryptTableCode(tableId);
+      // Get table number from custom URL mapping
+      const tableNumber = getTableNumberFromUrl(tableId);
       
       if (tableNumber) {
         setActualTableNumber(tableNumber);
@@ -48,8 +38,9 @@ const TableOrder = () => {
         sessionStorage.setItem('currentTableUrl', window.location.pathname);
         localStorage.setItem('currentTableUrl', window.location.pathname);
         
-        // Don't initialize with happy hour items here - let fetchMenuItems handle all menu data
+        console.log(`🪑 Table access granted: ${tableId} -> Table ${tableNumber}`);
       } else {
+        console.warn('Invalid table URL:', tableId);
         setActualTableNumber(null);
       }
     }
@@ -243,7 +234,7 @@ const TableOrder = () => {
     
     try {
       const orderData = {
-        tableId: actualTableNumber,
+        tableId: actualTableNumber, // Use numeric table number for database
         customerName: customerInfo.name.trim(),
         phone: customerInfo.phone.trim(),
         address: null, // Not needed for dine-in
@@ -278,7 +269,7 @@ const TableOrder = () => {
       clearCart();
       
       // Store order submitted state for 30 minutes
-      localStorage.setItem(`order_submitted_${actualTableNumber}`, Date.now().toString());
+      localStorage.setItem(`order_submitted_${tableId}`, Date.now().toString());
       
     } catch (error) {
       console.error('❌ Table order submission failed:', error);

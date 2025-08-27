@@ -328,18 +328,12 @@ const Menu = () => {
             <p className="text-sm mb-4 text-gray-600">Ready to order? Please select your favorite food from our menu.</p>
             <button
               onClick={() => {
-                // Get the encrypted table URL from sessionStorage or localStorage first
-                const encryptedTableUrl = sessionStorage.getItem('currentTableUrl') || localStorage.getItem('currentTableUrl');
+                // Get the custom table URL from sessionStorage or localStorage first
+                const customTableUrl = sessionStorage.getItem('currentTableUrl') || localStorage.getItem('currentTableUrl');
                 
-                if (encryptedTableUrl) {
-                  // Use stored encrypted URL
-                  window.location.href = encryptedTableUrl;
-                } else if (tableParam && tableParam !== currentTable.toString()) {
-                  // Use the encrypted table parameter from URL if it's not a numeric value
-                  window.location.href = `/${tableParam}`;
-                } else if (currentTable && !isNaN(currentTable) && currentTable >= 1 && currentTable <= 25) {
-                  // For numeric table, redirect to the numeric URL (not encrypted)
-                  window.location.href = `/${currentTable}`;
+                if (customTableUrl) {
+                  // Use stored custom URL
+                  window.location.href = customTableUrl;
                 } else {
                   // Fallback to home page
                   window.location.href = '/';

@@ -2,7 +2,7 @@ import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useDeliveryCart } from '../context/DeliveryCartContext';
-import { encryptTableNumber } from '../utils/tableEncryption';
+import { getUrlFromTableNumber } from '../utils/tableUrlMapping';
 
 const FloatingCart = () => {
   const location = useLocation();
@@ -15,12 +15,11 @@ const FloatingCart = () => {
     return null;
   }
   
-  // Don't show on encrypted table pages (they have their own cart UI)
-  // Updated regex to match encrypted table codes more accurately
-  const isEncryptedTablePage = location.pathname.match(/^\/[A-Z0-9]{8,}$/);
-  const isNumericTablePage = location.pathname.match(/^\/\d+$/);
+  // Don't show on custom table pages (they have their own cart UI)
+  // Check for custom table URLs like /table-alpha-7, /table-bravo-12, etc.
+  const isCustomTablePage = location.pathname.match(/^\/table-[a-z]+-\d+$/);
   
-  if (isEncryptedTablePage || isNumericTablePage) {
+  if (isCustomTablePage) {
     return null;
   }
   
@@ -36,15 +35,15 @@ const FloatingCart = () => {
   let cartColor = '';
   
   if (currentTable && tableCartCount > 0) {
-    // Show table cart - generate encrypted URL
+    // Show table cart - generate custom URL
     cartItemCount = tableCartCount;
     totalPrice = getTotalPrice();
     
     try {
-      const encryptedCode = encryptTableNumber(currentTable);
-      cartLink = `/${encryptedCode}`;
+      const customUrl = getUrlFromTableNumber(currentTable);
+      cartLink = customUrl ? `/${customUrl}` : '/';
     } catch (error) {
-      console.warn('Failed to encrypt table number:', error);
+      console.warn('Failed to get custom URL for table:', error);
       cartLink = '/';
     }
     

@@ -62,8 +62,21 @@ class Order {
     try {
       await client.query('BEGIN');
       
+      console.log('🔍 Order.create debug - tableId:', orderData.tableId, 'type:', typeof orderData.tableId);
+      
+      // Handle tableId without any conversion that might cause NaN
+      const safeTableId = orderData.tableId;
+      console.log('🔍 Raw tableId from orderData:', safeTableId, 'type:', typeof safeTableId);
       // Generate order number
       const orderNumber = await this.generateOrderNumber();
+      
+      console.log('🔍 All parameters for query:', [
+        orderNumber, orderData.orderType, orderData.customerId, orderData.customerName,
+        orderData.customerPhone, orderData.deliveryAddress, orderData.deliveryLatitude,
+        orderData.deliveryLongitude, orderData.deliveryLandmark, orderData.deliveryDistance,
+        orderData.deliveryFee, safeTableId, orderData.subtotal, orderData.discount,
+        orderData.total, orderData.paymentMethod, orderData.notes
+      ]);
       
       // Create order
       const orderResult = await client.query(`
@@ -78,7 +91,7 @@ class Order {
         orderNumber, orderData.orderType, orderData.customerId, orderData.customerName,
         orderData.customerPhone, orderData.deliveryAddress, orderData.deliveryLatitude,
         orderData.deliveryLongitude, orderData.deliveryLandmark, orderData.deliveryDistance,
-        orderData.deliveryFee, orderData.tableId, orderData.subtotal, orderData.discount,
+        orderData.deliveryFee, safeTableId, orderData.subtotal, orderData.discount,
         orderData.total, orderData.paymentMethod, orderData.notes
       ]);
       

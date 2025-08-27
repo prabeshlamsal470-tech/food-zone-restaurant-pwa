@@ -584,6 +584,18 @@ app.post('/api/order', async (req, res) => {
   try {
     const { tableId, customerName, phone, address, deliveryNotes, coordinates, items, orderType, totalAmount, deliveryFee = 0 } = req.body;
     
+    const isDelivery = tableId === 'Delivery' || orderType === 'delivery';
+    const finalTableId = !isDelivery && tableId ? tableId : null;
+    
+    console.log('🔍 Order submission debug:', { 
+      tableId, 
+      tableIdType: typeof tableId,
+      orderType, 
+      isDelivery,
+      finalTableId,
+      finalTableIdType: typeof finalTableId
+    });
+    
     if (!customerName || !phone || !items || items.length === 0) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
@@ -591,7 +603,6 @@ app.post('/api/order', async (req, res) => {
     // Calculate order details
     const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
     const total = subtotal + deliveryFee;
-    const isDelivery = tableId === 'Delivery' || orderType === 'delivery';
 
     // Find or create customer
     const customer = await Customer.findOrCreate({
@@ -619,7 +630,7 @@ app.post('/api/order', async (req, res) => {
       deliveryLandmark: isDelivery ? coordinates?.landmark : null,
       deliveryDistance: isDelivery ? deliveryDistance : null,
       deliveryFee: isDelivery ? deliveryFee : 0,
-      tableId: !isDelivery ? parseInt(tableId) : null,
+      tableId: finalTableId,
       subtotal,
       discount: 0,
       total,
@@ -667,7 +678,7 @@ app.get('/api/orders', async (req, res) => {
     
     if (status) filters.status = status;
     if (orderType) filters.orderType = orderType;
-    if (tableId) filters.tableId = parseInt(tableId);
+    if (tableId) filters.tableId = tableId;
     
     console.log('📊 Fetching orders with filters:', filters);
     const orders = await Order.findAll(filters);

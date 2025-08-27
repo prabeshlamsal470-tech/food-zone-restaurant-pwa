@@ -1,6 +1,6 @@
 import React, { useState, useMemo, lazy, Suspense } from 'react';
 import { Link } from 'react-router-dom';
-import { encryptTableNumber } from '../utils/tableEncryption';
+import { getUrlFromTableNumber } from '../utils/tableUrlMapping';
 
 // Lazy load table card component for better performance
 const TableCard = lazy(() => Promise.resolve({
@@ -17,10 +17,10 @@ const TableCard = lazy(() => Promise.resolve({
 }));
 
 const Tables = () => {
-  // Generate encrypted table links for tables 1-25
+  // Generate custom table links for tables 1-25
   const generateTableLink = (tableNumber) => {
-    const encryptedCode = encryptTableNumber(tableNumber);
-    return `/${encryptedCode}`;
+    const customUrl = getUrlFromTableNumber(tableNumber);
+    return customUrl ? `/${customUrl}` : '/';
   };
 
   const [visibleTables, setVisibleTables] = useState(12); // Show 12 tables initially
@@ -81,7 +81,7 @@ const Tables = () => {
           <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 max-w-xl mx-auto">
             <h2 className="text-base font-medium text-gray-700 mb-2">🔒 Secure Table Access</h2>
             <p className="text-gray-600 text-sm">
-              All table links are encrypted for your security. You can also scan the QR code at your table for direct access.
+              All table links use custom URLs for your security. You can also scan the QR code at your table for direct access.
             </p>
           </div>
         </div>

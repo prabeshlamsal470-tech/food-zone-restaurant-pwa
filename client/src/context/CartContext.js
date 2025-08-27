@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { decryptTableCode } from '../utils/tableEncryption';
+import { getTableNumberFromUrl } from '../utils/tableUrlMapping';
 
 const CartContext = createContext();
 
@@ -21,14 +21,14 @@ export const CartProvider = ({ children }) => {
   // Get current table from URL or session
   useEffect(() => {
     const path = window.location.pathname;
-    const encryptedTableMatch = path.match(/^\/([A-Z0-9]{8,})$/);
+    // Remove leading slash and get table URL
+    const tableUrl = path.startsWith('/') ? path.slice(1) : path;
     
     let tableId = null;
     
-    if (encryptedTableMatch) {
-      // Decrypt table code from URL
-      const encryptedCode = encryptedTableMatch[1];
-      tableId = decryptTableCode(encryptedCode);
+    // Check if it's a custom table URL
+    if (tableUrl) {
+      tableId = getTableNumberFromUrl(tableUrl);
     }
     
     if (tableId && tableId >= 1 && tableId <= 25) {
