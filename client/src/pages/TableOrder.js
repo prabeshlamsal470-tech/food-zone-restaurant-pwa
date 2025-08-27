@@ -124,7 +124,7 @@ const TableOrder = () => {
   const confirmSubmitOrder = async () => {
     setIsSubmitting(true);
     setErrorMessage('');
-
+    
     try {
       const orderData = {
         tableId: parseInt(tableId),
@@ -139,16 +139,28 @@ const TableOrder = () => {
         }))
       };
 
-      await apiService.createOrder(orderData);
-      setOrderSubmitted(true);
-      clearCart();
-      setShowConfirmModal(false);
+      const response = await apiService.createOrder(orderData);
       
-      // Store order submitted state for 30 minutes
-      localStorage.setItem(`order_submitted_${tableId}`, Date.now().toString());
+      if (response && response.success) {
+        setOrderSubmitted(true);
+        clearCart();
+        setShowConfirmModal(false);
+        localStorage.setItem(`order_submitted_${tableId}`, Date.now().toString());
+      } else {
+        throw new Error('Order submission failed');
+      }
     } catch (error) {
       console.error('Error submitting order:', error);
-      setErrorMessage('Failed to submit order. Please try again.');
+      
+      // Better error handling based on error type
+      if (error.code === 'ECONNREFUSED' || error.message.includes('fetch')) {
+        setErrorMessage('Connection failed. Please check your internet and try again.');
+      } else if (error.response?.status === 503) {
+        setErrorMessage('Server is starting up. Please wait 30-60 seconds and try again.');
+      } else {
+        setErrorMessage('Failed to submit order. Please try again.');
+      }
+      
       setShowConfirmModal(false);
     } finally {
       setIsSubmitting(false);
