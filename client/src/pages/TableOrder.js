@@ -249,7 +249,13 @@ const TableOrder = () => {
 
   // Filter menu items based on search query
   const filteredMenuItems = menuItems.filter(item => {
-    if (!searchQuery) return false; // Only show items when searching
+    // Validate item has required properties
+    if (!item || !item.name || !item.id || item.price === undefined) return false;
+    
+    // If no search query, show all valid items
+    if (!searchQuery) return true;
+    
+    // Apply search filter
     return item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
            item.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
            (item.description && item.description.toLowerCase().includes(searchQuery.toLowerCase()));
@@ -322,10 +328,12 @@ const TableOrder = () => {
           </div>
         </div>
 
-        {/* Search Results */}
-        {searchQuery && filteredMenuItems.length > 0 && (
+        {/* Menu Items Display */}
+        {filteredMenuItems.length > 0 && (
           <div className="mb-4">
-            <p className="text-sm text-gray-600 mb-3">Found {filteredMenuItems.length} items:</p>
+            <p className="text-sm text-gray-600 mb-3">
+              {searchQuery ? `Found ${filteredMenuItems.length} items:` : `Available menu items (${filteredMenuItems.length}):`}
+            </p>
             <div className="space-y-2 max-h-60 overflow-y-auto">
               {filteredMenuItems.map(item => {
                 const quantity = cartItems.find(cartItem => cartItem.id === item.id)?.quantity || 0;
@@ -370,15 +378,19 @@ const TableOrder = () => {
         )}
 
         {/* No Results Message */}
-        {searchQuery && filteredMenuItems.length === 0 && (
+        {filteredMenuItems.length === 0 && (
           <div className="text-center py-4">
-            <p className="text-gray-500">No items found for "{searchQuery}"</p>
-            <button
-              onClick={() => setSearchQuery('')}
-              className="text-primary hover:text-orange-600 underline text-sm mt-1"
-            >
-              Clear search
-            </button>
+            <p className="text-gray-500">
+              {searchQuery ? `No items found for "${searchQuery}"` : 'Loading menu items...'}
+            </p>
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="text-primary hover:text-orange-600 underline text-sm mt-1"
+              >
+                Clear search
+              </button>
+            )}
           </div>
         )}
 
