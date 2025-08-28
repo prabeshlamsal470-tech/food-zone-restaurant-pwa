@@ -125,6 +125,11 @@ const TableOrder = () => {
     setIsSubmitting(true);
     setErrorMessage('');
     
+    // Add timeout to prevent hanging
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('Request timeout')), 15000); // 15 second timeout
+    });
+    
     try {
       const orderData = {
         tableId: parseInt(tableId),
@@ -139,7 +144,11 @@ const TableOrder = () => {
         }))
       };
 
-      const response = await apiService.createOrder(orderData);
+      // Race between API call and timeout
+      const response = await Promise.race([
+        apiService.createOrder(orderData),
+        timeoutPromise
+      ]);
       
       // Backend returns direct success response
       if (response && response.success) {
@@ -183,20 +192,48 @@ const TableOrder = () => {
       });
       
       // Better error handling based on error type
-      if (error.code === 'ECONNREFUSED' || error.message.includes('fetch') || error.message.includes('Network Error')) {
-        setErrorMessage('Connection failed. Please check your internet and try again.');
+      let errorMsg = 'Failed to submit order. Please try again.';
+      
+      if (error.message === 'Request timeout') {
+        errorMsg = 'Request timed out. Please check your connection and try again.';
+      } else if (error.code === 'ECONNREFUSED' || error.message.includes('fetch') || error.message.includes('Network Error')) {
+        errorMsg = 'Connection failed. Please check your internet and try again.';
       } else if (error.response?.status === 503) {
-        setErrorMessage('Server is starting up. Please wait 30-60 seconds and try again.');
+        errorMsg = 'Server is starting up. Please wait 30-60 seconds and try again.';
       } else if (error.response?.status === 400) {
-        setErrorMessage(`Order validation failed: ${error.response?.data?.error || 'Invalid order data'}`);
+        errorMsg = `Order validation failed: ${error.response?.data?.error || 'Invalid order data'}`;
       } else if (error.response?.status === 500) {
-        setErrorMessage('Server error occurred. Please try again.');
-      } else {
-        setErrorMessage('Failed to submit order. Please try again.');
+        errorMsg = 'Server error occurred. Please try again.';
       }
       
+      setErrorMessage(errorMsg);
       setShowConfirmModal(false);
+      
+      // Show error notification
+      const notification = document.createElement('div');
+      notification.className = 'fixed top-4 right-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg shadow-lg z-50';
+      notification.innerHTML = `
+        <div class="flex items-center">
+          <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
+          </svg>
+          <div>
+            <p class="font-medium">Order Failed</p>
+            <p class="text-sm">${errorMsg}</p>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(notification);
+      
+      // Auto-remove notification after 5 seconds
+      setTimeout(() => {
+        if (notification.parentNode) {
+          notification.parentNode.removeChild(notification);
+        }
+      }, 5000);
+      
     } finally {
+      // Always ensure button is re-enabled
       setIsSubmitting(false);
     }
   };
