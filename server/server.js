@@ -12,8 +12,8 @@ const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
     origin: process.env.NODE_ENV === 'production' 
-      ? ["https://foodzone.com.np", "https://www.foodzone.com.np", "https://foodzoneduwakot.netlify.app", "https://astounding-malabi-c1d59c.netlify.app", "https://food-zone-restaurant.windsurf.build", "https://foodzone-updated.windsurf.build"]
-      : "http://localhost:3000",
+      ? ["https://foodzone.com.np", "https://www.foodzone.com.np", "https://foodzoneduwakot.netlify.app", "https://astounding-malabi-c1d59c.netlify.app", "https://food-zone-restaurant.windsurf.build", "https://foodzone-updated.windsurf.build", "https://main--astounding-malabi-c1d59c.netlify.app"]
+      : ["http://localhost:3000", "http://127.0.0.1:3000"],
     methods: ["GET", "POST"]
   }
 });
@@ -21,8 +21,8 @@ const io = socketIo(server, {
 // Middleware
 const corsOptions = {
   origin: process.env.NODE_ENV === 'production' 
-    ? ["https://foodzone.com.np", "https://www.foodzone.com.np", "https://foodzoneduwakot.netlify.app", "https://astounding-malabi-c1d59c.netlify.app", "https://food-zone-restaurant.windsurf.build", "https://foodzone-updated.windsurf.build"]
-    : "http://localhost:3000",
+    ? ["https://foodzone.com.np", "https://www.foodzone.com.np", "https://foodzoneduwakot.netlify.app", "https://astounding-malabi-c1d59c.netlify.app", "https://food-zone-restaurant.windsurf.build", "https://foodzone-updated.windsurf.build", "https://main--astounding-malabi-c1d59c.netlify.app"]
+    : ["http://localhost:3000", "http://127.0.0.1:3000"],
   credentials: true
 };
 app.use(cors(corsOptions));
