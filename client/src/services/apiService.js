@@ -9,7 +9,7 @@ import API_CONFIG from '../config/api';
 // Create axios instance with base configuration
 const apiClient = axios.create({
   baseURL: getApiUrl(),
-  timeout: 30000, // 30 seconds timeout
+  timeout: 45000, // 45 seconds timeout for database connection issues
   headers: {
     'Content-Type': 'application/json',
   },

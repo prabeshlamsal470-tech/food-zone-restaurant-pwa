@@ -125,9 +125,9 @@ const TableOrder = () => {
     setIsSubmitting(true);
     setErrorMessage('');
     
-    // Add timeout to prevent hanging
+    // Add timeout to prevent hanging - increased for backend database issues
     const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('Request timeout')), 15000); // 15 second timeout
+      setTimeout(() => reject(new Error('Request timeout')), 30000); // 30 second timeout
     });
     
     try {
@@ -195,7 +195,7 @@ const TableOrder = () => {
       let errorMsg = 'Failed to submit order. Please try again.';
       
       if (error.message === 'Request timeout') {
-        errorMsg = 'Request timed out. Please check your connection and try again.';
+        errorMsg = 'Order is taking longer than usual. The server may be processing your request. Please wait a moment and check if your order appears in the system.';
       } else if (error.code === 'ECONNREFUSED' || error.message.includes('fetch') || error.message.includes('Network Error')) {
         errorMsg = 'Connection failed. Please check your internet and try again.';
       } else if (error.response?.status === 503) {
@@ -203,7 +203,11 @@ const TableOrder = () => {
       } else if (error.response?.status === 400) {
         errorMsg = `Order validation failed: ${error.response?.data?.error || 'Invalid order data'}`;
       } else if (error.response?.status === 500) {
-        errorMsg = 'Server error occurred. Please try again.';
+        if (error.response?.data?.details?.includes('timeout')) {
+          errorMsg = 'Database connection timeout. Your order may still be processing. Please check with staff or try again in a few minutes.';
+        } else {
+          errorMsg = 'Server error occurred. Please try again.';
+        }
       }
       
       setErrorMessage(errorMsg);
