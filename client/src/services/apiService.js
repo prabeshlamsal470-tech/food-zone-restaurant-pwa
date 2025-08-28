@@ -13,6 +13,7 @@ const apiClient = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: false, // Disable credentials for local development
 });
 
 // Request interceptor - no longer needed since baseURL is set correctly
