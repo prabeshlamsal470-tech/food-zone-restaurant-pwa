@@ -526,7 +526,8 @@ class TableSession {
   // Get all table statuses for admin dashboard
   static async getAllTableStatuses() {
     try {
-      const query = `
+      // First get active table sessions
+      const sessionQuery = `
         SELECT 
           t.table_id,
           t.customer_name,
@@ -544,12 +545,44 @@ class TableSession {
         ORDER BY t.table_id
       `;
       
-      const result = await pool.query(query);
+      // Also get recent orders without sessions (like completed orders)
+      const orderQuery = `
+        SELECT 
+          table_id::integer as table_id,
+          customer_name,
+          customer_phone,
+          created_at as session_start,
+          CASE 
+            WHEN status = 'completed' THEN 'occupied'
+            WHEN status IN ('pending', 'preparing', 'ready') THEN 'occupied'
+            ELSE 'occupied'
+          END as status,
+          total as total_amount,
+          payment_status,
+          0 as hours_occupied,
+          1 as order_count
+        FROM orders 
+        WHERE table_id IS NOT NULL 
+          AND table_id != ''
+          AND status IN ('pending', 'preparing', 'ready')
+          AND table_session_id IS NULL
+        ORDER BY table_id, created_at DESC
+      `;
+      
+      const [sessionResult, orderResult] = await Promise.all([
+        pool.query(sessionQuery),
+        pool.query(orderQuery)
+      ]);
       
       // Create array for all 25 tables
       const allTables = [];
       for (let i = 1; i <= 25; i++) {
-        const tableData = result.rows.find(row => row.table_id === i);
+        const sessionData = sessionResult.rows.find(row => row.table_id === i);
+        const orderData = orderResult.rows.find(row => row.table_id === i);
+        
+        // Prioritize session data over order data
+        const tableData = sessionData || orderData;
+        
         allTables.push({
           table_id: i,
           status: tableData ? tableData.status : 'empty',
@@ -557,9 +590,9 @@ class TableSession {
           customer_phone: tableData?.customer_phone || null,
           session_start: tableData?.session_start || null,
           hours_occupied: tableData?.hours_occupied || 0,
-          total_amount: tableData?.total_amount || 0,
+          total_amount: parseFloat(tableData?.total_amount || 0),
           payment_status: tableData?.payment_status || 'unpaid',
-          order_count: tableData?.order_count || 0
+          order_count: parseInt(tableData?.order_count || 0)
         });
       }
       

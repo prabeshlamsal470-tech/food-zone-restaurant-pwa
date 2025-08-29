@@ -23,7 +23,9 @@ const corsOptions = {
   origin: process.env.NODE_ENV === 'production' 
     ? ["https://foodzone.com.np", "https://www.foodzone.com.np", "https://foodzoneduwakot.netlify.app", "https://astounding-malabi-c1d59c.netlify.app", "https://food-zone-restaurant.windsurf.build", "https://foodzone-updated.windsurf.build", "https://main--astounding-malabi-c1d59c.netlify.app"]
     : ["http://localhost:3000", "http://127.0.0.1:3000"],
-  credentials: true
+  credentials: false, // Fixed: Disable credentials to match frontend
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 };
 app.use(cors(corsOptions));
 app.use(express.json());
@@ -961,23 +963,55 @@ app.get('/api/analytics', async (req, res) => {
 app.put('/api/orders/:orderId/status', async (req, res) => {
   try {
     const { orderId } = req.params;
-    const { status } = req.body;
+    const { status, payment_status, payment_method } = req.body;
     
     if (!status) {
       return res.status(400).json({ error: 'Status is required' });
     }
     
     const completedAt = (status === 'completed' || status === 'cancelled') ? new Date().toISOString() : null;
-    const updatedOrder = await Order.updateStatus(orderId, status, completedAt);
+    
+    // Build update query dynamically based on provided fields
+    let updateFields = ['status = $2', 'updated_at = NOW()'];
+    let queryParams = [orderId, status];
+    let paramIndex = 3;
+    
+    if (completedAt) {
+      updateFields.push(`completed_at = $${paramIndex}`);
+      queryParams.push(completedAt);
+      paramIndex++;
+    }
+    
+    if (payment_status) {
+      updateFields.push(`payment_status = $${paramIndex}`);
+      queryParams.push(payment_status);
+      paramIndex++;
+    }
+    
+    if (payment_method) {
+      updateFields.push(`payment_method = $${paramIndex}`);
+      queryParams.push(payment_method);
+      paramIndex++;
+    }
+    
+    const updateQuery = `
+      UPDATE orders 
+      SET ${updateFields.join(', ')}
+      WHERE id = $1 
+      RETURNING *
+    `;
+    
+    const result = await query(updateQuery, queryParams);
+    const updatedOrder = result.rows[0];
     
     if (!updatedOrder) {
       return res.status(404).json({ error: 'Order not found' });
     }
     
     // Emit order status update
-    io.emit('orderStatusUpdated', { orderId, status, completedAt });
+    io.emit('orderStatusUpdated', { orderId, status, payment_status, payment_method, completedAt });
     
-    console.log(`✅ Order ${orderId} status updated to: ${status}`);
+    console.log(`✅ Order ${orderId} status updated to: ${status}${payment_method ? ` (Payment: ${payment_method})` : ''}`);
     res.json({ 
       success: true, 
       message: `Order status updated to ${status}`,
@@ -1994,6 +2028,207 @@ app.post('/api/clear-all-data', async (req, res) => {
   } catch (error) {
     console.error('❌ Error clearing test data:', error);
     res.status(500).json({ error: 'Failed to clear test data', details: error.message });
+  }
+});
+
+// Payment API endpoints
+app.post('/api/payments', async (req, res) => {
+  try {
+    const { order_id, payment_method, amount, invoice_number, amount_received, change_given } = req.body;
+    
+    // First verify the order exists
+    const orderCheck = await query('SELECT id FROM orders WHERE id = $1', [order_id]);
+    if (orderCheck.rows.length === 0) {
+      console.error(`Payment failed: Order ${order_id} not found`);
+      return res.status(404).json({ error: `Order ${order_id} not found` });
+    }
+    
+    const result = await query(`
+      INSERT INTO payments (order_id, payment_method, amount, invoice_number, amount_received, change_given, created_at)
+      VALUES ($1, $2, $3, $4, $5, $6, NOW())
+      RETURNING *
+    `, [order_id, payment_method, amount, invoice_number, amount_received, change_given]);
+    
+    console.log(`✅ Payment created for order ${order_id}: ${payment_method} - NPR ${amount}`);
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Error creating payment:', error.message);
+    res.status(500).json({ 
+      error: 'Failed to create payment',
+      details: error.message,
+      code: error.code
+    });
+  }
+});
+
+app.get('/api/payments', async (req, res) => {
+  try {
+    const result = await query('SELECT * FROM payments ORDER BY created_at DESC');
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Error fetching payments:', error);
+    res.status(500).json({ error: 'Failed to fetch payments' });
+  }
+});
+
+// Daybook API endpoints
+app.get('/api/daybook/:date', async (req, res) => {
+  try {
+    const { date } = req.params;
+    
+    // Get daybook summary for the date with proper calculations
+    const summaryResult = await query(`
+      SELECT 
+        COALESCE(SUM(CASE WHEN transaction_type = 'opening_balance' THEN amount ELSE 0 END), 0) as opening_balance,
+        COALESCE(SUM(CASE WHEN transaction_type = 'cash_payment' THEN amount ELSE 0 END), 0) as cash_payments,
+        COALESCE(SUM(CASE WHEN transaction_type = 'card_payment' THEN amount ELSE 0 END), 0) as card_payments,
+        COALESCE(SUM(CASE WHEN transaction_type = 'online_payment' THEN amount ELSE 0 END), 0) as online_payments,
+        COALESCE(SUM(CASE WHEN transaction_type = 'cash_returned' THEN amount ELSE 0 END), 0) as cash_returned,
+        COALESCE(SUM(CASE WHEN transaction_type = 'expense' THEN amount ELSE 0 END), 0) as expenses,
+        COALESCE(SUM(CASE WHEN transaction_type = 'closing_balance' THEN amount ELSE 0 END), 0) as recorded_closing_balance
+      FROM daybook_transactions 
+      WHERE date = $1
+    `, [date]);
+    
+    const summary = summaryResult.rows[0] || {
+      opening_balance: 0,
+      cash_payments: 0,
+      card_payments: 0,
+      online_payments: 0,
+      cash_returned: 0,
+      expenses: 0,
+      recorded_closing_balance: 0
+    };
+    
+    // Calculate totals according to your formula:
+    // Opening Balance + Total Cash Sales - Cash Returned - Expenses = Closing Balance
+    // Total Sales = Total Cash Sales + Total Card Sales + Total Online Payment Sales
+    const total_sales = parseFloat(summary.cash_payments) + 
+                       parseFloat(summary.card_payments) + 
+                       parseFloat(summary.online_payments);
+    
+    const calculated_closing_balance = parseFloat(summary.opening_balance) + 
+                                     parseFloat(summary.cash_payments) - 
+                                     parseFloat(summary.cash_returned) - 
+                                     parseFloat(summary.expenses);
+    
+    // Get all transactions for the date
+    const transactionsResult = await query(`
+      SELECT * FROM daybook_transactions 
+      WHERE date = $1 
+      ORDER BY created_at DESC
+    `, [date]);
+
+    res.json({
+      summary: {
+        ...summary,
+        total_sales,
+        calculated_closing_balance,
+        // Include both recorded and calculated closing balance
+        closing_balance: summary.recorded_closing_balance || calculated_closing_balance
+      },
+      transactions: transactionsResult.rows
+    });
+  } catch (error) {
+    console.error('Error fetching daybook data:', error);
+    res.status(500).json({ error: 'Failed to fetch daybook data' });
+  }
+});
+
+app.post('/api/daybook/transaction', async (req, res) => {
+  try {
+    const { transaction_type, amount, description, date, order_id } = req.body;
+    
+    const result = await query(`
+      INSERT INTO daybook_transactions (transaction_type, amount, description, order_id, date, created_at)
+      VALUES ($1, $2, $3, $4, $5, $6)
+      RETURNING *
+    `, [
+      transaction_type, 
+      amount, 
+      description, 
+      order_id || null,
+      date ? date.split('T')[0] : new Date().toISOString().split('T')[0],
+      date || new Date()
+    ]);
+    
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Error creating daybook transaction:', error);
+    res.status(500).json({ error: 'Failed to create daybook transaction' });
+  }
+});
+
+app.put('/api/daybook/opening-balance', async (req, res) => {
+  try {
+    const { date, opening_balance } = req.body;
+    
+    // Insert or update opening balance for the date
+    const result = await query(`
+      INSERT INTO daybook_transactions (transaction_type, amount, description, created_at)
+      VALUES ('opening_balance', $1, 'Opening balance', $2)
+      ON CONFLICT (DATE(created_at), transaction_type) 
+      DO UPDATE SET amount = $1
+      RETURNING *
+    `, [opening_balance, date]);
+    
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Error updating opening balance:', error);
+    res.status(500).json({ error: 'Failed to update opening balance' });
+  }
+});
+
+// Get daybook summary for a specific date (used by reception page)
+app.get('/api/daybook/summary', async (req, res) => {
+  try {
+    const { date } = req.query;
+    const targetDate = date || new Date().toISOString().split('T')[0];
+    
+    console.log(`📊 Fetching daybook summary for date: ${targetDate}`);
+    
+    // Get summary data for the date
+    const summaryResult = await query(`
+      SELECT 
+        COALESCE(SUM(CASE WHEN transaction_type = 'cash_payment' THEN amount ELSE 0 END), 0) as cash_payments,
+        COALESCE(SUM(CASE WHEN transaction_type = 'online_payment' THEN amount ELSE 0 END), 0) as online_payments,
+        COALESCE(SUM(CASE WHEN transaction_type = 'card_payment' THEN amount ELSE 0 END), 0) as card_payments,
+        COUNT(CASE WHEN transaction_type IN ('cash_payment', 'online_payment', 'card_payment') THEN 1 END) as transaction_count
+      FROM daybook_transactions 
+      WHERE date = $1
+    `, [targetDate]);
+    
+    console.log(`📊 Summary result:`, summaryResult.rows[0]);
+    res.json({ data: summaryResult.rows[0] });
+  } catch (error) {
+    console.error('❌ Error fetching daybook summary:', error);
+    res.status(500).json({ error: 'Failed to fetch daybook summary', details: error.message });
+  }
+});
+
+// Get recent transactions for monitoring
+app.get('/api/daybook/recent-transactions', async (req, res) => {
+  try {
+    const { limit = 20 } = req.query;
+    
+    console.log(`📊 Fetching recent transactions, limit: ${limit}`);
+    
+    const result = await query(`
+      SELECT 
+        transaction_type,
+        amount,
+        description,
+        created_at
+      FROM daybook_transactions 
+      ORDER BY created_at DESC 
+      LIMIT $1
+    `, [parseInt(limit)]);
+    
+    console.log(`📊 Found ${result.rows.length} recent transactions`);
+    res.json({ data: result.rows });
+  } catch (error) {
+    console.error('❌ Error fetching recent transactions:', error);
+    res.status(500).json({ error: 'Failed to fetch recent transactions', details: error.message });
   }
 });
 

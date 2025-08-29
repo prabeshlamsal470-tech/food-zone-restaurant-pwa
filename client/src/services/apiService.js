@@ -23,9 +23,24 @@ apiClient.interceptors.request.use((config) => {
 
 // Response interceptor for error handling
 apiClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // Check if response is HTML instead of JSON
+    const contentType = response.headers['content-type'];
+    if (contentType && contentType.includes('text/html')) {
+      console.error('Received HTML response instead of JSON:', response.data);
+      throw new Error('Server returned HTML instead of JSON - API endpoint may be incorrect');
+    }
+    return response;
+  },
   (error) => {
     console.error('API Error:', error.response?.data || error.message);
+    
+    // Handle HTML error responses
+    if (error.response?.headers['content-type']?.includes('text/html')) {
+      console.error('Server returned HTML error page instead of JSON');
+      error.message = 'Server configuration error - received HTML instead of JSON';
+    }
+    
     return Promise.reject(error);
   }
 );
@@ -35,7 +50,7 @@ apiClient.interceptors.response.use(
 // API Service methods
 export const apiService = {
   // Menu services
-  getMenu: () => {
+  getMenu: async () => {
     // Check cache first for fast loading
     const cachedMenu = sessionStorage.getItem('menuCache');
     const cacheTime = sessionStorage.getItem('menuCacheTime');
@@ -49,12 +64,29 @@ export const apiService = {
       }
     }
     
-    // Fetch from API and cache
-    return apiClient.get(API_CONFIG.ENDPOINTS.MENU).then(response => {
+    try {
+      // Fetch from API and cache
+      const response = await apiClient.get(API_CONFIG.ENDPOINTS.MENU);
+      
+      // Validate response is JSON
+      if (typeof response.data === 'string' && response.data.includes('<html>')) {
+        throw new Error('Received HTML response instead of JSON from menu API');
+      }
+      
       sessionStorage.setItem('menuCache', JSON.stringify(response.data));
       sessionStorage.setItem('menuCacheTime', Date.now().toString());
       return response;
-    });
+    } catch (error) {
+      console.error('Menu API error:', error);
+      
+      // Return cached data if available, even if expired
+      if (cachedMenu) {
+        console.log('Using expired cache due to API error');
+        return Promise.resolve({ data: JSON.parse(cachedMenu) });
+      }
+      
+      throw error;
+    }
   },
   
   // Direct order submission without health checker interference
@@ -88,6 +120,15 @@ export const apiService = {
   clearTableSessions: () => apiClient.post(API_CONFIG.ENDPOINTS.CLEAR_TABLE_SESSIONS),
   
   // Payment services
+  createPayment: async (paymentData) => {
+    try {
+      const response = await apiClient.post(API_CONFIG.ENDPOINTS.PAYMENTS, paymentData);
+      return response.data;
+    } catch (error) {
+      console.error('Payment creation error:', error);
+      throw error;
+    }
+  },
   updatePaymentStatus: (paymentId, statusData) => 
     apiClient.put(API_CONFIG.ENDPOINTS.PAYMENT_STATUS(paymentId), statusData),
   
@@ -140,40 +181,71 @@ export const fetchApi = {
   },
   
   post: async (endpoint, data, options = {}) => {
-    const response = await fetch(getApiUrl(endpoint), {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
-      body: JSON.stringify(data),
-      ...options,
-    });
+    // Add timeout and better error handling
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
     
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+    try {
+      const response = await fetch(getApiUrl(endpoint), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...options.headers,
+        },
+        body: JSON.stringify(data),
+        signal: controller.signal,
+        ...options,
+      });
+      
+      clearTimeout(timeoutId);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
+      }
+      
+      return response.json();
+    } catch (error) {
+      clearTimeout(timeoutId);
+      if (error.name === 'AbortError') {
+        throw new Error('Request timeout - please check your connection');
+      }
+      throw error;
     }
-    
-    return response.json();
   },
   
   put: async (endpoint, data, options = {}) => {
+    // Add timeout and better error handling
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
     
-    const response = await fetch(getApiUrl(endpoint), {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
-      body: JSON.stringify(data),
-      ...options,
-    });
-    
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+    try {
+      const response = await fetch(getApiUrl(endpoint), {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          ...options.headers,
+        },
+        body: JSON.stringify(data),
+        signal: controller.signal,
+        ...options,
+      });
+      
+      clearTimeout(timeoutId);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
+      }
+      
+      return response.json();
+    } catch (error) {
+      clearTimeout(timeoutId);
+      if (error.name === 'AbortError') {
+        throw new Error('Request timeout - please check your connection');
+      }
+      throw error;
     }
-    
-    return response.json();
   }
 };
 

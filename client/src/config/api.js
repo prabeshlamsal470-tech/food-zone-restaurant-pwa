@@ -32,6 +32,7 @@ const API_CONFIG = {
     CLEAR_TABLE_SESSIONS: '/api/clear-table-sessions',
     
     // Payment endpoints
+    PAYMENTS: '/api/payments',
     PAYMENT_STATUS: (paymentId) => `/api/payments/${paymentId}/status`,
     
     // Admin endpoints

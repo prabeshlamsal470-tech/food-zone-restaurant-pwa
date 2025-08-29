@@ -5,6 +5,8 @@ import { fetchApi, getSocketUrl } from '../services/apiService';
 
 // Import premium components
 // import OrdersManagement from '../components/premium/OrdersManagement';
+import ReceptionPayment from '../components/ReceptionPayment';
+import Daybook from '../components/Daybook';
 
 // Premium SaaS Dashboard Components
 const AdminPremium = () => {
@@ -20,6 +22,7 @@ const AdminPremium = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [socket, setSocket] = useState(null);
 
   // Initialize socket and data fetching
   useEffect(() => {
@@ -30,7 +33,7 @@ const AdminPremium = () => {
       audioManager.requestPermissions();
 
       const newSocket = io(getSocketUrl());
-      // setSocket(newSocket);
+      setSocket(newSocket);
       
       newSocket.on('newOrder', (order) => {
         setOrders(prevOrders => [...prevOrders, order]);
@@ -144,9 +147,11 @@ const AdminPremium = () => {
       case 'menu':
         return <MenuManagement />;
       case 'tables':
-        return <TablesManagement orders={orders} setOrders={setOrders} />;
+        return <TablesManagement orders={orders} setOrders={setOrders} socket={socket} />;
       case 'customers':
         return <CustomersManagement customers={customers} orders={orders} />;
+      case 'daybook':
+        return <Daybook />;
       case 'analytics':
         return <AnalyticsViewPlaceholder orders={orders} />;
       case 'staff':
@@ -269,6 +274,7 @@ const PremiumSidebar = ({ activeTab, setActiveTab, collapsed, setCollapsed, onLo
     { id: 'menu', label: 'Menu', icon: '🍽️', badge: null },
     { id: 'tables', label: 'Tables', icon: '🪑', badge: occupiedTables > 0 ? occupiedTables.toString() : null },
     { id: 'customers', label: 'Customers', icon: '👥', badge: null },
+    { id: 'daybook', label: 'Daybook', icon: '📊', badge: null },
     { id: 'analytics', label: 'Analytics', icon: '📈', badge: null },
     { id: 'staff', label: 'Staff', icon: '👨‍🍳', badge: null },
     { id: 'settings', label: 'Settings', icon: '⚙️', badge: null },
@@ -892,17 +898,63 @@ const MenuManagement = () => {
 };
 
 // Tables Management Component
-const TablesManagement = ({ orders, setOrders }) => {
+const TablesManagement = ({ orders, setOrders, socket }) => {
   const [tables, setTables] = useState([]);
   const [selectedTable, setSelectedTable] = useState(null);
   const [showClearModal, setShowClearModal] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [notification, setNotification] = useState(null);
 
-  // Generate table data (1-25 tables)
+  // Fetch real table statuses from API and setup socket listeners
   useEffect(() => {
+    fetchTableStatuses();
+    
+    // Setup socket listeners for real-time updates
+    if (socket) {
+      socket.on('tableCleared', ({ tableId }) => {
+        console.log(`🔄 Real-time: Table ${tableId} cleared by another client`);
+        fetchTableStatuses();
+      });
+
+      socket.on('newOrder', (order) => {
+        console.log('🔄 Real-time: New order received, refreshing table statuses');
+        fetchTableStatuses();
+      });
+
+      socket.on('orderStatusUpdated', ({ orderId, status }) => {
+        console.log(`🔄 Real-time: Order ${orderId} status updated to ${status}`);
+        fetchTableStatuses();
+      });
+
+      return () => {
+        socket.off('tableCleared');
+        socket.off('newOrder');
+        socket.off('orderStatusUpdated');
+      };
+    }
+  }, [socket]);
+
+  const fetchTableStatuses = async () => {
+    try {
+      setLoading(true);
+      console.log('🔄 Fetching table statuses...');
+      
+      // Since /api/tables/status doesn't exist, generate from orders
+      generateTableDataFromOrders();
+    } catch (error) {
+      console.error('❌ Error fetching table statuses:', error);
+      // Fallback to generating table data from orders
+      generateTableDataFromOrders();
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const generateTableDataFromOrders = () => {
     const tableData = [];
     for (let i = 1; i <= 25; i++) {
       const tableOrders = orders.filter(order => 
-        order.table_id === i && ['pending', 'preparing', 'ready', 'completed'].includes(order.status)
+        (order.table_id === i || order.table_id === i.toString()) && ['pending', 'preparing', 'ready'].includes(order.status)
       );
       const isOccupied = tableOrders.length > 0;
       const totalAmount = tableOrders.reduce((sum, order) => {
@@ -911,58 +963,77 @@ const TablesManagement = ({ orders, setOrders }) => {
       }, 0);
       
       tableData.push({
-        id: i,
-        number: i,
-        status: isOccupied ? 'occupied' : 'available',
-        orders: tableOrders,
-        totalAmount,
-        customerCount: tableOrders.length,
-        lastActivity: tableOrders.length > 0 ? 
-          Math.max(...tableOrders.map(o => new Date(o.created_at).getTime())) : null
+        table_id: i,
+        status: isOccupied ? 'occupied' : 'empty',
+        customer_name: tableOrders[0]?.customer_name || null,
+        customer_phone: tableOrders[0]?.phone || tableOrders[0]?.customer_phone || null,
+        total_amount: totalAmount,
+        order_count: tableOrders.length,
+        session_start: tableOrders[0]?.created_at || null,
+        hours_occupied: tableOrders[0] ? (Date.now() - new Date(tableOrders[0].created_at)) / (1000 * 60 * 60) : 0
       });
     }
     setTables(tableData);
-  }, [orders]);
+  };
+
+  const showNotification = (message, type = 'success') => {
+    setNotification({ message, type });
+    setTimeout(() => setNotification(null), 5000);
+  };
 
   const clearTable = async (tableId) => {
     try {
       console.log('🔧 AdminPremium clearing table:', tableId);
       
       // Call the proper clear table API endpoint that handles database cleanup
-      const response = await fetchApi.post(`/api/clear-table/${tableId}`);
+      const response = await fetchApi.post(`/api/clear-table/${tableId}`, {});
       console.log('🔧 Clear table API response:', response);
       
-      if (response.success) {
-        // Refresh orders from database to get updated state
-        window.location.reload(); // Simple refresh for now
-        console.log(`✅ Table ${tableId} cleared successfully. ${response.movedToHistory} orders moved to history.`);
+      if (response && response.success) {
+        // Emit socket event for real-time updates across all clients
+        if (socket) {
+          socket.emit('tableCleared', { tableId });
+        }
+        
+        // Update local orders state immediately
+        setOrders(prevOrders => 
+          prevOrders.filter(order => order.table_id !== tableId)
+        );
+        
+        // Refresh table statuses after clearing
+        await fetchTableStatuses();
+        console.log(`✅ Table ${tableId} cleared successfully. ${response.movedToHistory || 0} orders moved to history.`);
+        showNotification(`Table ${tableId} cleared successfully! ${response.movedToHistory || 0} orders moved to history.`, 'success');
+      } else {
+        console.warn('⚠️ Clear table response indicates failure:', response);
+        showNotification('Failed to clear table. Please try again.', 'error');
       }
       
       setShowClearModal(false);
       setSelectedTable(null);
     } catch (error) {
       console.error('❌ Error clearing table:', error);
-      // Fallback: update locally if API fails
-      setOrders(prevOrders => 
-        prevOrders.map(order => 
-          order.table_id === tableId && ['pending', 'preparing', 'ready', 'completed'].includes(order.status)
-            ? { ...order, status: 'completed' }
-            : order
-        )
-      );
+      showNotification(`Error clearing table: ${error.message}`, 'error');
+      // Refresh table statuses anyway to get current state
+      await fetchTableStatuses();
       setShowClearModal(false);
       setSelectedTable(null);
     }
   };
 
   const getTableStatusColor = (status) => {
-    return status === 'occupied' 
-      ? 'bg-red-100 border-red-300 text-red-700'
-      : 'bg-green-100 border-green-300 text-green-700';
+    switch (status) {
+      case 'empty': return 'bg-green-100 border-green-300 text-green-700';
+      case 'occupied': return 'bg-red-100 border-red-300 text-red-700';
+      case 'ordering': return 'bg-blue-100 border-blue-300 text-blue-700';
+      case 'dining': return 'bg-yellow-100 border-yellow-300 text-yellow-700';
+      case 'payment_pending': return 'bg-orange-100 border-orange-300 text-orange-700';
+      default: return 'bg-gray-100 border-gray-300 text-gray-700';
+    }
   };
 
-  const occupiedTables = tables.filter(t => t.status === 'occupied');
-  const availableTables = tables.filter(t => t.status === 'available');
+  const occupiedTables = (tables || []).filter(t => t.status === 'occupied' || t.status === 'ordering' || t.status === 'dining');
+  const availableTables = (tables || []).filter(t => t.status === 'empty');
 
   return (
     <div className="space-y-6">
@@ -1035,26 +1106,40 @@ const TablesManagement = ({ orders, setOrders }) => {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
-          {tables.map((table) => (
-            <div
-              key={table.id}
-              onClick={() => setSelectedTable(table)}
-              className={`p-3 sm:p-4 rounded-xl border-2 cursor-pointer transition-all hover:shadow-md ${getTableStatusColor(table.status)}`}
-            >
-              <div className="text-center">
-                <div className="text-sm sm:text-lg font-bold mb-1">Table {table.number}</div>
-                <div className="text-xs capitalize mb-2">{table.status}</div>
-                {table.status === 'occupied' && (
-                  <div className="text-xs">
-                    <div>{table.customerCount} order(s)</div>
-                    <div className="font-semibold">NPR {table.totalAmount}</div>
-                  </div>
-                )}
+        {loading ? (
+          <div className="flex justify-center items-center h-32">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <p className="ml-3 text-gray-600">Loading tables...</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
+            {(tables || []).map((table) => (
+              <div
+                key={table.table_id}
+                onClick={() => setSelectedTable(table)}
+                className={`p-3 sm:p-4 rounded-xl border-2 cursor-pointer transition-all hover:shadow-md ${getTableStatusColor(table.status)}`}
+              >
+                <div className="text-center">
+                  <div className="text-sm sm:text-lg font-bold mb-1">Table {table.table_id}</div>
+                  <div className="text-xs capitalize mb-2">{table.status.replace('_', ' ')}</div>
+                  {table.status !== 'empty' && (
+                    <div className="text-xs">
+                      {table.customer_name && (
+                        <div className="font-medium truncate">{table.customer_name}</div>
+                      )}
+                      {table.total_amount > 0 && (
+                        <div className="font-semibold">NPR {table.total_amount}</div>
+                      )}
+                      {table.order_count > 0 && (
+                        <div>{table.order_count} order(s)</div>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Occupied Tables Details */}
@@ -1063,9 +1148,9 @@ const TablesManagement = ({ orders, setOrders }) => {
           <h3 className="text-lg font-semibold mb-4">Occupied Tables Details</h3>
           <div className="space-y-4">
             {occupiedTables.map((table) => (
-              <div key={table.id} className="border border-gray-200 rounded-lg p-4">
+              <div key={table.table_id} className="border border-gray-200 rounded-lg p-4">
                 <div className="flex items-center justify-between mb-3">
-                  <h4 className="font-semibold text-gray-900">Table {table.number}</h4>
+                  <h4 className="font-semibold text-gray-900">Table {table.table_id}</h4>
                   <button
                     onClick={() => {
                       setSelectedTable(table);
@@ -1077,24 +1162,18 @@ const TablesManagement = ({ orders, setOrders }) => {
                   </button>
                 </div>
                 <div className="space-y-2">
-                  {table.orders.map((order) => (
-                    <div key={order.id} className="flex items-center justify-between p-2 bg-gray-50 rounded">
-                      <div className="flex-1 min-w-0">
-                        <div className="font-medium truncate">{order.customer_name || 'Unknown Customer'}</div>
-                        <div className="text-sm text-gray-600 truncate">• {order.phone || order.customer_phone || 'No phone'}</div>
-                      </div>
-                      <div className="text-right">
-                        <div className="font-semibold">NPR {order.total_amount || (order.items?.reduce((sum, item) => sum + (item.price * item.quantity), 0) || 0)}</div>
-                        <div className={`text-xs px-2 py-1 rounded-full ${
-                          order.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
-                          order.status === 'preparing' ? 'bg-blue-100 text-blue-700' :
-                          'bg-green-100 text-green-700'
-                        }`}>
-                          {order.status}
-                        </div>
+                  <div className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium truncate">{table.customer_name || 'Unknown Customer'}</div>
+                      <div className="text-sm text-gray-600 truncate">• {table.customer_phone || 'No phone'}</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-semibold">NPR {table.total_amount || 0}</div>
+                      <div className="text-xs px-2 py-1 rounded-full bg-red-100 text-red-700">
+                        {table.status}
                       </div>
                     </div>
-                  ))}
+                  </div>
                 </div>
               </div>
             ))}
@@ -1106,33 +1185,41 @@ const TablesManagement = ({ orders, setOrders }) => {
       {selectedTable && !showClearModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg p-6 max-w-md w-full">
-            <h3 className="text-lg font-semibold mb-4">Table {selectedTable.number} Details</h3>
+            <h3 className="text-lg font-semibold mb-4">Table {selectedTable.table_id} Details</h3>
             <div className="space-y-3">
               <div className="flex justify-between">
                 <span>Status:</span>
-                <span className={`px-2 py-1 rounded-full text-sm ${
-                  selectedTable.status === 'occupied' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'
-                }`}>
-                  {selectedTable.status}
+                <span className={`px-2 py-1 rounded-full text-sm ${getTableStatusColor(selectedTable.status)}`}>
+                  {selectedTable.status.replace('_', ' ')}
                 </span>
               </div>
-              <div className="flex justify-between">
-                <span>Active Orders:</span>
-                <span>{selectedTable.customerCount}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Total Amount:</span>
-                <span className="font-semibold">NPR {selectedTable.totalAmount}</span>
-              </div>
-              {selectedTable.lastActivity && (
+              {selectedTable.customer_name && (
+                <div className="flex justify-between">
+                  <span>Customer:</span>
+                  <span>{selectedTable.customer_name}</span>
+                </div>
+              )}
+              {selectedTable.order_count > 0 && (
+                <div className="flex justify-between">
+                  <span>Active Orders:</span>
+                  <span>{selectedTable.order_count}</span>
+                </div>
+              )}
+              {selectedTable.total_amount > 0 && (
+                <div className="flex justify-between">
+                  <span>Total Amount:</span>
+                  <span className="font-semibold">NPR {selectedTable.total_amount}</span>
+                </div>
+              )}
+              {selectedTable.last_activity && (
                 <div className="flex justify-between">
                   <span>Last Activity:</span>
-                  <span className="text-sm">{new Date(selectedTable.lastActivity).toLocaleString()}</span>
+                  <span className="text-sm">{new Date(selectedTable.last_activity).toLocaleString()}</span>
                 </div>
               )}
             </div>
             <div className="flex space-x-2 mt-6">
-              {selectedTable.status === 'occupied' && (
+              {selectedTable.status !== 'empty' && (
                 <button
                   onClick={() => setShowClearModal(true)}
                   className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
@@ -1155,13 +1242,13 @@ const TablesManagement = ({ orders, setOrders }) => {
       {showClearModal && selectedTable && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg p-6 max-w-md w-full">
-            <h3 className="text-lg font-semibold mb-4">Clear Table {selectedTable.number}?</h3>
+            <h3 className="text-lg font-semibold mb-4">Clear Table {selectedTable.table_id}?</h3>
             <p className="text-gray-600 mb-6">
               This will mark all active orders for this table as completed and make the table available for new customers.
             </p>
             <div className="flex space-x-2">
               <button
-                onClick={() => clearTable(selectedTable.id)}
+                onClick={() => clearTable(selectedTable.table_id)}
                 className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
               >
                 Yes, Clear Table
@@ -1173,6 +1260,28 @@ const TablesManagement = ({ orders, setOrders }) => {
                 Cancel
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Notification Toast */}
+      {notification && (
+        <div className={`fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg ${
+          notification.type === 'success' 
+            ? 'bg-green-100 border border-green-400 text-green-700' 
+            : 'bg-red-100 border border-red-400 text-red-700'
+        }`}>
+          <div className="flex items-center">
+            <span className="mr-2">
+              {notification.type === 'success' ? '✅' : '❌'}
+            </span>
+            <span>{notification.message}</span>
+            <button
+              onClick={() => setNotification(null)}
+              className="ml-4 text-gray-400 hover:text-gray-600"
+            >
+              ✕
+            </button>
           </div>
         </div>
       )}
@@ -2311,7 +2420,8 @@ const StaffModal = ({ staff, roles, shifts, onSave, onClose }) => {
 // Orders Management Component
 const OrdersManagement = ({ orders, setOrders }) => {
   const [filter, setFilter] = useState('all');
-  // const [selectedOrder, setSelectedOrder] = useState(null);
+  const [selectedOrder, setSelectedOrder] = useState(null);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
 
   const updateOrderStatus = async (orderId, newStatus) => {
     try {
@@ -2324,6 +2434,26 @@ const OrdersManagement = ({ orders, setOrders }) => {
     } catch (error) {
       console.error('Error updating order status:', error);
     }
+  };
+
+  const handlePaymentClick = (order) => {
+    setSelectedOrder(order);
+    setShowPaymentModal(true);
+  };
+
+  const handlePaymentComplete = (updatedOrder) => {
+    setOrders(prevOrders => 
+      prevOrders.map(order => 
+        order.id === updatedOrder.id ? { ...order, ...updatedOrder } : order
+      )
+    );
+    setShowPaymentModal(false);
+    setSelectedOrder(null);
+  };
+
+  const handlePaymentCancel = () => {
+    setShowPaymentModal(false);
+    setSelectedOrder(null);
   };
 
   const filteredOrders = orders.filter(order => {
@@ -2483,17 +2613,40 @@ const OrdersManagement = ({ orders, setOrders }) => {
                         )}
                         
                         {order.status === 'ready' && (
-                          <button
-                            onClick={() => updateOrderStatus(order.id, 'completed')}
-                            className="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors duration-200 shadow-sm"
-                          >
-                            ✅ Completed
-                          </button>
+                          <>
+                            <button
+                              onClick={() => handlePaymentClick(order)}
+                              className="px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 transition-colors duration-200 shadow-sm"
+                            >
+                              💳 Process Payment
+                            </button>
+                            <button
+                              onClick={() => updateOrderStatus(order.id, 'completed')}
+                              className="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors duration-200 shadow-sm"
+                            >
+                              ✅ Mark Completed
+                            </button>
+                          </>
                         )}
                         
                         {order.status === 'completed' && (
-                          <div className="px-4 py-2 bg-green-100 text-green-800 text-sm font-medium rounded-lg border border-green-200">
-                            ✅ Completed
+                          <div className="flex flex-col space-y-1">
+                            <div className="px-4 py-2 bg-green-100 text-green-800 text-sm font-medium rounded-lg border border-green-200">
+                              ✅ Completed
+                            </div>
+                            {order.payment_status !== 'paid' && (
+                              <button
+                                onClick={() => handlePaymentClick(order)}
+                                className="px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 transition-colors duration-200 shadow-sm"
+                              >
+                                💳 Process Payment
+                              </button>
+                            )}
+                            {order.payment_status === 'paid' && (
+                              <div className="px-4 py-2 bg-blue-100 text-blue-800 text-sm font-medium rounded-lg border border-blue-200">
+                                💰 Paid
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>
@@ -2505,6 +2658,19 @@ const OrdersManagement = ({ orders, setOrders }) => {
           )}
         </div>
       </div>
+
+      {/* Payment Modal */}
+      {showPaymentModal && selectedOrder && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl p-6 max-w-md w-full mx-4">
+            <ReceptionPayment
+              order={selectedOrder}
+              onPaymentComplete={handlePaymentComplete}
+              onCancel={handlePaymentCancel}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 };

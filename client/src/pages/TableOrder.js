@@ -9,7 +9,6 @@ const TableOrder = () => {
   const navigate = useNavigate();
   const { cartItems, addToCart, removeFromCart, updateQuantity, setTableContext, clearCart, getTotalPrice } = useCart();
   const [menuItems, setMenuItems] = useState([]);
-  const [customItem, setCustomItem] = useState({ name: '', quantity: 1 });
   const [showCheckout, setShowCheckout] = useState(false);
   const [customerInfo, setCustomerInfo] = useState({ name: '', phone: '' });
   const [orderSubmitted, setOrderSubmitted] = useState(false);
@@ -24,7 +23,7 @@ const TableOrder = () => {
       setTableContext(parseInt(tableId));
       fetchMenuItems();
     }
-  }, [tableId, setTableContext]);
+  }, [tableId]); // Removed setTableContext from dependencies to prevent infinite loop
 
   // Socket connection for real-time table clearing
   useEffect(() => {
@@ -80,27 +79,31 @@ const TableOrder = () => {
   const fetchMenuItems = async () => {
     try {
       const response = await apiService.getMenu();
-      setMenuItems(response.data);
+      
+      // Validate response structure
+      if (response && response.data && Array.isArray(response.data)) {
+        setMenuItems(response.data);
+      } else if (Array.isArray(response)) {
+        // Handle case where response is directly an array
+        setMenuItems(response);
+      } else {
+        console.error('Invalid menu response format:', response);
+        setMenuItems([]);
+      }
     } catch (error) {
       console.error('Error fetching menu:', error);
+      
+      // Check if error contains HTML (common cause of "Unexpected token '<'")
+      if (error.message && error.message.includes('<')) {
+        console.error('Received HTML response instead of JSON - API endpoint issue');
+      }
+      
+      setMenuItems([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleAddCustomItem = () => {
-    if (customItem.name.trim() && customItem.quantity > 0) {
-      const customMenuItem = {
-        id: `custom_${Date.now()}`,
-        name: customItem.name.trim(),
-        price: 0,
-        category: 'Custom',
-        isCustom: true
-      };
-      addToCart(customMenuItem, customItem.quantity);
-      setCustomItem({ name: '', quantity: 1 });
-    }
-  };
 
   const handleSubmitOrder = () => {
     // Clear any previous error messages
@@ -394,32 +397,6 @@ const TableOrder = () => {
           </div>
         )}
 
-        {/* Custom Item Section */}
-        <div className="border-t pt-4 mt-4">
-          <h3 className="font-semibold mb-3">Add Custom Item</h3>
-          <div className="flex gap-2">
-            <input
-              type="text"
-              placeholder="Enter custom item name"
-              value={customItem.name}
-              onChange={(e) => setCustomItem({ ...customItem, name: e.target.value })}
-              className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm"
-            />
-            <input
-              type="number"
-              min="1"
-              value={customItem.quantity}
-              onChange={(e) => setCustomItem({ ...customItem, quantity: parseInt(e.target.value) || 1 })}
-              className="w-16 border border-gray-300 rounded-lg px-2 py-2 text-sm"
-            />
-            <button
-              onClick={handleAddCustomItem}
-              className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition-colors text-sm"
-            >
-              Add
-            </button>
-          </div>
-        </div>
       </div>
 
       {/* Cart Summary */}
